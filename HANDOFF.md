@@ -2,8 +2,8 @@
 
 ## 1. 项目目标
 
-**项目名**：AgentOps Studio  
-**定位**：一个面向团队的 AI 自动化运营中台，用于展示 AI 应用工程师所需的复杂全栈能力。  
+**项目名**：AgentOps Studio
+**定位**：一个面向团队的 AI 自动化运营中台，用于展示 AI 应用工程师所需的复杂全栈能力。
 **核心价值**：证明候选人能够利用 AI 辅助完成一个具备真实业务复杂度的全栈系统，而不是简单的聊天机器人 demo。
 
 ### 求职展示重点
@@ -77,6 +77,7 @@ agentops-studio/
 ### API 库 (`apps/api/src/lib/`)
 | 文件 | 功能 |
 |------|------|
+| `auth.ts` | JWT 用户认证解析（getAuthUser） |
 | `jwt.ts` | JWT 签名/验证 |
 | `password.ts` | bcrypt 密码哈希 |
 | `minio.ts` | MinIO 客户端封装 |
@@ -106,6 +107,7 @@ agentops-studio/
 | 文件 | 功能 |
 |------|------|
 | `Navbar.tsx` | 全局导航栏（带用户状态） |
+| `auth-check.tsx` | 路由守卫（未登录重定向） |
 | `workflow/editor-store.ts` | Zustand 工作流编辑器状态 |
 | `workflow/nodes.tsx` | React Flow 自定义节点 |
 | `workflow/node-config-panel.tsx` | 节点配置面板 |
@@ -153,8 +155,8 @@ agentops-studio/
 ### 项目 `GET|POST /projects/`
 | 端点 | 功能 |
 |------|------|
-| `GET /` | 列表 |
-| `POST /` | 创建 |
+| `GET /` | 列表（需 JWT） |
+| `POST /` | 创建（需 JWT） |
 | `GET /:id` | 详情 |
 | `DELETE /:id` | 删除 |
 
@@ -162,8 +164,8 @@ agentops-studio/
 | 端点 | 功能 |
 |------|------|
 | `GET /` | 列表 |
-| `POST /` | 创建文本/URL 文档 |
-| `POST /upload` | 文件上传到 MinIO |
+| `POST /` | 创建文本/URL 文档（需 JWT） |
+| `POST /upload` | 文件上传到 MinIO（需 JWT） |
 | `GET /:id` | 详情 + 签名 URL |
 | `POST /:id/process` | 处理文档生成 chunks |
 
@@ -171,15 +173,15 @@ agentops-studio/
 | 端点 | 功能 |
 |------|------|
 | `GET /` | 列表 |
-| `POST /` | 创建 |
+| `POST /` | 创建（需 JWT） |
 | `GET /:id` | 详情 + 版本定义 |
-| `POST /:id/publish` | 发布新版本 |
+| `POST /:id/publish` | 发布新版本（需 JWT） |
 
 ### 执行记录 `GET|POST /runs/`
 | 端点 | 功能 |
 |------|------|
 | `GET /` | 列表 |
-| `POST /` | 创建 + 入 BullMQ 队列 |
+| `POST /` | 创建 + 入 BullMQ 队列（需 JWT） |
 | `GET /:id` | 详情 |
 | `GET /:id/nodes` | 节点执行结果 |
 
@@ -195,7 +197,7 @@ agentops-studio/
 | 端点 | 功能 |
 |------|------|
 | `GET /` | 列表 |
-| `POST /` | 创建 |
+| `POST /` | 创建（需 JWT） |
 | `GET /:id` | 详情 |
 | `PUT /:id` | 更新 |
 | `DELETE /:id` | 删除 |
@@ -226,6 +228,7 @@ agentops-studio/
 2. 根据边连接到下一个节点
 3. `review` 节点暂停等待人工审核
 4. 执行结果存入 `ctx.state`
+5. 通过 NodeExecutionListener 回调记录每个节点执行到数据库
 
 ### AI Provider 自动选择
 ```typescript
@@ -267,6 +270,7 @@ JWT_SECRET=dev-secret
 API_PORT=3001
 NEXT_PUBLIC_API_URL=http://localhost:3001
 WS_PORT=3002
+WS_URL=ws://localhost:3002
 S3_ENDPOINT=http://localhost:9000
 S3_ACCESS_KEY=minio
 S3_SECRET_KEY=minio123
@@ -309,7 +313,7 @@ cd apps/web && pnpm dev
 ### ✅ 核心功能
 - [x] 数据库 schema（17 张表）+ 迁移 + 种子
 - [x] JWT Auth（注册/登录/用户状态）
-- [x] 项目/工作流/执行记录 CRUD
+- [x] 项目/工作流/执行记录 CRUD（全部使用 JWT 认证）
 - [x] Workflow Builder（React Flow 可视化编辑器）
 - [x] 知识库 + MinIO 文件上传
 - [x] 审核任务 + approve/reject
@@ -318,20 +322,57 @@ cd apps/web && pnpm dev
 - [x] 真实 AI Provider（OpenAI + Anthropic）
 - [x] WebSocket 实时推送
 - [x] Run 详情页自动轮询
+- [x] Worker 节点执行记录到数据库
+- [x] Workflow 引擎支持节点执行监听器回调
+- [x] 前端路由守卫组件（auth-check）
 
 ### ⚠️ 已知限制
 - `knowledge_chunks.embedding` 使用 text 占位，非 pgvector
-- Demo 用户 ID 部分硬编码（生产需从 JWT 解析）
-- 部分 LSP 类型警告未完全消除
+- Worker 到 WebSocket 的广播暂未实现（可直接在 Worker 内调用 ws）
+- 部分 LSP 类型警告未完全消除（accessibility 和 button type）
 
 ---
 
 ## 12. 代码关键点
 
-### Demo 用户 ID
+### JWT 认证流程
 ```typescript
-DEMO_USER_ID = 'e8ca6b17-b3f9-447d-9753-0f2632e8fedc'
-DEMO_ORG_ID = '12eccb6c-2266-49ff-930d-224a5f9770e7'
+// apps/api/src/lib/auth.ts
+export async function getAuthUser(c: Context): Promise<AuthUser | null> {
+  const authHeader = c.req.header('Authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
+
+  const token = authHeader.slice(7);
+  try {
+    const payload = verifyToken(token) as AuthPayload;
+    const user = await db.query.users.findFirst({
+      where: eq(users.id, payload.userId),
+    });
+    if (!user) return null;
+    return { userId: user.id, email: user.email, orgId: payload.orgId };
+  } catch {
+    return null;
+  }
+}
+```
+
+### Worker 节点执行记录
+```typescript
+// apps/worker/src/index.ts
+workflowEngine.setNodeExecutionListener(async (nodeKey, nodeType, status, result?: NodeExecutionResult) => {
+  await db.insert(workflowNodeRuns).values({
+    workflowRunId: runId,
+    nodeKey,
+    nodeType,
+    status,
+    inputPayload: safeJsonSerialize(input || {}),
+    outputPayload: result?.output ? safeJsonSerialize(result.output) : undefined,
+    durationMs: result?.latencyMs,
+    tokenUsageInput: result?.usage?.inputTokens || 0,
+    tokenUsageOutput: result?.usage?.outputTokens || 0,
+    cost: result?.usage?.cost?.toString() || '0',
+  });
+});
 ```
 
 ### Worker 安全序列化
@@ -352,4 +393,4 @@ function safeJsonSerialize(obj: any): any {
 
 ## 13. 项目一句话总结
 
-AgentOps Studio 是一个功能完整的 AI 自动化运营中台，具备 Workflow Builder 可视化编排、真实 AI Provider 集成、MinIO 文件存储、JWT 认证、审核流程和 WebSocket 实时推送等能力，用于展示全栈开发与 AI 应用集成的综合实力。
+AgentOps Studio 是一个功能完整的 AI 自动化运营中台，具备 Workflow Builder 可视化编排、真实 AI Provider 集成、MinIO 文件存储、JWT 认证、节点执行追踪、审核流程和 WebSocket 实时推送等能力，用于展示全栈开发与 AI 应用集成的综合实力。

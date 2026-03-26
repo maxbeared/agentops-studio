@@ -1,8 +1,9 @@
 import { config } from 'dotenv';
 import { Worker } from 'bullmq';
 import { WorkflowEngine } from '@agentops/workflow';
+import type { NodeExecutionResult } from '@agentops/workflow';
 import { db } from '@agentops/db';
-import { workflowRuns, workflowVersions, workflowNodeRuns } from '@agentops/db/schema';
+import { workflowRuns, workflowNodeRuns } from '@agentops/db/schema';
 import { eq } from 'drizzle-orm';
 
 config({ path: '../../.env' });
@@ -10,8 +11,6 @@ config({ path: '../../.env' });
 const connection = {
   url: process.env.REDIS_URL || 'redis://localhost:6379',
 };
-
-const workflowEngine = new WorkflowEngine();
 
 function safeJsonSerialize(obj: any): any {
   const seen = new WeakSet();
@@ -37,6 +36,50 @@ const workflowWorker = new Worker(
       .update(workflowRuns)
       .set({ status: 'running', startedAt: new Date() })
       .where(eq(workflowRuns.id, runId));
+
+    const workflowEngine = new WorkflowEngine();
+
+    workflowEngine.setNodeExecutionListener(async (nodeKey, nodeType, status, result?: NodeExecutionResult) => {
+      try {
+        const existing = await db.query.workflowNodeRuns.findFirst({
+          where: eq(workflowNodeRuns.workflowRunId, runId),
+        });
+
+        if (existing) {
+          await db
+            .update(workflowNodeRuns)
+            .set({
+              status,
+              outputPayload: result?.output ? safeJsonSerialize(result.output) : undefined,
+              errorMessage: result?.errorMessage,
+              finishedAt: new Date(),
+              durationMs: result?.latencyMs,
+              tokenUsageInput: result?.usage?.inputTokens,
+              tokenUsageOutput: result?.usage?.outputTokens,
+              cost: result?.usage?.cost?.toString(),
+            })
+            .where(eq(workflowNodeRuns.id, existing.id));
+        } else {
+          await db.insert(workflowNodeRuns).values({
+            workflowRunId: runId,
+            nodeKey,
+            nodeType,
+            status,
+            inputPayload: safeJsonSerialize(input || {}),
+            outputPayload: result?.output ? safeJsonSerialize(result.output) : undefined,
+            errorMessage: result?.errorMessage,
+            startedAt: new Date(),
+            finishedAt: new Date(),
+            durationMs: result?.latencyMs,
+            tokenUsageInput: result?.usage?.inputTokens || 0,
+            tokenUsageOutput: result?.usage?.outputTokens || 0,
+            cost: result?.usage?.cost?.toString() || '0',
+          });
+        }
+      } catch (err) {
+        console.error('Failed to record node run:', err);
+      }
+    });
 
     try {
       const safeInput = safeJsonSerialize(input || {});

@@ -1,5 +1,5 @@
 import type { WorkflowDefinition, WorkflowNode } from '@agentops/shared/types';
-import type { ExecutionContext, NodeExecutor, WorkflowExecutionResult } from './types';
+import type { ExecutionContext, NodeExecutor, WorkflowExecutionResult, NodeExecutionListener } from './types';
 import {
   StartNodeExecutor,
   LLMNodeExecutor,
@@ -12,6 +12,7 @@ import {
 
 export class WorkflowEngine {
   private executors: Map<string, NodeExecutor>;
+  private listener?: NodeExecutionListener;
 
   constructor() {
     this.executors = new Map();
@@ -22,6 +23,10 @@ export class WorkflowEngine {
     this.executors.set('review', new ReviewNodeExecutor());
     this.executors.set('webhook', new WebhookNodeExecutor());
     this.executors.set('condition', new ConditionNodeExecutor());
+  }
+
+  setNodeExecutionListener(listener: NodeExecutionListener | undefined) {
+    this.listener = listener;
   }
 
   async execute(definition: WorkflowDefinition, input: Record<string, any>): Promise<WorkflowExecutionResult> {
@@ -65,18 +70,32 @@ export class WorkflowEngine {
       throw new Error(`No executor found for node type: ${node.type}`);
     }
 
+    if (this.listener) {
+      await this.listener(node.id, node.type, 'running');
+    }
+
     const result = await executor.execute(ctx, node);
 
     if (result.status === 'failed') {
+      if (this.listener) {
+        await this.listener(node.id, node.type, 'failed', result);
+      }
       throw new Error(result.errorMessage || 'Node execution failed');
     }
 
     if (result.status === 'waiting_review') {
       ctx.state[node.id] = result.output;
+      if (this.listener) {
+        await this.listener(node.id, node.type, 'waiting_review', result);
+      }
       return;
     }
 
     ctx.state[node.id] = result.output;
+    
+    if (this.listener) {
+      await this.listener(node.id, node.type, 'success', result);
+    }
 
     const nextEdges = definition.edges.filter((e) => e.source === node.id);
     for (const edge of nextEdges) {

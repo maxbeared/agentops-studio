@@ -9,6 +9,13 @@ export type NodeExecutionResult = {
   status: 'success' | 'failed' | 'waiting_review';
   output?: Record<string, any>;
   errorMessage?: string;
+  usage?: {
+    inputTokens?: number;
+    outputTokens?: number;
+    totalTokens?: number;
+    cost?: number;
+  };
+  latencyMs?: number;
 };
 
 export interface NodeExecutor {
@@ -19,3 +26,10 @@ export type WorkflowExecutionResult = {
   status: 'success' | 'failed' | 'waiting_review';
   outputs: Record<string, any>;
 };
+
+export type NodeExecutionListener = (
+  nodeKey: string,
+  nodeType: string,
+  status: 'pending' | 'running' | 'success' | 'failed' | 'waiting_review',
+  result?: NodeExecutionResult
+) => Promise<void>;
