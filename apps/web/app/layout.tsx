@@ -1,6 +1,7 @@
 import './globals.css';
 import type { Metadata } from 'next';
 import Navbar from '../components/Navbar';
+import { AuthProvider } from '../contexts/auth-context';
 
 export const metadata: Metadata = {
   title: 'AgentOps Studio',
@@ -11,10 +12,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
-        <Navbar />
-        <div className="pt-14">
-          {children}
-        </div>
+        <AuthProvider>
+          <Navbar />
+          <div className="pt-14">
+            {children}
+          </div>
+        </AuthProvider>
       </body>
     </html>
   );

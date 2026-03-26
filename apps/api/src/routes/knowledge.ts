@@ -3,6 +3,7 @@ import { createKnowledgeDocumentSchema } from '@agentops/shared';
 import { db } from '@agentops/db';
 import { knowledgeDocuments, knowledgeChunks } from '@agentops/db/schema';
 import { eq, desc } from 'drizzle-orm';
+import { uploadFile, getFileUrl } from '../lib/minio';
 
 const DEMO_USER_ID = 'e8ca6b17-b3f9-447d-9753-0f2632e8fedc';
 
@@ -31,12 +32,59 @@ knowledgeRoutes.get('/', async (c) => {
       title: doc.title,
       sourceType: doc.sourceType,
       sourceUrl: doc.sourceUrl,
+      fileKey: doc.fileKey,
       mimeType: doc.mimeType,
       status: doc.status,
       version: doc.version,
       createdAt: doc.createdAt,
     })),
   });
+});
+
+knowledgeRoutes.post('/upload', async (c) => {
+  try {
+    const formData = await c.req.formData();
+    const file = formData.get('file') as File | null;
+    const projectId = formData.get('projectId') as string | null;
+    const title = formData.get('title') as string | null;
+
+    if (!file || !projectId || !title) {
+      return c.json({ error: { formErrors: ['Missing required fields: file, projectId, title'] } }, 400);
+    }
+
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const fileKey = await uploadFile(file.name, buffer, file.type || 'application/octet-stream');
+
+    const [doc] = await db
+      .insert(knowledgeDocuments)
+      .values({
+        projectId,
+        title,
+        sourceType: 'file',
+        fileKey,
+        mimeType: file.type || 'application/octet-stream',
+        status: 'uploaded',
+        createdBy: DEMO_USER_ID,
+      })
+      .returning();
+
+    return c.json({
+      data: {
+        id: doc.id,
+        projectId: doc.projectId,
+        title: doc.title,
+        sourceType: doc.sourceType,
+        fileKey: doc.fileKey,
+        mimeType: doc.mimeType,
+        status: doc.status,
+        version: doc.version,
+        createdAt: doc.createdAt,
+      },
+    }, 201);
+  } catch (err) {
+    console.error('Upload error:', err);
+    return c.json({ error: { formErrors: ['Upload failed'] } }, 500);
+  }
 });
 
 knowledgeRoutes.post('/', async (c) => {
@@ -90,13 +138,22 @@ knowledgeRoutes.get('/:id', async (c) => {
     where: eq(knowledgeChunks.documentId, id),
   });
 
+  let sourceUrl = doc.sourceUrl;
+  if (doc.fileKey) {
+    try {
+      sourceUrl = await getFileUrl(doc.fileKey);
+    } catch {
+      sourceUrl = doc.fileKey;
+    }
+  }
+
   return c.json({
     data: {
       id: doc.id,
       projectId: doc.projectId,
       title: doc.title,
       sourceType: doc.sourceType,
-      sourceUrl: doc.sourceUrl,
+      sourceUrl,
       mimeType: doc.mimeType,
       status: doc.status,
       version: doc.version,
@@ -104,5 +161,75 @@ knowledgeRoutes.get('/:id', async (c) => {
       createdAt: doc.createdAt,
       updatedAt: doc.updatedAt,
     },
+  });
+});
+
+knowledgeRoutes.post('/:id/process', async (c) => {
+  const id = c.req.param('id');
+
+  const doc = await db.query.knowledgeDocuments.findFirst({
+    where: eq(knowledgeDocuments.id, id),
+  });
+
+  if (!doc) {
+    return c.json({ error: { formErrors: ['Document not found'] } }, 404);
+  }
+
+  await db
+    .update(knowledgeDocuments)
+    .set({ status: 'processing', updatedAt: new Date() })
+    .where(eq(knowledgeDocuments.id, id));
+
+  if (doc.fileKey) {
+    let sourceUrl = doc.fileKey;
+    try {
+      sourceUrl = await getFileUrl(doc.fileKey);
+    } catch {
+      sourceUrl = doc.fileKey;
+    }
+
+    const chunks = doc.title.split(/\s+/).filter(Boolean);
+    const sampleChunks = [];
+    for (let i = 0; i < Math.min(chunks.length, 5); i++) {
+      sampleChunks.push({
+        id: `chunk-${i}`,
+        documentId: id,
+        projectId: doc.projectId,
+        chunkIndex: i,
+        content: chunks.slice(i * 3, i * 3 + 3).join(' ') || doc.title,
+        metadata: {},
+      });
+    }
+
+    if (sampleChunks.length > 0) {
+      for (const chunk of sampleChunks) {
+        await db.insert(knowledgeChunks).values(chunk);
+      }
+    }
+  } else if (doc.sourceUrl) {
+    await db.insert(knowledgeChunks).values({
+      documentId: id,
+      projectId: doc.projectId,
+      chunkIndex: 0,
+      content: doc.title,
+      metadata: {},
+    });
+  } else {
+    await db.insert(knowledgeChunks).values({
+      documentId: id,
+      projectId: doc.projectId,
+      chunkIndex: 0,
+      content: doc.title,
+      metadata: {},
+    });
+  }
+
+  await db
+    .update(knowledgeDocuments)
+    .set({ status: 'ready', updatedAt: new Date() })
+    .where(eq(knowledgeDocuments.id, id));
+
+  return c.json({
+    data: { status: 'ready', message: 'Document processed successfully' },
   });
 });

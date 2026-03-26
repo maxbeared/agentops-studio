@@ -3,6 +3,7 @@ export type ModelGenerateInput = {
   model: string;
   temperature?: number;
   systemPrompt?: string;
+  maxTokens?: number;
 };
 
 export type ModelGenerateOutput = {
@@ -13,6 +14,7 @@ export type ModelGenerateOutput = {
     totalTokens?: number;
     cost?: number;
   };
+  latencyMs?: number;
   raw?: unknown;
 };
 

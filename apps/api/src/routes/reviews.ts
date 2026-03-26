@@ -103,3 +103,95 @@ reviewRoutes.get('/:id', async (c) => {
     },
   });
 });
+
+reviewRoutes.post('/:id/approve', async (c) => {
+  const id = c.req.param('id');
+  const body = await c.req.json().catch(() => ({}));
+
+  const task = await db.query.reviewTasks.findFirst({
+    where: eq(reviewTasks.id, id),
+  });
+
+  if (!task) {
+    return c.json({ error: { formErrors: ['Review task not found'] } }, 404);
+  }
+
+  if (task.status !== 'pending') {
+    return c.json({ error: { formErrors: ['Task has already been reviewed'] } }, 400);
+  }
+
+  await db
+    .update(reviewTasks)
+    .set({
+      status: 'approved',
+      reviewComment: body.comment || null,
+      reviewedOutput: body.output || null,
+      reviewedAt: new Date(),
+    })
+    .where(eq(reviewTasks.id, id));
+
+  await db
+    .update(workflowRuns)
+    .set({
+      status: 'running',
+    })
+    .where(eq(workflowRuns.id, task.workflowRunId));
+
+  await db
+    .update(workflowNodeRuns)
+    .set({
+      status: 'success',
+      outputPayload: body.output || task.reviewedOutput,
+    })
+    .where(eq(workflowNodeRuns.id, task.workflowNodeRunId));
+
+  return c.json({
+    data: { id, status: 'approved', message: 'Review approved' },
+  });
+});
+
+reviewRoutes.post('/:id/reject', async (c) => {
+  const id = c.req.param('id');
+  const body = await c.req.json().catch(() => ({}));
+
+  const task = await db.query.reviewTasks.findFirst({
+    where: eq(reviewTasks.id, id),
+  });
+
+  if (!task) {
+    return c.json({ error: { formErrors: ['Review task not found'] } }, 404);
+  }
+
+  if (task.status !== 'pending') {
+    return c.json({ error: { formErrors: ['Task has already been reviewed'] } }, 400);
+  }
+
+  await db
+    .update(reviewTasks)
+    .set({
+      status: 'rejected',
+      reviewComment: body.comment || null,
+      reviewedAt: new Date(),
+    })
+    .where(eq(reviewTasks.id, id));
+
+  await db
+    .update(workflowRuns)
+    .set({
+      status: 'failed',
+      errorMessage: 'Rejected by reviewer',
+    })
+    .where(eq(workflowRuns.id, task.workflowRunId));
+
+  await db
+    .update(workflowNodeRuns)
+    .set({
+      status: 'failed',
+      errorMessage: body.comment || 'Rejected by reviewer',
+    })
+    .where(eq(workflowNodeRuns.id, task.workflowNodeRunId));
+
+  return c.json({
+    data: { id, status: 'rejected', message: 'Review rejected' },
+  });
+});

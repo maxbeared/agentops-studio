@@ -168,11 +168,12 @@ workflowRoutes.post('/:id/publish', async (c) => {
 
   if (parsed.data.definition.nodes && parsed.data.definition.nodes.length > 0) {
     for (const node of parsed.data.definition.nodes) {
+      const nodeKey = node.id || node.key || `node_${Math.random().toString(36).substr(2, 9)}`;
       await db.insert(workflowNodes).values({
         workflowVersionId: version.id,
-        nodeKey: node.key || node.id,
+        nodeKey,
         nodeType: node.type,
-        name: node.name || node.type,
+        name: node.name || node.label || node.type,
         config: node.config || {},
         positionX: node.position?.x || 0,
         positionY: node.position?.y || 0,
@@ -184,7 +185,7 @@ workflowRoutes.post('/:id/publish', async (c) => {
     for (const edge of parsed.data.definition.edges) {
       await db.insert(workflowEdges).values({
         workflowVersionId: version.id,
-        sourceNodeKey: edge.source || edge.id,
+        sourceNodeKey: edge.source,
         targetNodeKey: edge.target,
         conditionConfig: edge.condition,
       });

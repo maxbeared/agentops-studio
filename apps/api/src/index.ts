@@ -9,6 +9,7 @@ import { workflowRoutes } from './routes/workflows';
 import { runRoutes } from './routes/runs';
 import { reviewRoutes } from './routes/reviews';
 import { dashboardRoutes } from './routes/dashboard';
+import { promptRoutes } from './routes/prompts';
 
 config({ path: '../../.env' });
 
@@ -28,6 +29,7 @@ app.route('/workflows', workflowRoutes);
 app.route('/runs', runRoutes);
 app.route('/reviews', reviewRoutes);
 app.route('/dashboard', dashboardRoutes);
+app.route('/prompts', promptRoutes);
 
 const port = Number(process.env.API_PORT || 3001);
 

@@ -73,11 +73,13 @@ agentops-studio/
 ### 根目录
 - `package.json`
 - `turbo.json`
+- `pnpm-workspace.yaml`
 - `.gitignore`
 - `tsconfig.base.json`
 - `docker-compose.yml`
 - `.env`
 - `.env.example`
+- `HANDOFF.md`
 
 ### apps/api
 - `apps/api/src/index.ts`
@@ -88,12 +90,21 @@ agentops-studio/
 - `apps/api/src/routes/knowledge.ts`
 - `apps/api/src/routes/workflows.ts`
 - `apps/api/src/routes/runs.ts`
+- `apps/api/src/routes/reviews.ts`
 - `apps/api/src/routes/dashboard.ts`
 
 ### apps/web
 - `apps/web/app/layout.tsx`
 - `apps/web/app/page.tsx`
 - `apps/web/app/globals.css`
+- `apps/web/lib/api.ts`
+- `apps/web/components/Navbar.tsx`
+- `apps/web/app/projects/page.tsx`
+- `apps/web/app/workflows/page.tsx`
+- `apps/web/app/runs/page.tsx`
+- `apps/web/app/runs/[id]/page.tsx`
+- `apps/web/app/knowledge/page.tsx`
+- `apps/web/app/reviews/page.tsx`
 - `apps/web/package.json`
 - `apps/web/next.config.mjs`
 - `apps/web/tailwind.config.js`
@@ -110,6 +121,7 @@ agentops-studio/
 ### packages/db
 - `packages/db/src/schema.ts`
 - `packages/db/src/index.ts`
+- `packages/db/src/seed.ts`
 - `packages/db/drizzle.config.ts`
 
 ### packages/ai
@@ -164,38 +176,41 @@ agentops-studio/
 ---
 
 ### 5.2 API 设计
-当前 API 为骨架版本，主要包含：
+API 已接入真实数据库，主要包含：
 
 #### 认证
-- `POST /auth/register`
-- `POST /auth/login`
+- `POST /auth/register` (mock)
+- `POST /auth/login` (mock)
 
 #### 项目
-- `GET /projects`
-- `POST /projects`
-- `GET /projects/:id`
+- `GET /projects` - 从数据库读取
+- `POST /projects` - 写入数据库
+- `GET /projects/:id` - 获取单个项目
+- `DELETE /projects/:id` - 删除项目
 
 #### 知识库
-- `GET /knowledge`
-- `POST /knowledge`
-- `GET /knowledge/:id`
+- `GET /knowledge` - 从数据库读取
+- `POST /knowledge` - 写入数据库
+- `GET /knowledge/:id` - 获取文档详情
 
 #### 工作流
-- `GET /workflows`
-- `POST /workflows`
-- `GET /workflows/:id`
-- `POST /workflows/:id/publish`
+- `GET /workflows` - 从数据库读取
+- `POST /workflows` - 创建工作流
+- `GET /workflows/:id` - 获取工作流(含定义)
+- `POST /workflows/:id/publish` - 发布版本，保存节点和边
 
 #### 执行记录
-- `GET /runs`
-- `POST /runs`
-- `GET /runs/:id`
-- `GET /runs/:id/nodes`
+- `GET /runs` - 从数据库读取
+- `POST /runs` - 创建运行记录并加入 BullMQ 队列
+- `GET /runs/:id` - 获取运行详情
+- `GET /runs/:id/nodes` - 获取节点执行结果
+
+#### 审核任务
+- `GET /reviews` - 获取审核任务列表
+- `GET /reviews/:id` - 获取审核任务详情
 
 #### 面板
-- `GET /dashboard/stats`
-
-**注意**：当前大多数 route 还是 mock / placeholder，尚未接数据库。
+- `GET /dashboard/stats` - 从数据库聚合统计
 
 ---
 
@@ -220,11 +235,6 @@ agentops-studio/
 - 执行结果写入 `ctx.state`
 - review 节点返回 `waiting_review`
 
-当前限制：
-- 还没有真正和数据库中的 `workflow_run / workflow_node_run` 打通
-- 还没有实际队列调度和持久化记录
-- 还没有条件分支细节控制
-
 ---
 
 ### 5.4 AI 抽象层设计
@@ -242,194 +252,194 @@ agentops-studio/
 
 ---
 
-### 5.5 Web 首页
-位置：`apps/web/app/page.tsx`
+### 5.5 Web 前端页面
+位置：`apps/web/app/`
 
-已做：
-- 一个深色风格 landing/dashboard 页面
-- 展示：项目定位、技术栈、核心模块、示例工作流、统计卡片
+已完成页面：
+- `/` - Dashboard 首页（从 API 获取统计数据）
+- `/projects` - 项目列表
+- `/workflows` - 工作流列表（含状态 Badge）
+- `/runs` - 执行记录列表（表格形式，可点击跳转）
+- `/runs/[id]` - 执行详情页（含节点执行日志）
+- `/knowledge` - 知识库文档列表
+- `/reviews` - 人工审核任务列表
 
-价值：
-- 作为项目视觉入口可直接演示
-- 后续可以逐步扩展成真正控制台
+共享组件：
+- `components/Navbar.tsx` - 全局导航栏
 
 ---
 
-## 6. 当前项目状态（2026-03-25 更新）
+## 6. 当前项目状态（2026-03-26 更新）
 
 ### ✅ 已完成
 1. **依赖安装**：使用 pnpm + workspace:* 成功安装所有依赖
-2. **Docker 环境**：PostgreSQL 和 Redis 容器正常运行
+2. **Docker 环境**：PostgreSQL、Redis、MinIO 容器正常运行
 3. **数据库迁移**：Drizzle 迁移文件已生成并成功应用到数据库
-4. **API 服务**：Bun + Hono API 成功启动，`/health` 端点正常响应
-5. **Web 应用**：Next.js 15 成功启动在 http://localhost:3000
-6. **Worker 服务**：BullMQ worker 成功启动并连接 Redis
+4. **数据库种子**：创建演示用户和组织
+5. **API 服务**：Bun + Hono API 成功启动，接入真实数据库
+6. **Web 应用**：Next.js 15 成功启动在 http://localhost:3000
+7. **Worker 服务**：BullMQ worker 运行中，可执行工作流
+8. **API 路由**：Projects、Workflows、Runs、Knowledge、Reviews、Dashboard 均接入 DB
+9. **前端页面**：6 个页面完整实现，导航链接可跳转
 
 ### ⚠️ 已知问题
 1. **Next.js bin 文件缺失**：pnpm 安装时 Next.js 的可执行文件链接失败，但通过 `pnpm --filter` 可正常启动
-2. **Web 首页未验证**：curl localhost:3000 连接失败，可能是 Next.js 启动较慢或端口问题
-3. **MinIO 未启动**：Docker 镜像拉取超时，暂时只启动了 PostgreSQL 和 Redis
-4. **pgvector 扩展缺失**：使用 postgres:16-alpine 替代 pgvector/pgvector:pg16，embedding 列暂用 text 占位
+2. **bcrypt 原生模块**：在 Bun 中有问题，改用 bcryptjs
+3. **pgvector 扩展缺失**：embedding 列暂用 text 占位
+4. **MinIO 未验证**：容器已启动但未测试上传功能
+5. **部分 LSP 错误**：API routes 中有隐式 any 类型警告
 
 ### 🔧 环境配置修复记录
 - 修改所有 workspace 内部依赖为 `workspace:*` 格式
 - 创建 `pnpm-workspace.yaml` 配置文件
-- 移除 Next.js 的 `experimental.typedRoutes` 配置（与 turbopack 不兼容）
-- 移除 `--turbopack` 启动参数，使用标准 webpack 模式
+- 移除 Next.js 的 `experimental.typedRoutes` 配置
+- 移除 `--turbopack` 启动参数
+- 依赖安装修复：bcrypt → bcryptjs
+- API 添加 drizzle-orm、bullmq、ioredis 依赖
 
 ---
 
 ## 7. 当前可确认的文件状态
 
-### 已真实写入并验证的代码
-- 项目骨架文件已创建
-- 数据库 schema 已定义（17 张表）
-- 数据库迁移已生成并应用
-- API 路由骨架已创建并可访问
-- Web 首页已创建
-- Worker 服务已创建并可连接 Redis
+### 已完成并验证
+- 项目骨架文件
+- 数据库 schema（17 张表）
+- 数据库迁移
+- 数据库种子脚本
+- API 路由（真实 DB CRUD + BullMQ 队列）
+- Web 页面（6 个页面 + 导航组件）
+- Worker 服务（队列消费 + DB 更新）
 
 ### 尚未完成的内容
-- API routes 还是 mock 数据，未接入真实数据库 CRUD
-- Web 首页未验证实际渲染效果
-- 没有跑通从 API -> Queue -> Worker -> Workflow Engine 的完整闭环
-- MinIO 对象存储未启动
+- Auth 路由（register/login）仍是 mock
+- 审核任务操作（approve/reject）未实现
+- 知识库文档上传和 chunk 处理
+- MinIO 对象存储集成
+- Workflow Builder 可视化编辑器
+- Prompt Template 管理页面
+- 真实 AI Provider 接入（OpenAI/Anthropic/Gemini）
 
 ---
 
-## 8. 下次继续时的优先级顺序
+## 8. 开发进度
 
 ### ✅ 已完成的 Steps
 - ~~Step 1：解决环境依赖安装~~ ✓
-- ~~Step 2���启动基础设施（PostgreSQL + Redis）~~ ✓
+- ~~Step 2：启动基础设施（PostgreSQL + Redis）~~ ✓
 - ~~Step 3：生成数据库迁移~~ ✓
 - ~~Step 4：验证 API 服务~~ ✓
 - ~~Step 5：验证 Web 服务~~ ✓
 - ~~Step 6：验证 Worker 服务~~ ✓
+- ~~Step 7：验证 Web 首页渲染~~ ✓
+- ~~Step 8：接入真实数据库 CRUD~~ ✓
+- ~~Step 9：打通最小业务闭环（API → Queue → Worker → DB）~~ ✓
+- ~~Step 10：前端接入 API~~ ✓
+- ~~Step 11：扩展前端页面（Knowledge、Reviews）~~ ✓
+- ~~Step 12：添加全局导航栏~~ ✓
 
 ### 🎯 下一步建议
 
-#### Step 7：验证 Web 首页渲染
-```bash
-# 访问 http://localhost:3000 确认首页正常显示
-# 或使用浏览器打开查看
-```
+#### 高优先级
+1. **Workflow Builder**：React Flow 可视化编辑器
+2. **Auth 完善**：JWT 登录注册，真实用户系统
+3. **知识库上传**：MinIO 集成，文档处理 pipeline
 
-#### Step 8：接入真实数据库 CRUD
-优先实现以下 API：
-1. `POST /projects` - 创建项目（写入数据库）
-2. `GET /projects` - 列出项目（从数据库读取）
-3. `POST /workflows` - 创建工作流
-4. `POST /workflows/:id/publish` - 发布工作流版本
+#### 中优先级
+1. **审核操作**：approve/reject 功能和页面
+2. **Prompt 管理**：模板 CRUD 页面
+3. **真实 AI 接入**：OpenAI/Anthropic Provider
 
-#### Step 9：打通最小业务闭环
-1. 通过 API 创建 project
-2. 创建 workflow 并 publish
-3. 创建 workflow run
-4. API 推送任务到 BullMQ
-5. Worker 从队列取任务
-6. Worker 执行 workflow engine
-7. Worker 更新 run 状态到数据库
-8. API 返回执行结果
-
-#### Step 10：前端接入 API
-1. Dashboard 页面从 `/dashboard/stats` 获取真实数据
-2. 创建 Projects 列表页
-3. 创建 Workflows 列表页
-4. 创建 Run Detail 页面
+#### 低优先级
+1. **成本统计**：更详细的成本分析
+2. **多模型支持**：Provider 切换
+3. **WebSocket 实时**：执行状态实时推送
 
 ---
 
 ## 9. 推荐的下一阶段开发路线
 
-### 第一阶段：让骨架真正跑起来
-- 修 workspace 依赖安装问题
-- 启动 docker 基础设施
-- 生成 migration
-- API / Web / Worker 分别启动成功
-
-### 第二阶段：接入真实数据库
-- Projects route 接 Drizzle
-- Workflows route 接 Drizzle
-- Runs route 接 Drizzle
-- Dashboard route 从 DB 聚合
-
-### 第三阶段：异步任务闭环
-- `POST /runs` 创建 run 记录
-- 推送 BullMQ job
-- Worker 执行 workflow
-- 更新 `workflow_runs` 与 `workflow_node_runs`
-
-### 第四阶段：前端控制台
-- Dashboard 页面真实请求 API
-- Knowledge List 页面
-- Workflow List 页面
-- Run Detail 页面
-
-### 第五阶段：高光功能
-- Human Review 页面
+### 第一阶段：核心功能完善
 - Workflow Builder（React Flow）
+- Auth 登录注册
+- 知识库上传 pipeline
+
+### 第二阶段：业务闭环
+- 审核操作功能
+- 投递任务集成
+- Webhook 执行
+
+### 第三阶段：高光功能
+- 真实 AI Provider 接入
 - Prompt Template 管理
-- 成本统计
-- 多模型支持
+- 成本统计分析
 
 ---
 
 ## 10. 当前代码里的关键点提醒
 
-### 10.1 package.json scripts 里用了 `cd`
-根目录 `package.json` 里：
-- `db:generate`
-- `db:migrate`
-- `db:studio`
+### 10.1 Demo 用户 ID 硬编码
+部分 API route 中硬编码了演示用户 ID：
+```
+DEMO_USER_ID = 'e8ca6b17-b3f9-447d-9753-0f2632e8fedc'
+DEMO_ORG_ID = '12eccb6c-2266-49ff-930d-224a5f9770e7'
+```
+后续需要从 JWT token 中解析真实用户 ID。
 
-使用了 `cd packages/db && ...`。  
-这在当前项目里不一定是致命问题，但如果后续继续自动化操作，最好改成更稳的 workspace 调用方式。
-
-### 10.2 `packages/shared` 导出路径
-当前 `packages/shared/src/index.ts` 已导出：
-- `types`
-- `schemas`
-
-API route 里已经通过 `@agentops/shared` 使用 schema。
+### 10.2 BullMQ 队列使用
+- API 使用 `workflowQueue.add()` 添加任务
+- Worker 使用 `new Worker('workflow-execution', ...)` 消费
+- 任务数据包含 `runId`、`workflowVersionId`、`definition`、`input`
 
 ### 10.3 Drizzle 里的 embedding 先用 text 占位
 `knowledge_chunks.embedding` 目前是 text 占位，不是真正的 pgvector 列。  
-这是为了先把骨架搭起来。后续接 pgvector 时需要改 schema。
+后续接 pgvector 时需要改 schema。
 
-### 10.4 API 当前是 mock 风格
-当前 route 可以视为：
-- 输入校验真实存在
-- 返回结构大致合理
-- 但数据还不是 DB 持久化
+### 10.4 Worker 安全序列化
+Worker 中使用 `safeJsonSerialize()` 函数处理循环引用：
+```typescript
+function safeJsonSerialize(obj: any): any {
+  const seen = new WeakSet();
+  return JSON.parse(JSON.stringify(obj, (key, value) => {
+    if (typeof value === 'object' && value !== null) {
+      if (seen.has(value)) return '[Circular]';
+      seen.add(value);
+    }
+    return value;
+  }));
+}
+```
 
-### 10.5 Worker 还没更新数据库
-当前 Worker 只是：
-- 接收 job
-- 调用 workflow engine
-- 打印结果
-
-还没有：
-- 从 DB 读取 workflow version
-- 更新 run 状态
-- 写 node run 日志
-
----
-
-## 11. 建议的下一次对话开头方式
-
-下次继续时，可以直接说类似下面这句：
-
-> 继续 AgentOps Studio。请先读取 `HANDOFF.md`，然后从“解决依赖安装和环境启动问题”开始。
-
-或者：
-
-> 继续 AgentOps Studio。先按 `HANDOFF.md` 的 Step 1~Step 4 执行，直到 API 和 Web 能启动。
-
-这样就不用从头重新解释背景。
+### 10.5 API 端点前缀
+- API 运行在 `http://localhost:3001`
+- Web 运行在 `http://localhost:3000`
+- 前端通过 `NEXT_PUBLIC_API_URL` 环境变量配置 API 地址
 
 ---
 
-## 12. 项目一句话总结（可用于简历/开场）
+## 11. 服务启动命令
+
+```bash
+# 启动 Docker 基础设施
+docker-compose up -d
+
+# 数据库迁移
+pnpm db:migrate
+
+# 数据库种子
+pnpm db:seed
+
+# 启动 API
+cd apps/api && bun run src/index.ts
+
+# 启动 Worker
+cd apps/worker && bun run src/index.ts
+
+# 启动 Web
+cd apps/web && pnpm dev
+```
+
+---
+
+## 12. 项目一句话总结
 
 AgentOps Studio 是一个面向团队的 AI 自动化运营中台，支持知识库管理、工作流编排、异步执行、人工审核和结果投递，用于展示候选人在 AI 应用集成、全栈开发、系统设计与工程化方面的综合能力。
