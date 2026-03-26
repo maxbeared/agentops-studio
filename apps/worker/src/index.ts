@@ -1,6 +1,9 @@
 import { config } from 'dotenv';
-import { Queue, Worker } from 'bullmq';
+import { Worker } from 'bullmq';
 import { WorkflowEngine } from '@agentops/workflow';
+import { db } from '@agentops/db';
+import { workflowRuns, workflowVersions, workflowNodeRuns } from '@agentops/db/schema';
+import { eq } from 'drizzle-orm';
 
 config({ path: '../../.env' });
 
@@ -8,21 +11,60 @@ const connection = {
   url: process.env.REDIS_URL || 'redis://localhost:6379',
 };
 
-export const workflowQueue = new Queue('workflow-execution', { connection });
-export const documentQueue = new Queue('document-processing', { connection });
-
 const workflowEngine = new WorkflowEngine();
+
+function safeJsonSerialize(obj: any): any {
+  const seen = new WeakSet();
+  return JSON.parse(JSON.stringify(obj, (key, value) => {
+    if (typeof value === 'object' && value !== null) {
+      if (seen.has(value)) {
+        return '[Circular]';
+      }
+      seen.add(value);
+    }
+    return value;
+  }));
+}
 
 const workflowWorker = new Worker(
   'workflow-execution',
   async (job) => {
     console.log('Processing workflow job', job.id, job.data);
 
-    const { definition, input } = job.data;
-    const result = await workflowEngine.execute(definition, input || {});
+    const { runId, workflowVersionId, definition, input } = job.data;
 
-    console.log('Workflow result', result);
-    return result;
+    await db
+      .update(workflowRuns)
+      .set({ status: 'running', startedAt: new Date() })
+      .where(eq(workflowRuns.id, runId));
+
+    try {
+      const safeInput = safeJsonSerialize(input || {});
+      const result = await workflowEngine.execute(definition, safeInput);
+
+      await db
+        .update(workflowRuns)
+        .set({
+          status: result.status,
+          outputPayload: safeJsonSerialize(result.outputs || {}),
+          finishedAt: new Date(),
+        })
+        .where(eq(workflowRuns.id, runId));
+
+      console.log('Workflow result', result);
+      return result;
+    } catch (error) {
+      await db
+        .update(workflowRuns)
+        .set({
+          status: 'failed',
+          errorMessage: error instanceof Error ? error.message : 'Unknown error',
+          finishedAt: new Date(),
+        })
+        .where(eq(workflowRuns.id, runId));
+
+      throw error;
+    }
   },
   { connection }
 );

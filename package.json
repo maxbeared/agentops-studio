@@ -13,7 +13,8 @@
     "clean": "turbo run clean",
     "db:generate": "cd packages/db && bun run generate",
     "db:migrate": "cd packages/db && bun run migrate",
-    "db:studio": "cd packages/db && bun run studio"
+    "db:studio": "cd packages/db && bun run studio",
+    "db:seed": "cd packages/db && bun run seed"
   },
   "devDependencies": {
     "turbo": "^2.3.3",

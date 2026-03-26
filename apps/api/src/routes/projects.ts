@@ -1,17 +1,33 @@
 import { Hono } from 'hono';
 import { createProjectSchema } from '@agentops/shared';
+import { db } from '@agentops/db';
+import { projects, organizations, organizationMembers } from '@agentops/db/schema';
+import { eq, and } from 'drizzle-orm';
+
+const DEMO_USER_ID = 'e8ca6b17-b3f9-447d-9753-0f2632e8fedc';
+const DEMO_ORG_ID = '12eccb6c-2266-49ff-930d-224a5f9770e7';
 
 export const projectRoutes = new Hono();
 
 projectRoutes.get('/', async (c) => {
+  const orgId = c.req.query('organizationId') || DEMO_ORG_ID;
+
+  const projectList = await db.query.projects.findMany({
+    where: eq(projects.organizationId, orgId),
+    with: {
+      organization: true,
+    },
+  });
+
   return c.json({
-    data: [
-      {
-        id: 'demo-project',
-        name: 'AgentOps Demo',
-        description: 'AI workflow platform demo project',
-      },
-    ],
+    data: projectList.map((p) => ({
+      id: p.id,
+      name: p.name,
+      description: p.description,
+      organizationId: p.organizationId,
+      createdAt: p.createdAt,
+      updatedAt: p.updatedAt,
+    })),
   });
 });
 
@@ -23,22 +39,81 @@ projectRoutes.post('/', async (c) => {
     return c.json({ error: parsed.error.flatten() }, 400);
   }
 
+  const orgId = parsed.data.organizationId || DEMO_ORG_ID;
+
+  const org = await db.query.organizations.findFirst({
+    where: eq(organizations.id, orgId),
+  });
+
+  if (!org) {
+    return c.json({ error: { formErrors: ['Organization not found'] } }, 404);
+  }
+
+  const [project] = await db
+    .insert(projects)
+    .values({
+      organizationId: orgId,
+      name: parsed.data.name,
+      description: parsed.data.description,
+      createdBy: DEMO_USER_ID,
+    })
+    .returning();
+
   return c.json({
     data: {
-      id: crypto.randomUUID(),
-      ...parsed.data,
-      createdAt: new Date().toISOString(),
+      id: project.id,
+      name: project.name,
+      description: project.description,
+      organizationId: project.organizationId,
+      createdAt: project.createdAt,
+      updatedAt: project.updatedAt,
     },
   }, 201);
 });
 
 projectRoutes.get('/:id', async (c) => {
   const id = c.req.param('id');
-  return c.json({
-    data: {
-      id,
-      name: 'AgentOps Demo',
-      description: 'AI workflow platform demo project',
+
+  const project = await db.query.projects.findFirst({
+    where: eq(projects.id, id),
+    with: {
+      organization: true,
     },
   });
+
+  if (!project) {
+    return c.json({ error: { formErrors: ['Project not found'] } }, 404);
+  }
+
+  return c.json({
+    data: {
+      id: project.id,
+      name: project.name,
+      description: project.description,
+      organizationId: project.organizationId,
+      organization: {
+        id: project.organization.id,
+        name: project.organization.name,
+        slug: project.organization.slug,
+      },
+      createdAt: project.createdAt,
+      updatedAt: project.updatedAt,
+    },
+  });
+});
+
+projectRoutes.delete('/:id', async (c) => {
+  const id = c.req.param('id');
+
+  const project = await db.query.projects.findFirst({
+    where: eq(projects.id, id),
+  });
+
+  if (!project) {
+    return c.json({ error: { formErrors: ['Project not found'] } }, 404);
+  }
+
+  await db.delete(projects).where(eq(projects.id, id));
+
+  return c.json({ data: { success: true } });
 });
