@@ -12,7 +12,7 @@ export const knowledgeRoutes = new Hono();
 knowledgeRoutes.get('/', async (c) => {
   const projectId = c.req.query('projectId');
 
-  let docs;
+  let docs: any[];
 
   if (projectId) {
     docs = await db.query.knowledgeDocuments.findMany({

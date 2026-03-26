@@ -1,6 +1,16 @@
 import type { WorkflowNode } from '@agentops/shared/types';
 import type { ExecutionContext, NodeExecutionResult, NodeExecutor } from './types';
-import { defaultLLMProvider } from '@agentops/ai';
+import { createLLMProvider, OpenAIProvider, AnthropicProvider, MockLLMProvider } from '@agentops/ai';
+
+function getProviderForModel(model: string) {
+  if (model.startsWith('claude-')) {
+    return createLLMProvider('anthropic', process.env.ANTHROPIC_API_KEY);
+  }
+  if (model.startsWith('gpt-') || model.startsWith('o1') || model.startsWith('o3')) {
+    return createLLMProvider('openai', process.env.OPENAI_API_KEY);
+  }
+  return new MockLLMProvider();
+}
 
 export class StartNodeExecutor implements NodeExecutor {
   async execute(ctx: ExecutionContext, node: WorkflowNode): Promise<NodeExecutionResult> {
@@ -16,11 +26,13 @@ export class LLMNodeExecutor implements NodeExecutor {
     try {
       const prompt = node.config.prompt || 'Default prompt';
       const model = node.config.model || 'gpt-4';
+      const provider = getProviderForModel(model);
       
-      const result = await defaultLLMProvider.generate({
+      const result = await provider.generate({
         prompt,
         model,
-        temperature: node.config.temperature,
+        temperature: node.config.temperature ?? 0.7,
+        systemPrompt: node.config.systemPrompt,
       });
 
       return {
@@ -28,6 +40,7 @@ export class LLMNodeExecutor implements NodeExecutor {
         output: {
           content: result.content,
           usage: result.usage,
+          latencyMs: result.latencyMs,
         },
       };
     } catch (error) {
@@ -41,15 +54,16 @@ export class LLMNodeExecutor implements NodeExecutor {
 
 export class RetrievalNodeExecutor implements NodeExecutor {
   async execute(ctx: ExecutionContext, node: WorkflowNode): Promise<NodeExecutionResult> {
-    const query = node.config.query || ctx.state.query || '';
+    const knowledgeBaseId = node.config.knowledgeBaseId;
+    const topK = node.config.topK || 5;
     
     return {
       status: 'success',
       output: {
-        chunks: [
-          { content: 'Mock retrieved chunk 1', score: 0.95 },
-          { content: 'Mock retrieved chunk 2', score: 0.87 },
-        ],
+        chunks: knowledgeBaseId
+          ? [{ content: `Retrieved from ${knowledgeBaseId}`, score: 0.95 }]
+          : [],
+        count: 0,
       },
     };
   }
@@ -83,25 +97,49 @@ export class WebhookNodeExecutor implements NodeExecutor {
       };
     }
 
-    return {
-      status: 'success',
-      output: {
-        sent: true,
-        url,
-      },
-    };
+    try {
+      const response = await fetch(url, {
+        method: node.config.method || 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(ctx.state),
+      });
+
+      return {
+        status: 'success',
+        output: {
+          sent: true,
+          url,
+          statusCode: response.status,
+        },
+      };
+    } catch (error) {
+      return {
+        status: 'failed',
+        errorMessage: error instanceof Error ? error.message : 'Webhook failed',
+      };
+    }
   }
 }
 
 export class ConditionNodeExecutor implements NodeExecutor {
   async execute(ctx: ExecutionContext, node: WorkflowNode): Promise<NodeExecutionResult> {
     const condition = node.config.condition || 'true';
-    const result = condition === 'true';
+    
+    let result = false;
+    try {
+      const evalContext = { ...ctx.state, input: ctx.input };
+      result = new Function('ctx', `with(ctx) { return ${condition}; }`)(evalContext);
+    } catch {
+      result = false;
+    }
     
     return {
       status: 'success',
       output: {
         conditionMet: result,
+        path: result ? 'yes' : 'no',
       },
     };
   }

@@ -19,7 +19,7 @@ runRoutes.get('/', async (c) => {
   const projectId = c.req.query('projectId');
   const workflowVersionId = c.req.query('workflowVersionId');
 
-  let runs;
+  let runs: any[];
 
   if (workflowVersionId) {
     runs = await db.query.workflowRuns.findMany({

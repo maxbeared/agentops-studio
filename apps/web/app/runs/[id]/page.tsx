@@ -1,4 +1,10 @@
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
 import { api } from '../../../lib/api';
+import { RefreshCw, Clock, CheckCircle, XCircle, Loader2, AlertTriangle } from 'lucide-react';
 
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
@@ -7,6 +13,7 @@ function StatusBadge({ status }: { status: string }) {
     success: 'bg-green-500/20 text-green-400 border-green-500/30',
     failed: 'bg-red-500/20 text-red-400 border-red-500/30',
     waiting_review: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+    cancelled: 'bg-slate-500/20 text-slate-400 border-slate-500/30',
   };
 
   return (
@@ -23,6 +30,7 @@ function NodeStatusBadge({ status }: { status: string }) {
     success: 'bg-green-500/20 text-green-400 border-green-500/30',
     failed: 'bg-red-500/20 text-red-400 border-red-500/30',
     waiting_review: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+    skipped: 'bg-slate-500/20 text-slate-400 border-slate-500/30',
   };
 
   return (
@@ -32,14 +40,86 @@ function NodeStatusBadge({ status }: { status: string }) {
   );
 }
 
-export default async function RunDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const [run, nodeRunsData] = await Promise.all([
-    api.runs.get(id),
-    api.runs.getNodes(id),
-  ]);
+function StatusIcon({ status }: { status: string }) {
+  switch (status) {
+    case 'success':
+      return <CheckCircle className="h-5 w-5 text-green-400" />;
+    case 'failed':
+      return <XCircle className="h-5 w-5 text-red-400" />;
+    case 'running':
+    case 'pending':
+      return <Loader2 className="h-5 w-5 animate-spin text-blue-400" />;
+    case 'waiting_review':
+      return <AlertTriangle className="h-5 w-5 text-purple-400" />;
+    default:
+      return <Clock className="h-5 w-5 text-slate-400" />;
+  }
+}
 
-  const nodeRuns = nodeRunsData?.nodes || [];
+export default function RunDetailPage() {
+  const params = useParams();
+  const runId = params.id as string;
+
+  const [run, setRun] = useState<any>(null);
+  const [nodeRuns, setNodeRuns] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadRun = useCallback(async () => {
+    try {
+      const [runData, nodeData] = await Promise.all([
+        api.runs.get(runId),
+        api.runs.getNodes(runId),
+      ]);
+      setRun(runData);
+      setNodeRuns(nodeData?.nodes || []);
+    } catch (err) {
+      console.error('Failed to load run:', err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [runId]);
+
+  useEffect(() => {
+    loadRun();
+  }, [loadRun]);
+
+  useEffect(() => {
+    if (run?.status === 'running' || run?.status === 'pending' || run?.status === 'waiting_review') {
+      const interval = setInterval(() => {
+        setRefreshing(true);
+        loadRun();
+      }, 3000);
+      return () => clearInterval(interval);
+    }
+  }, [run?.status, loadRun]);
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-6 py-10 text-white">
+        <div className="mx-auto max-w-4xl">
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-400" />
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (!run) {
+    return (
+      <main className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-6 py-10 text-white">
+        <div className="mx-auto max-w-4xl">
+          <h1 className="text-2xl font-bold">Run not found</h1>
+          <Link href="/runs" className="mt-4 text-blue-400 hover:underline">
+            Back to Runs
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
   const startedAt = run.startedAt ? new Date(run.startedAt) : null;
   const finishedAt = run.finishedAt ? new Date(run.finishedAt) : null;
   const duration = startedAt && finishedAt
@@ -49,11 +129,25 @@ export default async function RunDetailPage({ params }: { params: Promise<{ id: 
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-6 py-10 text-white">
       <div className="mx-auto max-w-4xl">
-        <header className="mb-8">
-          <a href="/runs" className="text-sm text-slate-400 hover:text-white mb-4 inline-block">
-            ← Back to Runs
-          </a>
-          <h1 className="text-3xl font-bold">Run Details</h1>
+        <header className="mb-8 flex items-center justify-between">
+          <div>
+            <Link href="/runs" className="text-sm text-slate-400 hover:text-white mb-4 inline-block">
+              ← Back to Runs
+            </Link>
+            <h1 className="text-3xl font-bold flex items-center gap-3">
+              <StatusIcon status={run.status} />
+              Run Details
+            </h1>
+          </div>
+          <button
+            type="button"
+            onClick={() => { setRefreshing(true); loadRun(); }}
+            disabled={refreshing}
+            className="flex items-center gap-2 rounded-lg bg-slate-800 px-3 py-2 text-sm text-slate-300 hover:bg-slate-700 disabled:opacity-50"
+          >
+            <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
         </header>
 
         <div className="space-y-6">
@@ -69,7 +163,7 @@ export default async function RunDetailPage({ params }: { params: Promise<{ id: 
               </div>
               <div>
                 <div className="text-sm text-slate-400">Trigger Type</div>
-                <div className="text-slate-300">{run.triggerType}</div>
+                <div className="text-slate-300 capitalize">{run.triggerType}</div>
               </div>
               <div>
                 <div className="text-sm text-slate-400">Duration</div>
@@ -83,6 +177,18 @@ export default async function RunDetailPage({ params }: { params: Promise<{ id: 
                 <div className="text-sm text-slate-400">Finished</div>
                 <div className="text-slate-300">{finishedAt ? finishedAt.toLocaleString() : '-'}</div>
               </div>
+              {(run.totalTokens > 0 || run.totalCost > 0) && (
+                <>
+                  <div>
+                    <div className="text-sm text-slate-400">Total Tokens</div>
+                    <div className="text-slate-300">{run.totalTokens?.toLocaleString() || '-'}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-slate-400">Total Cost</div>
+                    <div className="text-slate-300">${run.totalCost?.toFixed(6) || '-'}</div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -108,8 +214,8 @@ export default async function RunDetailPage({ params }: { params: Promise<{ id: 
               {nodeRuns.length === 0 ? (
                 <p className="text-sm text-slate-400">No node executions recorded</p>
               ) : (
-                nodeRuns.map((node: any, index: number) => (
-                  <div key={index} className="rounded-xl border border-slate-700 bg-slate-950/50 p-4">
+                nodeRuns.map((node: any) => (
+                  <div key={node.id} className="rounded-xl border border-slate-700 bg-slate-950/50 p-4">
                     <div className="flex items-center justify-between">
                       <div>
                         <span className="font-medium text-white">{node.nodeKey}</span>
@@ -122,11 +228,26 @@ export default async function RunDetailPage({ params }: { params: Promise<{ id: 
                         Duration: {node.durationMs}ms
                       </div>
                     )}
+                    {node.tokenUsageInput !== undefined && node.tokenUsageInput > 0 && (
+                      <div className="mt-1 text-xs text-slate-500">
+                        Tokens: {node.tokenUsageInput} in / {node.tokenUsageOutput} out
+                      </div>
+                    )}
+                    {node.cost > 0 && (
+                      <div className="mt-1 text-xs text-slate-500">
+                        Cost: ${node.cost}
+                      </div>
+                    )}
                     {node.outputPayload && (
-                      <pre className="mt-2 overflow-x-auto text-xs text-slate-400">
-                        {JSON.stringify(node.outputPayload, null, 2).slice(0, 200)}
-                        {JSON.stringify(node.outputPayload).length > 200 ? '...' : ''}
-                      </pre>
+                      <details className="mt-2">
+                        <summary className="cursor-pointer text-xs text-slate-500">View Output</summary>
+                        <pre className="mt-2 overflow-x-auto text-xs text-slate-400 bg-slate-900/50 p-2 rounded">
+                          {JSON.stringify(node.outputPayload, null, 2)}
+                        </pre>
+                      </details>
+                    )}
+                    {node.errorMessage && (
+                      <p className="mt-2 text-xs text-red-400">{node.errorMessage}</p>
                     )}
                   </div>
                 ))

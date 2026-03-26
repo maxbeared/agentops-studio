@@ -11,7 +11,7 @@ export const workflowRoutes = new Hono();
 workflowRoutes.get('/', async (c) => {
   const projectId = c.req.query('projectId');
 
-  let workflowList;
+  let workflowList: any[];
 
   if (projectId) {
     workflowList = await db.query.workflows.findMany({

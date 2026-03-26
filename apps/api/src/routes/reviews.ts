@@ -8,7 +8,7 @@ export const reviewRoutes = new Hono();
 reviewRoutes.get('/', async (c) => {
   const status = c.req.query('status');
 
-  let tasks;
+  let tasks: any[];
   if (status) {
     tasks = await db.query.reviewTasks.findMany({
       where: eq(reviewTasks.status, status),

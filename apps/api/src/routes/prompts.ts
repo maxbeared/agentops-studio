@@ -26,7 +26,7 @@ const updatePromptSchema = z.object({
 promptRoutes.get('/', async (c) => {
   const projectId = c.req.query('projectId');
 
-  let prompts;
+  let prompts: any[];
   if (projectId) {
     prompts = await db.query.promptTemplates.findMany({
       where: eq(promptTemplates.projectId, projectId),

@@ -82,6 +82,7 @@ export default function WorkflowsPage() {
             <p className="mt-2 text-slate-400">Create and manage AI workflow automations</p>
           </div>
           <button
+            type="button"
             onClick={() => setShowCreate(true)}
             className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium hover:bg-blue-700"
           >
@@ -172,7 +173,10 @@ export default function WorkflowsPage() {
                       Edit
                     </Link>
                     {workflow.status === 'published' && (
-                      <button className="flex items-center gap-1.5 rounded bg-emerald-600/20 px-3 py-1.5 text-xs text-emerald-400 hover:bg-emerald-600/30">
+                      <button
+                        type="button"
+                        className="flex items-center gap-1.5 rounded bg-emerald-600/20 px-3 py-1.5 text-xs text-emerald-400 hover:bg-emerald-600/30"
+                      >
                         <Play className="h-3 w-3" />
                         Run
                       </button>

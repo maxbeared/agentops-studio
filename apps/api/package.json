@@ -20,12 +20,14 @@
     "ioredis": "^5.4.2",
     "jsonwebtoken": "^9.0.2",
     "minio": "^8.0.7",
+    "ws": "^8.20.0",
     "zod": "^3.24.1"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
     "@types/ioredis": "^4.28.10",
     "@types/jsonwebtoken": "^9.0.7",
+    "@types/ws": "^8.18.1",
     "typescript": "^5.7.2"
   }
 }

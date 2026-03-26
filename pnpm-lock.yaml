@@ -53,6 +53,9 @@ importers:
       minio:
         specifier: ^8.0.7
         version: 8.0.7
+      ws:
+        specifier: ^8.20.0
+        version: 8.20.0
       zod:
         specifier: ^3.24.1
         version: 3.25.76
@@ -66,6 +69,9 @@ importers:
       '@types/jsonwebtoken':
         specifier: ^9.0.7
         version: 9.0.10
+      '@types/ws':
+        specifier: ^8.18.1
+        version: 8.18.1
       typescript:
         specifier: ^5.7.2
         version: 5.9.3
@@ -157,7 +163,7 @@ importers:
         version: 0.80.0(zod@3.25.76)
       openai:
         specifier: ^6.33.0
-        version: 6.33.0(zod@3.25.76)
+        version: 6.33.0(ws@8.20.0)(zod@3.25.76)
       zod:
         specifier: ^3.24.1
         version: 3.25.76
@@ -950,6 +956,9 @@ packages:
 
   '@types/react@19.2.14':
     resolution: {integrity: sha512-ilcTH/UniCkMdtexkoCN0bI7pMcJDvmQFPvuPvmEaYA/NSfFTAgdUSLAoVjaRJm7+6PvcM+q1zYOwS4wTYMF9w==}
+
+  '@types/ws@8.18.1':
+    resolution: {integrity: sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg==}
 
   '@xyflow/react@12.10.1':
     resolution: {integrity: sha512-5eSWtIK/+rkldOuFbOOz44CRgQRjtS9v5nufk77DV+XBnfCGL9HAQ8PG00o2ZYKqkEU/Ak6wrKC95Tu+2zuK3Q==}
@@ -2120,6 +2129,18 @@ packages:
   wrappy@1.0.2:
     resolution: {integrity: sha512-l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ==}
 
+  ws@8.20.0:
+    resolution: {integrity: sha512-sAt8BhgNbzCtgGbt2OxmpuryO63ZoDk/sqaB/znQm94T4fCEsy/yV+7CdC1kJhOU9lboAEU7R3kquuycDoibVA==}
+    engines: {node: '>=10.0.0'}
+    peerDependencies:
+      bufferutil: ^4.0.1
+      utf-8-validate: '>=5.0.2'
+    peerDependenciesMeta:
+      bufferutil:
+        optional: true
+      utf-8-validate:
+        optional: true
+
   xml2js@0.6.2:
     resolution: {integrity: sha512-T4rieHaC1EXcES0Kxxj4JWgaUQHDk+qwHcYOCFHfiwKz7tOVPLq7Hjq9dM1WCMhylqMEfP7hMcOIChvotiZegA==}
     engines: {node: '>=4.0.0'}
@@ -2752,6 +2773,10 @@ snapshots:
   '@types/react@19.2.14':
     dependencies:
       csstype: 3.2.3
+
+  '@types/ws@8.18.1':
+    dependencies:
+      '@types/node': 22.19.15
 
   '@xyflow/react@12.10.1(@types/react@19.2.14)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)':
     dependencies:
@@ -3458,8 +3483,9 @@ snapshots:
     dependencies:
       wrappy: 1.0.2
 
-  openai@6.33.0(zod@3.25.76):
+  openai@6.33.0(ws@8.20.0)(zod@3.25.76):
     optionalDependencies:
+      ws: 8.20.0
       zod: 3.25.76
 
   path-expression-matcher@1.2.0: {}
@@ -3906,6 +3932,8 @@ snapshots:
       string-width: 4.2.3
 
   wrappy@1.0.2: {}
+
+  ws@8.20.0: {}
 
   xml2js@0.6.2:
     dependencies:
