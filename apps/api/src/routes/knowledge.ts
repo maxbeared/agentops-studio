@@ -4,8 +4,7 @@ import { db } from '@agentops/db';
 import { knowledgeDocuments, knowledgeChunks } from '@agentops/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { uploadFile, getFileUrl } from '../lib/minio';
-
-const DEMO_USER_ID = 'e8ca6b17-b3f9-447d-9753-0f2632e8fedc';
+import { getAuthUser } from '../lib/auth';
 
 export const knowledgeRoutes = new Hono();
 
@@ -42,6 +41,12 @@ knowledgeRoutes.get('/', async (c) => {
 });
 
 knowledgeRoutes.post('/upload', async (c) => {
+  const authUser = await getAuthUser(c);
+  
+  if (!authUser) {
+    return c.json({ error: { formErrors: ['Unauthorized'] } }, 401);
+  }
+
   try {
     const formData = await c.req.formData();
     const file = formData.get('file') as File | null;
@@ -64,7 +69,7 @@ knowledgeRoutes.post('/upload', async (c) => {
         fileKey,
         mimeType: file.type || 'application/octet-stream',
         status: 'uploaded',
-        createdBy: DEMO_USER_ID,
+        createdBy: authUser.userId,
       })
       .returning();
 
@@ -88,6 +93,12 @@ knowledgeRoutes.post('/upload', async (c) => {
 });
 
 knowledgeRoutes.post('/', async (c) => {
+  const authUser = await getAuthUser(c);
+  
+  if (!authUser) {
+    return c.json({ error: { formErrors: ['Unauthorized'] } }, 401);
+  }
+
   const body = await c.req.json();
   const parsed = createKnowledgeDocumentSchema.safeParse(body);
 
@@ -104,7 +115,7 @@ knowledgeRoutes.post('/', async (c) => {
       sourceUrl: parsed.data.sourceUrl,
       mimeType: parsed.data.mimeType,
       status: 'uploaded',
-      createdBy: DEMO_USER_ID,
+      createdBy: authUser.userId,
     })
     .returning();
 

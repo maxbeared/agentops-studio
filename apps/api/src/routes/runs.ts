@@ -4,8 +4,7 @@ import { db } from '@agentops/db';
 import { workflowRuns, workflowVersions, workflows, workflowNodeRuns } from '@agentops/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { Queue } from 'bullmq';
-
-const DEMO_USER_ID = 'e8ca6b17-b3f9-447d-9753-0f2632e8fedc';
+import { getAuthUser } from '../lib/auth';
 
 const connection = {
   url: process.env.REDIS_URL || 'redis://localhost:6379',
@@ -53,6 +52,12 @@ runRoutes.get('/', async (c) => {
 });
 
 runRoutes.post('/', async (c) => {
+  const authUser = await getAuthUser(c);
+  
+  if (!authUser) {
+    return c.json({ error: { formErrors: ['Unauthorized'] } }, 401);
+  }
+
   const body = await c.req.json();
   const parsed = runWorkflowSchema.safeParse(body);
 
@@ -81,7 +86,7 @@ runRoutes.post('/', async (c) => {
     .values({
       workflowVersionId: parsed.data.workflowVersionId,
       projectId: workflow.projectId,
-      triggeredBy: DEMO_USER_ID,
+      triggeredBy: authUser.userId,
       triggerType: 'api',
       status: 'pending',
       inputPayload: parsed.data.inputPayload || {},

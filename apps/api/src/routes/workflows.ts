@@ -3,8 +3,7 @@ import { createWorkflowSchema, publishWorkflowSchema } from '@agentops/shared';
 import { db } from '@agentops/db';
 import { workflows, workflowVersions, workflowNodes, workflowEdges } from '@agentops/db/schema';
 import { eq, desc } from 'drizzle-orm';
-
-const DEMO_USER_ID = 'e8ca6b17-b3f9-447d-9753-0f2632e8fedc';
+import { getAuthUser } from '../lib/auth';
 
 export const workflowRoutes = new Hono();
 
@@ -39,6 +38,12 @@ workflowRoutes.get('/', async (c) => {
 });
 
 workflowRoutes.post('/', async (c) => {
+  const authUser = await getAuthUser(c);
+  
+  if (!authUser) {
+    return c.json({ error: { formErrors: ['Unauthorized'] } }, 401);
+  }
+
   const body = await c.req.json();
   const parsed = createWorkflowSchema.safeParse(body);
 
@@ -52,7 +57,7 @@ workflowRoutes.post('/', async (c) => {
       projectId: parsed.data.projectId,
       name: parsed.data.name,
       description: parsed.data.description,
-      createdBy: DEMO_USER_ID,
+      createdBy: authUser.userId,
       status: 'draft',
     })
     .returning();
@@ -131,6 +136,12 @@ workflowRoutes.get('/:id', async (c) => {
 });
 
 workflowRoutes.post('/:id/publish', async (c) => {
+  const authUser = await getAuthUser(c);
+  
+  if (!authUser) {
+    return c.json({ error: { formErrors: ['Unauthorized'] } }, 401);
+  }
+
   const id = c.req.param('id');
   const body = await c.req.json();
   const parsed = publishWorkflowSchema.safeParse(body);
@@ -162,7 +173,7 @@ workflowRoutes.post('/:id/publish', async (c) => {
       version: nextVersion,
       definition: parsed.data.definition,
       publishedAt: new Date(),
-      createdBy: DEMO_USER_ID,
+      createdBy: authUser.userId,
     })
     .returning();
 

@@ -2,9 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
-import { Upload, FileText, Link as LinkIcon, RefreshCw, CheckCircle, AlertCircle } from 'lucide-react';
-
-const DEMO_PROJECT_ID = '00000000-0000-0000-0000-000000000000';
+import { Upload, FileText, Link as LinkIcon, RefreshCw, CheckCircle } from 'lucide-react';
 
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
@@ -68,9 +66,16 @@ export default function KnowledgePage() {
     setUploadError('');
 
     try {
+      const projects = await api.projects.list();
+      const projectId = projects[0]?.id;
+      if (!projectId) {
+        setUploadError('No project found');
+        return;
+      }
+
       const formData = new FormData();
       formData.append('file', selectedFile);
-      formData.append('projectId', DEMO_PROJECT_ID);
+      formData.append('projectId', projectId);
       formData.append('title', uploadTitle);
 
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/knowledge/upload`, {

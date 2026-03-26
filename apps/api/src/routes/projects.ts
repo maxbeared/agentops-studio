@@ -1,16 +1,24 @@
 import { Hono } from 'hono';
 import { createProjectSchema } from '@agentops/shared';
 import { db } from '@agentops/db';
-import { projects, organizations, organizationMembers } from '@agentops/db/schema';
-import { eq, and } from 'drizzle-orm';
-
-const DEMO_USER_ID = 'e8ca6b17-b3f9-447d-9753-0f2632e8fedc';
-const DEMO_ORG_ID = '12eccb6c-2266-49ff-930d-224a5f9770e7';
+import { projects, organizations } from '@agentops/db/schema';
+import { eq } from 'drizzle-orm';
+import { getAuthUser } from '../lib/auth';
 
 export const projectRoutes = new Hono();
 
 projectRoutes.get('/', async (c) => {
-  const orgId = c.req.query('organizationId') || DEMO_ORG_ID;
+  const authUser = await getAuthUser(c);
+  const queryOrgId = c.req.query('organizationId');
+  
+  let orgId = queryOrgId;
+  if (!orgId && authUser) {
+    orgId = authUser.orgId || undefined;
+  }
+  
+  if (!orgId) {
+    return c.json({ data: [] });
+  }
 
   const projectList = await db.query.projects.findMany({
     where: eq(projects.organizationId, orgId),
@@ -32,6 +40,12 @@ projectRoutes.get('/', async (c) => {
 });
 
 projectRoutes.post('/', async (c) => {
+  const authUser = await getAuthUser(c);
+  
+  if (!authUser) {
+    return c.json({ error: { formErrors: ['Unauthorized'] } }, 401);
+  }
+
   const body = await c.req.json();
   const parsed = createProjectSchema.safeParse(body);
 
@@ -39,7 +53,11 @@ projectRoutes.post('/', async (c) => {
     return c.json({ error: parsed.error.flatten() }, 400);
   }
 
-  const orgId = parsed.data.organizationId || DEMO_ORG_ID;
+  const orgId = parsed.data.organizationId || authUser.orgId;
+
+  if (!orgId) {
+    return c.json({ error: { formErrors: ['Organization ID required'] } }, 400);
+  }
 
   const org = await db.query.organizations.findFirst({
     where: eq(organizations.id, orgId),
@@ -55,7 +73,7 @@ projectRoutes.post('/', async (c) => {
       organizationId: orgId,
       name: parsed.data.name,
       description: parsed.data.description,
-      createdBy: DEMO_USER_ID,
+      createdBy: authUser.userId,
     })
     .returning();
 

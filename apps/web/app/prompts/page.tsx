@@ -4,8 +4,6 @@ import { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
 import { Plus, Edit2, Trash2, FileText, Copy, CheckCircle } from 'lucide-react';
 
-const DEMO_PROJECT_ID = '00000000-0000-0000-0000-000000000000';
-
 export default function PromptsPage() {
   const [prompts, setPrompts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,8 +36,14 @@ export default function PromptsPage() {
     e.preventDefault();
     setSaving(true);
     try {
+      const projects = await api.projects.list();
+      const projectId = projects[0]?.id;
+      if (!projectId) {
+        console.error('No project found');
+        return;
+      }
       const prompt = await api.prompts.create({
-        projectId: DEMO_PROJECT_ID,
+        projectId,
         ...formData,
       });
       setPrompts([prompt, ...prompts]);

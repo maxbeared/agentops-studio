@@ -3,9 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { api } from '../../lib/api';
-import { Plus, Edit2, Play, Clock, ChevronRight } from 'lucide-react';
-
-const DEMO_ORG_ID = '12eccb6c-2266-49ff-930d-224a5f9770e7';
+import { Plus, Edit2, Play, Clock } from 'lucide-react';
 
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {

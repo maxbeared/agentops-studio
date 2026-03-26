@@ -3,8 +3,7 @@ import { db } from '@agentops/db';
 import { promptTemplates } from '@agentops/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { z } from 'zod';
-
-const DEMO_USER_ID = 'e8ca6b17-b3f9-447d-9753-0f2632e8fedc';
+import { getAuthUser } from '../lib/auth';
 
 export const promptRoutes = new Hono();
 
@@ -54,6 +53,12 @@ promptRoutes.get('/', async (c) => {
 });
 
 promptRoutes.post('/', async (c) => {
+  const authUser = await getAuthUser(c);
+  
+  if (!authUser) {
+    return c.json({ error: { formErrors: ['Unauthorized'] } }, 401);
+  }
+
   const body = await c.req.json();
   const parsed = createPromptSchema.safeParse(body);
 
@@ -69,7 +74,7 @@ promptRoutes.post('/', async (c) => {
       description: parsed.data.description,
       template: parsed.data.template,
       inputSchema: parsed.data.inputSchema,
-      createdBy: DEMO_USER_ID,
+      createdBy: authUser.userId,
     })
     .returning();
 
