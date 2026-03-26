@@ -5,6 +5,7 @@ import { knowledgeDocuments, knowledgeChunks } from '@agentops/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { uploadFile, getFileUrl } from '../lib/minio';
 import { getAuthUser } from '../lib/auth';
+import { createLLMProvider } from '@agentops/ai';
 
 export const knowledgeRoutes = new Hono();
 
@@ -191,24 +192,35 @@ knowledgeRoutes.post('/:id/process', async (c) => {
     .set({ status: 'processing', updatedAt: new Date() })
     .where(eq(knowledgeDocuments.id, id));
 
-  if (doc.fileKey) {
-    let sourceUrl = doc.fileKey;
-    try {
-      sourceUrl = await getFileUrl(doc.fileKey);
-    } catch {
-      sourceUrl = doc.fileKey;
-    }
+  // Create OpenAI provider for embeddings
+  const provider = createLLMProvider('openai', process.env.OPENAI_API_KEY);
 
+  if (doc.fileKey) {
+    // For file-based documents, create chunks from the title/filename
+    // In production, you would parse the file content (PDF, TXT, etc.)
     const chunks = doc.title.split(/\s+/).filter(Boolean);
     const sampleChunks = [];
     for (let i = 0; i < Math.min(chunks.length, 5); i++) {
+      const content = chunks.slice(i * 3, i * 3 + 3).join(' ') || doc.title;
+
+      // Generate real embedding for this chunk
+      let embeddingJson: string | null = null;
+      try {
+        if (provider.embed) {
+          const embeddingResult = await provider.embed({ text: content });
+          embeddingJson = JSON.stringify(embeddingResult.vector);
+        }
+      } catch (err) {
+        console.error('Failed to generate embedding:', err);
+      }
+
       sampleChunks.push({
-        id: `chunk-${i}`,
         documentId: id,
         projectId: doc.projectId,
         chunkIndex: i,
-        content: chunks.slice(i * 3, i * 3 + 3).join(' ') || doc.title,
+        content,
         metadata: {},
+        embedding: embeddingJson,
       });
     }
 
@@ -218,20 +230,44 @@ knowledgeRoutes.post('/:id/process', async (c) => {
       }
     }
   } else if (doc.sourceUrl) {
+    // For URL-based documents
+    let embeddingJson: string | null = null;
+    try {
+      if (provider.embed) {
+        const embeddingResult = await provider.embed({ text: doc.title });
+        embeddingJson = JSON.stringify(embeddingResult.vector);
+      }
+    } catch (err) {
+      console.error('Failed to generate embedding:', err);
+    }
+
     await db.insert(knowledgeChunks).values({
       documentId: id,
       projectId: doc.projectId,
       chunkIndex: 0,
       content: doc.title,
-      metadata: {},
+      metadata: { sourceUrl: doc.sourceUrl },
+      embedding: embeddingJson,
     });
   } else {
+    // For text-based documents
+    let embeddingJson: string | null = null;
+    try {
+      if (provider.embed) {
+        const embeddingResult = await provider.embed({ text: doc.title });
+        embeddingJson = JSON.stringify(embeddingResult.vector);
+      }
+    } catch (err) {
+      console.error('Failed to generate embedding:', err);
+    }
+
     await db.insert(knowledgeChunks).values({
       documentId: id,
       projectId: doc.projectId,
       chunkIndex: 0,
       content: doc.title,
       metadata: {},
+      embedding: embeddingJson,
     });
   }
 

@@ -1,11 +1,62 @@
 import { config } from 'dotenv';
 import { Worker } from 'bullmq';
-import { WorkflowEngine } from '@agentops/workflow';
+import { WorkflowEngine, type RetrievalService } from '@agentops/workflow';
 import type { NodeExecutionResult } from '@agentops/workflow';
 import { db } from '@agentops/db';
-import { workflowRuns, workflowNodeRuns } from '@agentops/db/schema';
-import { eq } from 'drizzle-orm';
+import { workflowRuns, workflowNodeRuns, knowledgeChunks } from '@agentops/db/schema';
+import { eq, and, desc } from 'drizzle-orm';
 import WebSocket from 'ws';
+import { createLLMProvider } from '@agentops/ai';
+
+// Retrieval service implementation using OpenAI embeddings
+const retrievalService: RetrievalService = {
+  async retrieve(projectId: string, query: string, topK: number) {
+    const provider = createLLMProvider('openai', process.env.OPENAI_API_KEY);
+
+    // Generate query embedding
+    const queryEmbedding = await provider.embed!({ text: query });
+    const queryVector = queryEmbedding.vector;
+
+    // Fetch chunks for this project
+    const chunks = await db.query.knowledgeChunks.findMany({
+      where: eq(knowledgeChunks.projectId, projectId),
+      orderBy: [desc(knowledgeChunks.createdAt)],
+      limit: 100, // Get enough chunks to filter
+    });
+
+    // Calculate cosine similarity and sort
+    const scoredChunks = chunks
+      .map((chunk) => {
+        if (!chunk.embedding) return null;
+        try {
+          const chunkVector = JSON.parse(chunk.embedding);
+          const similarity = cosineSimilarity(queryVector, chunkVector);
+          return {
+            content: chunk.content,
+            score: similarity,
+            metadata: chunk.metadata || {},
+            chunkIndex: chunk.chunkIndex,
+          };
+        } catch {
+          return null;
+        }
+      })
+      .filter((c): c is NonNullable<typeof c> => c !== null)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, topK);
+
+    return scoredChunks;
+  },
+};
+
+function cosineSimilarity(a: number[], b: number[]): number {
+  if (a.length !== b.length) return 0;
+  const dotProduct = a.reduce((sum, ai, i) => sum + ai * b[i], 0);
+  const normA = Math.sqrt(a.reduce((sum, ai) => sum + ai * ai, 0));
+  const normB = Math.sqrt(b.reduce((sum, bi) => sum + bi * bi, 0));
+  if (normA === 0 || normB === 0) return 0;
+  return dotProduct / (normA * normB);
+}
 
 config({ path: '../../.env' });
 
@@ -71,11 +122,15 @@ const workflowWorker = new Worker(
     broadcastRunUpdate(runId, { status: 'running', startedAt: new Date().toISOString() });
 
     const workflowEngine = new WorkflowEngine();
+    workflowEngine.setRetrievalService(retrievalService);
 
     workflowEngine.setNodeExecutionListener(async (nodeKey, nodeType, status, result?: NodeExecutionResult) => {
       try {
         const existing = await db.query.workflowNodeRuns.findFirst({
-          where: eq(workflowNodeRuns.workflowRunId, runId),
+          where: and(
+            eq(workflowNodeRuns.workflowRunId, runId),
+            eq(workflowNodeRuns.nodeKey, nodeKey)
+          ),
         });
 
         if (existing) {

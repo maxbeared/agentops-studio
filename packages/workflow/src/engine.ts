@@ -10,9 +10,15 @@ import {
   ConditionNodeExecutor,
 } from './executors';
 
+// Retrieval service interface for knowledge base queries
+export type RetrievalService = {
+  retrieve(projectId: string, query: string, topK: number): Promise<Array<{ content: string; score: number; metadata?: Record<string, unknown> }>>;
+};
+
 export class WorkflowEngine {
   private executors: Map<string, NodeExecutor>;
   private listener?: NodeExecutionListener;
+  private retrievalService?: RetrievalService;
 
   constructor() {
     this.executors = new Map();
@@ -29,11 +35,21 @@ export class WorkflowEngine {
     this.listener = listener;
   }
 
+  setRetrievalService(service: RetrievalService) {
+    this.retrievalService = service;
+    // Pass service to retrieval executor
+    const retrievalExecutor = this.executors.get('retrieval') as RetrievalNodeExecutor;
+    if (retrievalExecutor && 'setRetrievalService' in retrievalExecutor) {
+      (retrievalExecutor as any).setRetrievalService(service);
+    }
+  }
+
   async execute(definition: WorkflowDefinition, input: Record<string, any>): Promise<WorkflowExecutionResult> {
     const ctx: ExecutionContext = {
       input,
       state: { ...input },
       outputs: {},
+      prevOutputs: {},
     };
 
     const startNode = definition.nodes.find((n) => n.type === 'start');
@@ -69,6 +85,16 @@ export class WorkflowEngine {
     const executor = this.executors.get(node.type);
     if (!executor) {
       throw new Error(`No executor found for node type: ${node.type}`);
+    }
+
+    // Collect previous nodes' outputs for context
+    const incomingEdges = definition.edges.filter((e) => e.target === node.id);
+    ctx.prevOutputs = {};
+    for (const edge of incomingEdges) {
+      const sourceNode = definition.nodes.find((n) => n.id === edge.source);
+      if (sourceNode && ctx.outputs[edge.source]) {
+        ctx.prevOutputs[sourceNode.name] = ctx.outputs[edge.source];
+      }
     }
 
     if (this.listener) {

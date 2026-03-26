@@ -4,6 +4,7 @@ export type ExecutionContext = {
   input: Record<string, any>;
   state: Record<string, any>;
   outputs: Record<string, any>;
+  prevOutputs: Record<string, any>;
 };
 
 export type NodeExecutionResult = {
