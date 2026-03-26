@@ -1,4 +1,5 @@
 import { api } from '../lib/api';
+import Link from 'next/link';
 
 function StatCard({ title, value, hint }: { title: string; value: string; hint: string }) {
   return (
@@ -16,17 +17,6 @@ function SectionCard({ title, children }: { title: string; children: React.React
       <h2 className="text-lg font-semibold text-white">{title}</h2>
       <div className="mt-4">{children}</div>
     </section>
-  );
-}
-
-function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
-  return (
-    <a
-      href={href}
-      className="rounded-lg border border-slate-700 bg-slate-800/50 px-4 py-2 text-sm text-slate-300 transition-colors hover:bg-slate-700 hover:text-white"
-    >
-      {children}
-    </a>
   );
 }
 
@@ -49,23 +39,16 @@ export default async function HomePage() {
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-6 py-10 text-white">
       <div className="mx-auto flex max-w-7xl flex-col gap-8">
-        <header className="flex items-start justify-between gap-6 rounded-3xl border border-slate-800 bg-slate-900/70 p-8">
-          <div>
-            <div className="inline-flex rounded-full border border-indigo-500/30 bg-indigo-500/10 px-3 py-1 text-xs text-indigo-300">
-              AgentOps Studio
-            </div>
-            <h1 className="mt-4 text-4xl font-bold tracking-tight">
-              AI 自动化运营中台
-            </h1>
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300">
-              一个用于展示 AI 应用工程能力的复杂全栈项目，包含知识库、工作流编排、异步任务、人工审核、执行日志和成本分析。
-            </p>
+        <header className="rounded-3xl border border-slate-800 bg-slate-900/70 p-8">
+          <div className="inline-flex rounded-full border border-indigo-500/30 bg-indigo-500/10 px-3 py-1 text-xs text-indigo-300">
+            AgentOps Studio
           </div>
-          <div className="flex gap-3">
-            <NavLink href="/projects">Projects</NavLink>
-            <NavLink href="/workflows">Workflows</NavLink>
-            <NavLink href="/runs">Runs</NavLink>
-          </div>
+          <h1 className="mt-4 text-4xl font-bold tracking-tight">
+            AI 自动化运营中台
+          </h1>
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300">
+            一个用于展示 AI 应用工程能力的复杂全栈项目，包含知识库、工作流编排、异步任务、人工审核、执行日志和成本分析。
+          </p>
         </header>
 
         <section className="grid gap-4 md:grid-cols-4">
@@ -100,10 +83,14 @@ export default async function HomePage() {
             ) : (
               <div className="space-y-3">
                 {stats.recentRuns.map((run) => (
-                  <div key={run.id} className="flex items-center justify-between text-sm">
+                  <Link
+                    key={run.id}
+                    href={`/runs/${run.id}`}
+                    className="flex items-center justify-between text-sm hover:text-indigo-400"
+                  >
                     <span className="text-slate-300">{run.workflowName}</span>
                     <span className="text-slate-500">{run.status}</span>
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}

@@ -1,4 +1,5 @@
 import { api } from '../../lib/api';
+import Link from 'next/link';
 
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
@@ -35,7 +36,7 @@ export default async function RunsPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-slate-800 text-left text-sm text-slate-400">
-                    <th className="pb-3 font-medium">Workflow</th>
+                    <th className="pb-3 font-medium">Run ID</th>
                     <th className="pb-3 font-medium">Status</th>
                     <th className="pb-3 font-medium">Trigger</th>
                     <th className="pb-3 font-medium">Started</th>
@@ -51,8 +52,12 @@ export default async function RunsPage() {
                       : null;
 
                     return (
-                      <tr key={run.id} className="text-sm">
-                        <td className="py-3 font-mono text-xs text-slate-300">{run.id.slice(0, 8)}...</td>
+                      <tr key={run.id} className="text-sm hover:bg-slate-800/30 cursor-pointer">
+                        <td className="py-3">
+                          <Link href={`/runs/${run.id}`} className="font-mono text-xs text-indigo-400 hover:text-indigo-300">
+                            {run.id.slice(0, 8)}...
+                          </Link>
+                        </td>
                         <td className="py-3"><StatusBadge status={run.status} /></td>
                         <td className="py-3 text-slate-400">{run.triggerType}</td>
                         <td className="py-3 text-slate-400">

@@ -46,6 +46,20 @@ export const api = {
     getNodes: (id: string) => fetchApi<any>(`/runs/${id}/nodes`),
   },
 
+  knowledge: {
+    list: (projectId?: string) =>
+      fetchApi<any[]>(`/knowledge${projectId ? `?projectId=${projectId}` : ''}`),
+    get: (id: string) => fetchApi<any>(`/knowledge/${id}`),
+    create: (data: { projectId: string; title: string; sourceType: string; sourceUrl?: string; mimeType?: string }) =>
+      fetchApi<any>('/knowledge', { method: 'POST', body: JSON.stringify(data) }),
+  },
+
+  reviews: {
+    list: (status?: string) =>
+      fetchApi<any[]>(`/reviews${status ? `?status=${status}` : ''}`),
+    get: (id: string) => fetchApi<any>(`/reviews/${id}`),
+  },
+
   dashboard: {
     stats: (projectId?: string) =>
       fetchApi<any>(`/dashboard/stats${projectId ? `?projectId=${projectId}` : ''}`),
