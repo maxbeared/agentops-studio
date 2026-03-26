@@ -79,9 +79,9 @@ agentops-studio/
 |------|------|
 | `auth.ts` | JWT 用户认证解析（getAuthUser） |
 | `jwt.ts` | JWT 签名/验证 |
-| `password.ts` | bcrypt 密码哈希 |
+| `password.ts` | bcryptjs 密码哈希 |
 | `minio.ts` | MinIO 客户端封装 |
-| `websocket.ts` | WebSocket 服务端 |
+| `websocket.ts` | WebSocket 服务端 + 广播函数 |
 
 ### WebSocket (`apps/api/src/`)
 | 文件 | 功能 |
@@ -227,8 +227,18 @@ agentops-studio/
 1. 从 `start` 节点开始递归执行
 2. 根据边连接到下一个节点
 3. `review` 节点暂停等待人工审核
-4. 执行结果存入 `ctx.state`
+4. 节点输出存入 `ctx.outputs`（独立于 `ctx.state`）
 5. 通过 NodeExecutionListener 回调记录每个节点执行到数据库
+6. 最终结果从 `ctx.outputs` 返回，避免循环引用
+
+### ExecutionContext 结构
+```typescript
+type ExecutionContext = {
+  input: Record<string, any>;      // 原始输入
+  state: Record<string, any>;     // 保留用于动态条件计算
+  outputs: Record<string, any>;   // 节点执行输出（解决循环引用）
+};
+```
 
 ### AI Provider 自动选择
 ```typescript
@@ -244,6 +254,22 @@ return MockLLMProvider;
 ### 服务
 - 独立服务 `websocket-server.ts` 监听 `localhost:3002`
 - 使用 `ws` 库
+- Worker 通过 WebSocket 客户端向服务器广播状态更新
+
+### Worker 广播函数
+```typescript
+// apps/worker/src/index.ts
+function broadcastRunUpdate(runId: string, update: Record<string, unknown>) {
+  const ws = getWebSocketClient();
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({
+      type: 'run_update',
+      runId,
+      ...update,
+    }));
+  }
+}
+```
 
 ### 消息类型
 ```typescript
@@ -288,6 +314,7 @@ ANTHROPIC_API_KEY=sk-ant-...
 docker-compose up -d
 
 # 2. 数据库迁移
+pnpm db:generate
 pnpm db:migrate
 
 # 3. 数据库种子
@@ -297,13 +324,19 @@ pnpm db:seed
 cd apps/api && bun run src/index.ts
 
 # 5. 启动 WebSocket (localhost:3002)
-pnpm ws
+cd apps/api && bun run src/websocket-server.ts
 
 # 6. 启动 Worker
 cd apps/worker && bun run src/index.ts
 
 # 7. 启动 Web (localhost:3000)
 cd apps/web && pnpm dev
+```
+
+### Demo 账号
+```
+Email: demo@agentops.studio
+Password: demo123456
 ```
 
 ---
@@ -320,15 +353,17 @@ cd apps/web && pnpm dev
 - [x] Prompt 模板管理
 - [x] BullMQ 异步任务队列
 - [x] 真实 AI Provider（OpenAI + Anthropic）
-- [x] WebSocket 实时推送
+- [x] WebSocket 实时推送（API 服务端）
+- [x] Worker WebSocket 广播（Worker → API WS Server）
 - [x] Run 详情页自动轮询
 - [x] Worker 节点执行记录到数据库
 - [x] Workflow 引擎支持节点执行监听器回调
 - [x] 前端路由守卫组件（auth-check）
+- [x] Workflow 引擎输出与状态分离（解决循环引用）
 
 ### ⚠️ 已知限制
 - `knowledge_chunks.embedding` 使用 text 占位，非 pgvector
-- Worker 到 WebSocket 的广播暂未实现（可直接在 Worker 内调用 ws）
+- API 生产构建需要处理 MinIO 可选依赖（开发模式不受影响）
 - 部分 LSP 类型警告未完全消除（accessibility 和 button type）
 
 ---
@@ -356,7 +391,7 @@ export async function getAuthUser(c: Context): Promise<AuthUser | null> {
 }
 ```
 
-### Worker 节点执行记录
+### Worker 节点执行记录 + WebSocket 广播
 ```typescript
 // apps/worker/src/index.ts
 workflowEngine.setNodeExecutionListener(async (nodeKey, nodeType, status, result?: NodeExecutionResult) => {
@@ -372,6 +407,13 @@ workflowEngine.setNodeExecutionListener(async (nodeKey, nodeType, status, result
     tokenUsageOutput: result?.usage?.outputTokens || 0,
     cost: result?.usage?.cost?.toString() || '0',
   });
+
+  broadcastRunUpdate(runId, {
+    nodeKey,
+    nodeType,
+    status,
+    result: result ? { output: result.output, errorMessage: result.errorMessage, latencyMs: result.latencyMs } : undefined,
+  });
 });
 ```
 
@@ -386,6 +428,37 @@ function safeJsonSerialize(obj: any): any {
     }
     return value;
   }));
+}
+```
+
+### Workflow 引擎输出处理
+```typescript
+// packages/workflow/src/executors.ts
+export class OutputNodeExecutor implements NodeExecutor {
+  async execute(ctx: ExecutionContext, node: WorkflowNode): Promise<NodeExecutionResult> {
+    return {
+      status: 'success',
+      output: JSON.parse(JSON.stringify(ctx.outputs)), // 深拷贝避免循环引用
+    };
+  }
+}
+```
+
+### Worker WebSocket 客户端
+```typescript
+// apps/worker/src/index.ts
+const WS_URL = process.env.WS_URL || 'ws://localhost:3002';
+let wsClient: WebSocket | null = null;
+
+function getWebSocketClient(): WebSocket {
+  if (!wsClient || wsClient.readyState === WebSocket.CLOSED) {
+    wsClient = new WebSocket(WS_URL);
+    wsClient.on('error', (err: Error) => {
+      console.error('WebSocket connection error:', err.message);
+      wsClient = null;
+    });
+  }
+  return wsClient;
 }
 ```
 

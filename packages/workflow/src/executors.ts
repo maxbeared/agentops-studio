@@ -73,7 +73,7 @@ export class OutputNodeExecutor implements NodeExecutor {
   async execute(ctx: ExecutionContext, node: WorkflowNode): Promise<NodeExecutionResult> {
     return {
       status: 'success',
-      output: ctx.state,
+      output: JSON.parse(JSON.stringify(ctx.outputs)),
     };
   }
 }

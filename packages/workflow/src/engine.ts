@@ -33,6 +33,7 @@ export class WorkflowEngine {
     const ctx: ExecutionContext = {
       input,
       state: { ...input },
+      outputs: {},
     };
 
     const startNode = definition.nodes.find((n) => n.type === 'start');
@@ -48,7 +49,7 @@ export class WorkflowEngine {
       
       return {
         status: 'success',
-        outputs: ctx.state,
+        outputs: ctx.outputs,
       };
     } catch (error) {
       return {
@@ -84,14 +85,14 @@ export class WorkflowEngine {
     }
 
     if (result.status === 'waiting_review') {
-      ctx.state[node.id] = result.output;
+      ctx.outputs[node.id] = result.output;
       if (this.listener) {
         await this.listener(node.id, node.type, 'waiting_review', result);
       }
       return;
     }
 
-    ctx.state[node.id] = result.output;
+    ctx.outputs[node.id] = result.output;
     
     if (this.listener) {
       await this.listener(node.id, node.type, 'success', result);

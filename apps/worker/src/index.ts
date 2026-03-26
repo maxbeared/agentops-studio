@@ -5,12 +5,43 @@ import type { NodeExecutionResult } from '@agentops/workflow';
 import { db } from '@agentops/db';
 import { workflowRuns, workflowNodeRuns } from '@agentops/db/schema';
 import { eq } from 'drizzle-orm';
+import WebSocket from 'ws';
 
 config({ path: '../../.env' });
 
 const connection = {
   url: process.env.REDIS_URL || 'redis://localhost:6379',
 };
+
+const WS_URL = process.env.WS_URL || 'ws://localhost:3002';
+
+let wsClient: WebSocket | null = null;
+
+function getWebSocketClient(): WebSocket {
+  if (!wsClient || wsClient.readyState === WebSocket.CLOSED) {
+    wsClient = new WebSocket(WS_URL);
+    wsClient.on('error', (err: Error) => {
+      console.error('WebSocket connection error:', err.message);
+      wsClient = null;
+    });
+    wsClient.on('close', () => {
+      console.log('WebSocket connection closed');
+      wsClient = null;
+    });
+  }
+  return wsClient;
+}
+
+function broadcastRunUpdate(runId: string, update: Record<string, unknown>) {
+  const ws = getWebSocketClient();
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({
+      type: 'run_update',
+      runId,
+      ...update,
+    }));
+  }
+}
 
 function safeJsonSerialize(obj: any): any {
   const seen = new WeakSet();
@@ -36,6 +67,8 @@ const workflowWorker = new Worker(
       .update(workflowRuns)
       .set({ status: 'running', startedAt: new Date() })
       .where(eq(workflowRuns.id, runId));
+
+    broadcastRunUpdate(runId, { status: 'running', startedAt: new Date().toISOString() });
 
     const workflowEngine = new WorkflowEngine();
 
@@ -76,6 +109,17 @@ const workflowWorker = new Worker(
             cost: result?.usage?.cost?.toString() || '0',
           });
         }
+
+        broadcastRunUpdate(runId, {
+          nodeKey,
+          nodeType,
+          status,
+          result: result ? {
+            output: result.output,
+            errorMessage: result.errorMessage,
+            latencyMs: result.latencyMs,
+          } : undefined,
+        });
       } catch (err) {
         console.error('Failed to record node run:', err);
       }
@@ -94,6 +138,12 @@ const workflowWorker = new Worker(
         })
         .where(eq(workflowRuns.id, runId));
 
+      broadcastRunUpdate(runId, {
+        status: result.status,
+        output: result.outputs,
+        finishedAt: new Date().toISOString(),
+      });
+
       console.log('Workflow result', result);
       return result;
     } catch (error) {
@@ -105,6 +155,12 @@ const workflowWorker = new Worker(
           finishedAt: new Date(),
         })
         .where(eq(workflowRuns.id, runId));
+
+      broadcastRunUpdate(runId, {
+        status: 'failed',
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        finishedAt: new Date().toISOString(),
+      });
 
       throw error;
     }

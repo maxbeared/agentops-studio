@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "scripts": {
     "dev": "bun run --watch src/index.ts",
-    "build": "bun build src/index.ts --outdir dist --target bun",
+    "build": "bun build src/index.ts --outdir dist --target bun --external 'mock-aws-s3' --external 'aws-sdk' --external 'nock'",
     "start": "bun run dist/index.js",
     "lint": "tsc --noEmit"
   },
@@ -12,7 +12,7 @@
     "@agentops/db": "workspace:*",
     "@agentops/shared": "workspace:*",
     "@agentops/workflow": "workspace:*",
-    "bcrypt": "^5.1.1",
+    "bcryptjs": "^2.4.3",
     "bullmq": "^5.30.5",
     "dotenv": "^16.4.7",
     "drizzle-orm": "^0.36.4",
@@ -24,7 +24,7 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
-    "@types/bcrypt": "^5.0.2",
+    "@types/bcryptjs": "^2.4.6",
     "@types/ioredis": "^4.28.10",
     "@types/jsonwebtoken": "^9.0.7",
     "@types/ws": "^8.18.1",

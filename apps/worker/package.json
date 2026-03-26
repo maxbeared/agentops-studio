@@ -14,9 +14,11 @@
     "@agentops/workflow": "workspace:*",
     "bullmq": "^5.30.5",
     "drizzle-orm": "^0.36.4",
-    "dotenv": "^16.4.7"
+    "dotenv": "^16.4.7",
+    "ws": "^8.20.0"
   },
   "devDependencies": {
+    "@types/ws": "^8.18.1",
     "typescript": "^5.7.2"
   }
 }

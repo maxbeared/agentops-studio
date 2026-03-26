@@ -3,6 +3,7 @@ import type { WorkflowDefinition, WorkflowNode } from '@agentops/shared/types';
 export type ExecutionContext = {
   input: Record<string, any>;
   state: Record<string, any>;
+  outputs: Record<string, any>;
 };
 
 export type NodeExecutionResult = {
