@@ -3,7 +3,7 @@ import { Worker } from 'bullmq';
 import { WorkflowEngine, type RetrievalService } from '@agentops/workflow';
 import type { NodeExecutionResult } from '@agentops/workflow';
 import { db } from '@agentops/db';
-import { workflowRuns, workflowNodeRuns, knowledgeChunks } from '@agentops/db/schema';
+import { workflowRuns, workflowNodeRuns, knowledgeChunks, reviewTasks } from '@agentops/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import WebSocket from 'ws';
 import { createLLMProvider } from '@agentops/ai';
@@ -126,6 +126,12 @@ const workflowWorker = new Worker(
 
     workflowEngine.setNodeExecutionListener(async (nodeKey, nodeType, status, result?: NodeExecutionResult) => {
       try {
+        // Find this node's definition to get config
+        const nodeDef = definition.nodes.find((n: any) => n.id === nodeKey);
+        const nodeConfig = nodeDef?.config || {};
+
+        let nodeRunId: string | null = null;
+
         const existing = await db.query.workflowNodeRuns.findFirst({
           where: and(
             eq(workflowNodeRuns.workflowRunId, runId),
@@ -147,8 +153,9 @@ const workflowWorker = new Worker(
               cost: result?.usage?.cost?.toString(),
             })
             .where(eq(workflowNodeRuns.id, existing.id));
+          nodeRunId = existing.id;
         } else {
-          await db.insert(workflowNodeRuns).values({
+          const [inserted] = await db.insert(workflowNodeRuns).values({
             workflowRunId: runId,
             nodeKey,
             nodeType,
@@ -163,18 +170,42 @@ const workflowWorker = new Worker(
             tokenUsageOutput: result?.usage?.outputTokens || 0,
             cost: result?.usage?.cost?.toString() || '0',
           });
+          nodeRunId = inserted.id;
         }
 
-        broadcastRunUpdate(runId, {
-          nodeKey,
-          nodeType,
-          status,
-          result: result ? {
-            output: result.output,
-            errorMessage: result.errorMessage,
-            latencyMs: result.latencyMs,
-          } : undefined,
-        });
+        // Create review task when review node pauses for approval
+        if (nodeType === 'review' && status === 'waiting_review' && nodeRunId) {
+          await db.insert(reviewTasks).values({
+            workflowRunId: runId,
+            workflowNodeRunId: nodeRunId,
+            assigneeUserId: nodeConfig.assigneeUserId || null,
+            status: 'pending',
+            reviewedOutput: result?.output ? safeJsonSerialize(result.output) : undefined,
+          });
+
+          broadcastRunUpdate(runId, {
+            nodeKey,
+            nodeType,
+            status,
+            reviewTaskCreated: true,
+            result: result ? {
+              output: result.output,
+              errorMessage: result.errorMessage,
+              latencyMs: result.latencyMs,
+            } : undefined,
+          });
+        } else {
+          broadcastRunUpdate(runId, {
+            nodeKey,
+            nodeType,
+            status,
+            result: result ? {
+              output: result.output,
+              errorMessage: result.errorMessage,
+              latencyMs: result.latencyMs,
+            } : undefined,
+          });
+        }
       } catch (err) {
         console.error('Failed to record node run:', err);
       }

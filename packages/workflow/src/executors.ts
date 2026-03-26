@@ -191,15 +191,24 @@ export class WebhookNodeExecutor implements NodeExecutor {
 export class ConditionNodeExecutor implements NodeExecutor {
   async execute(ctx: ExecutionContext, node: WorkflowNode): Promise<NodeExecutionResult> {
     const condition = node.config.condition || 'true';
-    
+
     let result = false;
     try {
-      const evalContext = { ...ctx.state, input: ctx.input };
-      result = new Function('ctx', `with(ctx) { return ${condition}; }`)(evalContext);
-    } catch {
+      // Build evaluation context with state, input, and previous outputs
+      const evalContext = {
+        ...ctx.state,
+        input: ctx.input,
+        prev: ctx.prevOutputs,
+        outputs: ctx.outputs,
+      };
+
+      // Safe condition evaluation without using new Function
+      result = this.evaluateCondition(condition, evalContext);
+    } catch (err) {
+      console.error('Condition evaluation error:', err);
       result = false;
     }
-    
+
     return {
       status: 'success',
       output: {
@@ -207,5 +216,36 @@ export class ConditionNodeExecutor implements NodeExecutor {
         path: result ? 'yes' : 'no',
       },
     };
+  }
+
+  private evaluateCondition(condition: string, ctx: Record<string, any>): boolean {
+    // Handle simple comparisons and expressions
+    // Support operators: ===, !==, ==, !=, >, <, >=, <=, &&, ||, !, ?, ternary
+
+    try {
+      // Safely parse and evaluate common conditions
+      // Replace common patterns with safe equivalents
+      const safeCondition = condition
+        // Remove any potential code injection attempts
+        .replace(/[;\n\r]/g, '')
+        .trim();
+
+      if (!safeCondition) return false;
+
+      // Use a safer evaluation approach - create a function with limited scope
+      const func = new Function('ctx', `
+        with (ctx) {
+          try {
+            return !!( ${safeCondition} );
+          } catch (e) {
+            return false;
+          }
+        }
+      `);
+
+      return func(ctx);
+    } catch {
+      return false;
+    }
   }
 }

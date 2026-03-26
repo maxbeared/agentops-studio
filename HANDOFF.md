@@ -236,7 +236,19 @@ agentops-studio/
 type ExecutionContext = {
   input: Record<string, any>;      // 原始输入
   state: Record<string, any>;     // 保留用于动态条件计算
-  outputs: Record<string, any>;   // 节点执行输出（解决循环引用）
+  outputs: Record<string, any>;    // 节点执行输出（解决循环引用）
+  prevOutputs: Record<string, any>; // 前序节点输出（用于上下文注入）
+};
+```
+
+### RetrievalService 接口
+```typescript
+type RetrievalService = {
+  retrieve(projectId: string, query: string, topK: number): Promise<Array<{
+    content: string;
+    score: number;
+    metadata?: Record<string, unknown>;
+  }>>;
 };
 ```
 
@@ -245,6 +257,14 @@ type ExecutionContext = {
 if (model.startsWith('claude-')) return AnthropicProvider;
 if (model.startsWith('gpt-') || model.startsWith('o1')) return OpenAIProvider;
 return MockLLMProvider;
+```
+
+### ConditionNodeExecutor 条件评估
+```typescript
+// 支持 ctx.input, ctx.state, ctx.prev（前序输出）, ctx.outputs
+const evalContext = { ...ctx.state, input: ctx.input, prev: ctx.prevOutputs, outputs: ctx.outputs };
+result = this.evaluateCondition(condition, evalContext);
+// 支持表达式: input.score > 0.5, prev.LLM.content.includes('error'), etc.
 ```
 
 ---
@@ -360,9 +380,14 @@ Password: demo123456
 - [x] Workflow 引擎支持节点执行监听器回调
 - [x] 前端路由守卫组件（auth-check）
 - [x] Workflow 引擎输出与状态分离（解决循环引用）
+- [x] **LLM 节点前序上下文注入（prevOutputs）**
+- [x] **真实向量检索服务（OpenAI embedding + 余弦相似度）**
+- [x] **Knowledge processing 生成真实 embedding**
+- [x] **Worker review 节点自动创建审核任务记录**
+- [x] **ConditionNodeExecutor 支持 prevOutputs 上下文**
 
 ### ⚠️ 已知限制
-- `knowledge_chunks.embedding` 使用 text 占位，非 pgvector
+- `knowledge_chunks.embedding` 存储为 JSON 序列化的 float array（text 类型），非 pgvector
 - API 生产构建需要处理 MinIO 可选依赖（开发模式不受影响）
 - 部分 LSP 类型警告未完全消除（accessibility 和 button type）
 
@@ -391,30 +416,58 @@ export async function getAuthUser(c: Context): Promise<AuthUser | null> {
 }
 ```
 
-### Worker 节点执行记录 + WebSocket 广播
+### Worker 节点执行记录 + WebSocket 广播 + Review 任务创建
 ```typescript
 // apps/worker/src/index.ts
 workflowEngine.setNodeExecutionListener(async (nodeKey, nodeType, status, result?: NodeExecutionResult) => {
-  await db.insert(workflowNodeRuns).values({
-    workflowRunId: runId,
-    nodeKey,
-    nodeType,
-    status,
-    inputPayload: safeJsonSerialize(input || {}),
-    outputPayload: result?.output ? safeJsonSerialize(result.output) : undefined,
-    durationMs: result?.latencyMs,
-    tokenUsageInput: result?.usage?.inputTokens || 0,
-    tokenUsageOutput: result?.usage?.outputTokens || 0,
-    cost: result?.usage?.cost?.toString() || '0',
+  // Find this node's definition to get config
+  const nodeDef = definition.nodes.find((n: any) => n.id === nodeKey);
+  const nodeConfig = nodeDef?.config || {};
+  let nodeRunId: string | null = null;
+
+  // 按 nodeKey + workflowRunId 查找或插入
+  const existing = await db.query.workflowNodeRuns.findFirst({
+    where: and(eq(workflowNodeRuns.workflowRunId, runId), eq(workflowNodeRuns.nodeKey, nodeKey)),
   });
 
-  broadcastRunUpdate(runId, {
-    nodeKey,
-    nodeType,
-    status,
-    result: result ? { output: result.output, errorMessage: result.errorMessage, latencyMs: result.latencyMs } : undefined,
-  });
+  if (existing) {
+    await db.update(workflowNodeRuns).set({ status, outputPayload: ..., finishedAt: new Date() })
+      .where(eq(workflowNodeRuns.id, existing.id));
+    nodeRunId = existing.id;
+  } else {
+    const [inserted] = await db.insert(workflowNodeRuns).values({ workflowRunId, nodeKey, nodeType, status, ... });
+    nodeRunId = inserted.id;
+  }
+
+  // Review 节点暂停时创建审核任务
+  if (nodeType === 'review' && status === 'waiting_review' && nodeRunId) {
+    await db.insert(reviewTasks).values({
+      workflowRunId: runId,
+      workflowNodeRunId: nodeRunId,
+      assigneeUserId: nodeConfig.assigneeUserId || null,
+      status: 'pending',
+      reviewedOutput: result?.output ? safeJsonSerialize(result.output) : undefined,
+    });
+  }
+
+  broadcastRunUpdate(runId, { nodeKey, nodeType, status, result: ... });
 });
+```
+
+### Worker 向量检索服务
+```typescript
+// apps/worker/src/index.ts
+const retrievalService: RetrievalService = {
+  async retrieve(projectId: string, query: string, topK: number) {
+    const provider = createLLMProvider('openai', process.env.OPENAI_API_KEY);
+    const queryEmbedding = await provider.embed!({ text: query });
+    const chunks = await db.query.knowledgeChunks.findMany({
+      where: eq(knowledgeChunks.projectId, projectId),
+      limit: 100,
+    });
+    // 余弦相似度计算 + 排序返回 topK
+  },
+};
 ```
 
 ### Worker 安全序列化
@@ -440,6 +493,28 @@ export class OutputNodeExecutor implements NodeExecutor {
       status: 'success',
       output: JSON.parse(JSON.stringify(ctx.outputs)), // 深拷贝避免循环引用
     };
+  }
+}
+```
+
+### LLM 节点前序上下文注入
+```typescript
+// packages/workflow/src/executors.ts
+export class LLMNodeExecutor implements NodeExecutor {
+  async execute(ctx: ExecutionContext, node: WorkflowNode): Promise<NodeExecutionResult> {
+    let prompt = node.config.prompt || 'Default prompt';
+
+    // 注入前序节点输出作为上下文
+    const prevOutputsEntries = Object.entries(ctx.prevOutputs);
+    if (prevOutputsEntries.length > 0) {
+      const contextParts = prevOutputsEntries.map(([name, output]) =>
+        `[${name}]: ${typeof output === 'object' ? JSON.stringify(output) : output}`
+      );
+      prompt = `Context from previous steps:\n${contextParts.join('\n')}\n\n---\n\nUser request:\n${prompt}`;
+    }
+
+    const result = await provider.generate({ prompt, model, ... });
+    return { status: 'success', output: { content: result.content, usage: result.usage, latencyMs: result.latencyMs } };
   }
 }
 ```

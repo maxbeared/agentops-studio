@@ -34,7 +34,7 @@ type WorkflowEditorState = {
 const nodeTypeDefaults: Record<string, Partial<WorkflowNodeData>> = {
   start: { label: 'Start', config: {} },
   llm: { label: 'LLM Call', config: { model: 'gpt-4', prompt: '', temperature: 0.7 } },
-  retrieval: { label: 'Knowledge Retrieval', config: { knowledgeBaseId: '', topK: 5 } },
+  retrieval: { label: 'Knowledge Retrieval', config: { projectId: '', topK: 5 } },
   condition: { label: 'Condition', config: { conditions: [] } },
   review: { label: 'Human Review', config: { assigneeEmail: '' } },
   webhook: { label: 'Webhook', config: { url: '', method: 'POST' } },
