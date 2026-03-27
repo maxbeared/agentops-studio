@@ -120,6 +120,12 @@ promptRoutes.get('/:id', async (c) => {
 });
 
 promptRoutes.put('/:id', async (c) => {
+  const authUser = await getAuthUser(c);
+
+  if (!authUser) {
+    return c.json({ error: { formErrors: ['Unauthorized'] } }, 401);
+  }
+
   const id = c.req.param('id');
   const body = await c.req.json();
   const parsed = updatePromptSchema.safeParse(body);
@@ -161,6 +167,12 @@ promptRoutes.put('/:id', async (c) => {
 });
 
 promptRoutes.delete('/:id', async (c) => {
+  const authUser = await getAuthUser(c);
+
+  if (!authUser) {
+    return c.json({ error: { formErrors: ['Unauthorized'] } }, 401);
+  }
+
   const id = c.req.param('id');
 
   const existing = await db.query.promptTemplates.findFirst({

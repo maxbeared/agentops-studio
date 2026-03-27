@@ -601,6 +601,7 @@ AgentOps Studio 是一个功能完整的 AI 自动化运营中台，具备 Workf
 ### 提交历史
 | Commit | 描述 |
 |--------|------|
+| `NEW` | 修复API路由auth、修复runs查询性能 |
 | `25fb29d` | 修复前端bug：stale closure、添加API方法、实现Run按钮功能 |
 | `13303ba` | 增强Dashboard展示和ESLint配置 |
 | `8536e5c` | 修复条件节点路由、完善可访问性与错误处理 |
@@ -608,6 +609,16 @@ AgentOps Studio 是一个功能完整的 AI 自动化运营中台，具备 Workf
 | `6afb3ed` | 添加缺失的WS_PORT和WS_URL环境变量 |
 
 ### 最近改进
+
+#### 4. API路由安全性与性能改进 (NEW)
+- **API 路由安全性修复** (`apps/api/src/routes/prompts.ts`)
+  - 为 `PUT /:id` 端点添加 JWT 认证检查
+  - 为 `DELETE /:id` 端点添加 JWT 认证检查
+
+- **API 查询性能优化** (`apps/api/src/routes/runs.ts`)
+  - 修复 `GET /` 路由的 in-memory 过滤问题
+  - 使用 Drizzle ORM 的 `and()` 函数在数据库层面组合过滤条件
+  - 避免在大数据量时先获取所有记录再过滤的低效操作
 
 #### 1. 增强 Dashboard 展示 (13303ba)
 - **Dashboard 页面重构** (`apps/web/app/page.tsx`)

@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { runWorkflowSchema } from '@agentops/shared';
 import { db } from '@agentops/db';
 import { workflowRuns, workflowVersions, workflows, workflowNodeRuns } from '@agentops/db/schema';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, and } from 'drizzle-orm';
 import { Queue } from 'bullmq';
 import { getAuthUser } from '../lib/auth';
 
@@ -18,22 +18,19 @@ runRoutes.get('/', async (c) => {
   const projectId = c.req.query('projectId');
   const workflowVersionId = c.req.query('workflowVersionId');
 
-  let runs: any[];
-
+  // Build database-level filter conditions
+  const conditions = [];
   if (workflowVersionId) {
-    runs = await db.query.workflowRuns.findMany({
-      where: eq(workflowRuns.workflowVersionId, workflowVersionId),
-      orderBy: [desc(workflowRuns.createdAt)],
-    });
-  } else {
-    runs = await db.query.workflowRuns.findMany({
-      orderBy: [desc(workflowRuns.createdAt)],
-    });
+    conditions.push(eq(workflowRuns.workflowVersionId, workflowVersionId));
+  }
+  if (projectId) {
+    conditions.push(eq(workflowRuns.projectId, projectId));
   }
 
-  if (projectId) {
-    runs = runs.filter((r) => r.projectId === projectId);
-  }
+  const runs = await db.query.workflowRuns.findMany({
+    where: conditions.length > 0 ? and(...conditions) : undefined,
+    orderBy: [desc(workflowRuns.createdAt)],
+  });
 
   return c.json({
     data: runs.map((r) => ({
