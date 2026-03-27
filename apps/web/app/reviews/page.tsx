@@ -163,6 +163,7 @@ export default function ReviewsPage() {
                           />
                           <div className="flex gap-2">
                             <button
+                              type="button"
                               onClick={() => handleApprove(task.id)}
                               disabled={processingIds.has(task.id)}
                               className="flex items-center gap-1.5 rounded bg-green-600 px-4 py-2 text-sm font-medium hover:bg-green-700 disabled:opacity-50"
@@ -171,6 +172,7 @@ export default function ReviewsPage() {
                               {processingIds.has(task.id) ? 'Processing...' : 'Approve'}
                             </button>
                             <button
+                              type="button"
                               onClick={() => handleReject(task.id)}
                               disabled={processingIds.has(task.id)}
                               className="flex items-center gap-1.5 rounded bg-red-600 px-4 py-2 text-sm font-medium hover:bg-red-700 disabled:opacity-50"
@@ -179,6 +181,7 @@ export default function ReviewsPage() {
                               Reject
                             </button>
                             <button
+                              type="button"
                               onClick={() => {
                                 setSelectedTask(null);
                                 setComment('');
@@ -191,6 +194,7 @@ export default function ReviewsPage() {
                         </div>
                       ) : (
                         <button
+                          type="button"
                           onClick={() => setSelectedTask(task.id)}
                           className="rounded bg-blue-600 px-4 py-2 text-sm font-medium hover:bg-blue-700"
                         >

@@ -61,6 +61,7 @@ export default function Navbar() {
                   <span>{user.name}</span>
                 </div>
                 <button
+                  type="button"
                   onClick={logout}
                   className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
                 >

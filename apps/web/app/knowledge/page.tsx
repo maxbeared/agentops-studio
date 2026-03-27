@@ -148,6 +148,7 @@ export default function KnowledgePage() {
             <p className="mt-2 text-slate-400">Manage documents for RAG retrieval</p>
           </div>
           <button
+            type="button"
             onClick={() => setShowUpload(true)}
             className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium hover:bg-blue-700"
           >
@@ -247,6 +248,7 @@ export default function KnowledgePage() {
                   <div className="flex items-center gap-3">
                     {doc.status === 'uploaded' && !processingIds.has(doc.id) && (
                       <button
+                        type="button"
                         onClick={() => processDocument(doc.id)}
                         className="flex items-center gap-1.5 rounded bg-yellow-600/20 px-3 py-1.5 text-xs text-yellow-400 hover:bg-yellow-600/30"
                       >

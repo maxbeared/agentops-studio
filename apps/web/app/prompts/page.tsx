@@ -119,6 +119,7 @@ export default function PromptsPage() {
             <p className="mt-2 text-slate-400">Create and manage reusable prompt templates</p>
           </div>
           <button
+            type="button"
             onClick={() => setShowCreate(true)}
             className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium hover:bg-blue-700"
           >
@@ -220,6 +221,7 @@ export default function PromptsPage() {
                     </div>
                     <div className="flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100 ml-4">
                       <button
+                        type="button"
                         onClick={() => handleCopyTemplate(prompt.id, prompt.template)}
                         className="rounded p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white"
                         title="Copy template"
@@ -231,6 +233,7 @@ export default function PromptsPage() {
                         )}
                       </button>
                       <button
+                        type="button"
                         onClick={() => openEdit(prompt)}
                         className="rounded p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white"
                         title="Edit"
@@ -238,6 +241,7 @@ export default function PromptsPage() {
                         <Edit2 className="h-4 w-4" />
                       </button>
                       <button
+                        type="button"
                         onClick={() => handleDelete(prompt.id)}
                         className="rounded p-1.5 text-red-400 hover:bg-red-500/20"
                         title="Delete"

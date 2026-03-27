@@ -67,6 +67,7 @@ export function EditorToolbar({ onSave, onRun, isSaving, canRun }: EditorToolbar
       </div>
       <div className="flex items-center gap-2">
         <button
+          type="button"
           onClick={resetEditor}
           className="flex items-center gap-1.5 rounded bg-slate-800 px-3 py-1.5 text-sm text-slate-300 hover:bg-slate-700"
         >
@@ -74,6 +75,7 @@ export function EditorToolbar({ onSave, onRun, isSaving, canRun }: EditorToolbar
           Reset
         </button>
         <button
+          type="button"
           onClick={onSave}
           disabled={isSaving || !isDirty}
           className="flex items-center gap-1.5 rounded bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
@@ -83,6 +85,7 @@ export function EditorToolbar({ onSave, onRun, isSaving, canRun }: EditorToolbar
         </button>
         {onRun && (
           <button
+            type="button"
             onClick={onRun}
             disabled={!canRun}
             className="flex items-center gap-1.5 rounded bg-emerald-600 px-3 py-1.5 text-sm text-white hover:bg-emerald-700 disabled:opacity-50"

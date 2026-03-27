@@ -168,12 +168,14 @@ export function NodeConfigPanel() {
         </div>
         <div className="flex gap-2">
           <button
+            type="button"
             onClick={() => deleteNode(selectedNode.id)}
             className="rounded p-1.5 text-red-400 hover:bg-red-500/20"
           >
             <Trash2 className="h-4 w-4" />
           </button>
           <button
+            type="button"
             onClick={() => selectNode(null)}
             className="rounded p-1.5 text-slate-400 hover:bg-slate-800"
           >

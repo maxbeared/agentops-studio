@@ -219,33 +219,191 @@ export class ConditionNodeExecutor implements NodeExecutor {
   }
 
   private evaluateCondition(condition: string, ctx: Record<string, any>): boolean {
-    // Handle simple comparisons and expressions
-    // Support operators: ===, !==, ==, !=, >, <, >=, <=, &&, ||, !, ?, ternary
+    // Safe expression evaluator that avoids code injection risks
+    // Supports: ===, !==, ==, !=, >, <, >=, <=, &&, ||, !, ( ), and simple property access
 
     try {
-      // Safely parse and evaluate common conditions
-      // Replace common patterns with safe equivalents
-      const safeCondition = condition
-        // Remove any potential code injection attempts
-        .replace(/[;\n\r]/g, '')
-        .trim();
-
+      const safeCondition = condition.replace(/[;\n\r]/g, '').trim();
       if (!safeCondition) return false;
 
-      // Use a safer evaluation approach - create a function with limited scope
-      const func = new Function('ctx', `
-        with (ctx) {
-          try {
-            return !!( ${safeCondition} );
-          } catch (e) {
-            return false;
-          }
-        }
-      `);
-
-      return func(ctx);
+      // Tokenize the expression to safely extract values from context
+      const result = this.evalExpression(safeCondition, ctx);
+      return Boolean(result);
     } catch {
       return false;
     }
+  }
+
+  private evalExpression(expr: string, ctx: Record<string, any>): any {
+    // Remove parentheses and evaluate recursively
+    expr = expr.trim();
+
+    // Handle parentheses groups
+    if (expr.startsWith('(') && this.findMatchingParen(expr, 0) === expr.length - 1) {
+      return this.evalExpression(expr.slice(1, -1), ctx);
+    }
+
+    // Handle ternary operator: condition ? trueVal : falseVal
+    const ternaryIdx = this.findTernaryOp(expr);
+    if (ternaryIdx !== -1) {
+      const cond = this.evalExpression(expr.slice(0, ternaryIdx), ctx);
+      const rest = expr.slice(ternaryIdx + 1).trim();
+      const colonIdx = this.findColonOp(rest, 0);
+      if (colonIdx !== -1) {
+        const trueVal = this.evalExpression(rest.slice(0, colonIdx), ctx);
+        const falseVal = this.evalExpression(rest.slice(colonIdx + 1), ctx);
+        return cond ? trueVal : falseVal;
+      }
+    }
+
+    // Handle || operator (lowest precedence)
+    const orIdx = this.findOperator(expr, '||', false);
+    if (orIdx !== -1) {
+      return this.evalExpression(expr.slice(0, orIdx), ctx) || this.evalExpression(expr.slice(orIdx + 2), ctx);
+    }
+
+    // Handle && operator
+    const andIdx = this.findOperator(expr, '&&', false);
+    if (andIdx !== -1) {
+      return this.evalExpression(expr.slice(0, andIdx), ctx) && this.evalExpression(expr.slice(andIdx + 2), ctx);
+    }
+
+    // Handle ! operator
+    if (expr.startsWith('!')) {
+      return !this.evalExpression(expr.slice(1), ctx);
+    }
+
+    // Handle comparison operators
+    const compOps = ['===', '!==', '==', '!=', '>=', '<=', '>', '<'];
+    for (const op of compOps) {
+      const idx = this.findOperator(expr, op, true);
+      if (idx !== -1) {
+        const left = this.evalValue(expr.slice(0, idx), ctx);
+        const right = this.evalValue(expr.slice(idx + op.length), ctx);
+        switch (op) {
+          case '===': return left === right;
+          case '!==': return left !== right;
+          case '==': return left == right;
+          case '!=': return left != right;
+          case '>=': return left >= right;
+          case '<=': return left <= right;
+          case '>': return left > right;
+          case '<': return left < right;
+        }
+      }
+    }
+
+    // Handle simple values or property access
+    return this.evalValue(expr, ctx);
+  }
+
+  private findMatchingParen(str: string, start: number): number {
+    let depth = 0;
+    for (let i = start; i < str.length; i++) {
+      if (str[i] === '(') depth++;
+      else if (str[i] === ')') {
+        depth--;
+        if (depth === 0) return i;
+      }
+    }
+    return -1;
+  }
+
+  private findTernaryOp(str: string): number {
+    let depth = 0;
+    for (let i = 0; i < str.length; i++) {
+      if (str[i] === '(') depth++;
+      else if (str[i] === ')') depth--;
+      else if (str[i] === '?' && depth === 0) {
+        // Make sure there's a colon after
+        const rest = str.slice(i + 1);
+        const colonIdx = this.findColonOp(rest, 0);
+        if (colonIdx !== -1) return i;
+      }
+    }
+    return -1;
+  }
+
+  private findColonOp(str: string, depth: number): number {
+    for (let i = 0; i < str.length; i++) {
+      if (str[i] === '(') depth++;
+      else if (str[i] === ')') depth--;
+      else if (str[i] === ':' && depth === 0) return i;
+    }
+    return -1;
+  }
+
+  private findOperator(str: string, op: string, checkParens: boolean): number {
+    let depth = 0;
+    for (let i = str.length - op.length; i >= 0; i--) {
+      const ch = str[i];
+      if (checkParens) {
+        if (ch === ')') depth++;
+        else if (ch === '(') depth--;
+        if (depth !== 0) continue;
+      }
+      if (str.slice(i, i + op.length) === op) {
+        // Make sure it's not part of a longer operator
+        if (i > 0 && /[a-zA-Z0-9_]/.test(str[i - 1])) continue;
+        if (i + op.length < str.length && /[a-zA-Z0-9_]/.test(str[i + op.length])) continue;
+        // For && and ||, make sure they're not inside strings
+        if ((op === '&&' || op === '||') && this.isInsideString(str, i)) continue;
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  private isInsideString(str: string, idx: number): boolean {
+    let inSingle = false;
+    let inDouble = false;
+    for (let i = 0; i < idx; i++) {
+      if (str[i] === "'" && !inDouble) inSingle = !inSingle;
+      else if (str[i] === '"' && !inSingle) inDouble = !inDouble;
+    }
+    return inSingle || inDouble;
+  }
+
+  private evalValue(valueStr: string, ctx: Record<string, any>): any {
+    valueStr = valueStr.trim();
+
+    // Boolean literals
+    if (valueStr === 'true') return true;
+    if (valueStr === 'false') return false;
+
+    // Null/undefined
+    if (valueStr === 'null') return null;
+    if (valueStr === 'undefined') return undefined;
+
+    // String literals
+    if ((valueStr.startsWith('"') && valueStr.endsWith('"')) ||
+        (valueStr.startsWith("'") && valueStr.endsWith("'"))) {
+      return valueStr.slice(1, -1);
+    }
+
+    // Number literals
+    const num = Number(valueStr);
+    if (!isNaN(num)) return num;
+
+    // Property access: input.foo, prev.bar, outputs.baz, state.qux
+    const propMatch = valueStr.match(/^(input|prev|outputs|state)\.([a-zA-Z_][a-zA-Z0-9_]*)$/);
+    if (propMatch) {
+      const [, prefix, prop] = propMatch;
+      const source = prefix === 'prev' ? ctx.prev :
+                    prefix === 'outputs' ? ctx.outputs :
+                    prefix === 'state' ? ctx.state :
+                    ctx.input;
+      return source?.[prop];
+    }
+
+    // Simple identifier - look in all contexts
+    if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(valueStr)) {
+      if (ctx.state?.[valueStr] !== undefined) return ctx.state[valueStr];
+      if (ctx.input?.[valueStr] !== undefined) return ctx.input[valueStr];
+      if (ctx.prev?.[valueStr] !== undefined) return ctx.prev[valueStr];
+      if (ctx.outputs?.[valueStr] !== undefined) return ctx.outputs[valueStr];
+    }
+
+    return valueStr;
   }
 }
