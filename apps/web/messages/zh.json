@@ -11,6 +11,74 @@
     "signIn": "登录",
     "register": "注册"
   },
+  "landing": {
+    "tagline": "面向现代团队的 AI 自动化平台",
+    "heroTitle": "编排 AI 工作流",
+    "heroTitleAccent": "轻松自如",
+    "heroSubtitle": "构建、部署和监控复杂的 AI 自动化流程。可视化工作流编辑器、多模型支持、人工审核和实时分析。",
+    "getStarted": "免费开始构建",
+    "viewDemo": "查看演示",
+    "openDashboard": "打开仪表盘",
+    "goToDashboard": "前往仪表盘",
+    "noCreditCard": "无需信用卡",
+    "deployMinutes": "5 分钟部署",
+    "multiModel": "OpenAI + Anthropic",
+    "workflowBuilder": "可视化工作流编辑器",
+    "workflowBuilderDesc": "拖拽节点创建具有条件逻辑的复杂 AI 自动化流程",
+    "featuresTitle": "AI 自动化所需的一切",
+    "featuresSubtitle": "构建、部署和监控 AI 工作流的完整平台",
+    "builtForProduction": "面向生产环境",
+    "builtForProductionDesc": "专为可靠性、可扩展性和安全性设计的企业级功能。",
+    "capabilities": {
+      "async": "通过 BullMQ 实现异步工作流执行",
+      "websocket": "WebSocket 实时更新",
+      "versionControl": "工作流版本控制",
+      "conditional": "条件逻辑与分支",
+      "context": "节点间上下文注入",
+      "retry": "失败恢复与重试"
+    },
+    "stats": {
+      "uptime": "运行时间 SLA",
+      "response": "平均响应",
+      "tokens": "已处理 Token",
+      "integrations": "集成数量"
+    },
+    "readyTitle": "准备开始了吗？",
+    "readySubtitle": "几分钟内开始构建 AI 工作流。无需复杂配置，无需基础设施管理。",
+    "createFree": "免费创建账号",
+    "footer": {
+      "documentation": "文档",
+      "signIn": "登录",
+      "signUp": "注册",
+      "tagline": "AI 自动化平台"
+    },
+    "features": {
+      "workflow": {
+        "title": "可视化工作流编辑器",
+        "desc": "拖放界面编排具有条件分支和并行执行的复杂 AI 工作流。"
+      },
+      "multiModel": {
+        "title": "多模型 AI 集成",
+        "desc": "在 OpenAI GPT 和 Anthropic Claude 模型之间无缝切换，自动选择提供商。"
+      },
+      "rag": {
+        "title": "知识检索 (RAG)",
+        "desc": "上传文档、生成向量嵌入，在知识库中实现语义搜索。"
+      },
+      "humanReview": {
+        "title": "人工审核",
+        "desc": "暂停工作流等待人工批准，在交付前审核 AI 生成的内容。"
+      },
+      "analytics": {
+        "title": "实时分析",
+        "desc": "跟踪所有工作流的执行指标、成功率、Token 使用量和 API 成本。"
+      },
+      "security": {
+        "title": "企业级安全",
+        "desc": "JWT 认证、组织隔离、审计日志和安全凭证管理。"
+      }
+    }
+  },
   "dashboard": {
     "title": "AI 自动化运营中台",
     "subtitle": "展示 AI 应用工程师所需的全栈能力 — 工作流编排、知识检索、人工审核、成本分析。",

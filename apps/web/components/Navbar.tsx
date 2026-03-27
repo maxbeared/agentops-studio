@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useAuth } from '../contexts/auth-context';
-import { LogOut, User as UserIcon } from 'lucide-react';
+import { LogOut, User as UserIcon, Workflow } from 'lucide-react';
 import { LanguageSwitcher } from './language-switcher';
 import { useTranslation } from '../contexts/locale-context';
 
@@ -11,7 +11,7 @@ export default function Navbar() {
   const { t } = useTranslation();
 
   const navItems = [
-    { href: '/', label: t('nav.dashboard') },
+    { href: '/dashboard', label: t('nav.dashboard') },
     { href: '/projects', label: t('nav.projects') },
     { href: '/workflows', label: t('nav.workflows') },
     { href: '/runs', label: t('nav.runs') },
@@ -25,8 +25,11 @@ export default function Navbar() {
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-slate-800 bg-slate-950/80 backdrop-blur-sm">
         <div className="mx-auto max-w-7xl px-6">
           <div className="flex h-14 items-center gap-6">
-            <Link href="/" className="text-lg font-semibold text-white">
-              AgentOps
+            <Link href="/" className="flex items-center gap-2 text-lg font-semibold text-white">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600">
+                <Workflow className="h-4 w-4 text-white" aria-hidden="true" />
+              </div>
+              <span>AgentOps</span>
             </Link>
           </div>
         </div>
@@ -39,8 +42,11 @@ export default function Navbar() {
       <div className="mx-auto max-w-7xl px-6">
         <div className="flex h-14 items-center justify-between gap-6">
           <div className="flex items-center gap-6">
-            <Link href="/" className="text-lg font-semibold text-white" aria-label="AgentOps Home">
-              AgentOps
+            <Link href="/" className="flex items-center gap-2 text-lg font-semibold text-white" aria-label="AgentOps Home">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600">
+                <Workflow className="h-4 w-4 text-white" aria-hidden="true" />
+              </div>
+              <span>AgentOps</span>
             </Link>
             {user && (
               <div className="flex gap-1" role="list">

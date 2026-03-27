@@ -91,15 +91,16 @@ agentops-studio/
 ### 前端页面 (`apps/web/app/`)
 | 路径 | 功能 |
 |------|------|
-| `/` | Dashboard 首页 |
-| `/projects` | 项目列表 |
-| `/workflows` | 工作流列表 |
-| `/workflows/[id]` | Workflow Builder 可视化编辑器 |
-| `/runs` | 执行记录列表 |
-| `/runs/[id]` | Run 详情 + 自动轮询 |
-| `/knowledge` | 知识库 + 文件上传 |
-| `/prompts` | Prompt 模板管理 |
-| `/reviews` | 审核任务列表 + approve/reject |
+| `/` | 营销首页（炫酷展示页面） |
+| `/dashboard` | Dashboard 仪表盘（需登录） |
+| `/projects` | 项目列表（需登录） |
+| `/workflows` | 工作流列表（需登录） |
+| `/workflows/[id]` | Workflow Builder 可视化编辑器（需登录） |
+| `/runs` | 执行记录列表（需登录） |
+| `/runs/[id]` | Run 详情 + 自动轮询（需登录） |
+| `/knowledge` | 知识库 + 文件上传（需登录） |
+| `/prompts` | Prompt 模板管理（需登录） |
+| `/reviews` | 审核任务列表 + approve/reject（需登录） |
 | `/auth/login` | 登录页 |
 | `/auth/register` | 注册页 |
 
@@ -125,10 +126,11 @@ agentops-studio/
 ### i18n 国际化 (`apps/web/`)
 | 文件 | 功能 |
 |------|------|
-| `messages/en.json` | 英文翻译 |
-| `messages/zh.json` | 中文翻译 |
+| `messages/en.json` | 英文翻译（含 landing/dashboard 等所有页面） |
+| `messages/zh.json` | 中文翻译（含 landing/dashboard 等所有页面） |
 | `i18n/index.ts` | next-intl 配置 |
 | `i18n/provider.tsx` | NextIntlClientProvider 封装 |
+| `contexts/locale-context.tsx` | LocaleProvider + useTranslation hook |
 | `components/language-switcher.tsx` | 语言切换组件 |
 | `components/providers.tsx` | 组合 Provider（Locale + Auth） |
 
@@ -615,6 +617,7 @@ AgentOps Studio 是一个功能完整的 AI 自动化运营中台，具备 Workf
 ### 提交历史
 | Commit | 描述 |
 |--------|------|
+| `NEW` | 首页重构：营销落地页 + 路由保护 + Dashboard分离 |
 | `NEW` | i18n国际化：添加中英文切换支持，修复缺失翻译 |
 | `NEW` | 全面测试与Bug修复：React状态问题、错误处理、边缘转换等6个修复 |
 | `NEW` | 修复API路由auth、修复runs查询性能 |
@@ -662,6 +665,32 @@ AgentOps Studio 是一个功能完整的 AI 自动化运营中台，具备 Workf
   - 修复审核节点恢复执行时输出未添加到 ctx.outputs 的问题
   - 确保审核批准后工作流正确继续执行
 
+#### 8. 首页重构与路由保护 (NEW)
+- **首页重设计** (`apps/web/app/page.tsx`)
+  - 全新的营销落地页设计，替代原有的 Dashboard
+  - Emerald/Teal 配色方案的 Cyberpunk 风格
+  - 交互效果：
+    - 粒子星空背景（ConstellationCanvas）- 鼠标交互的粒子连接效果
+    - 视差滚动 Hero 区域
+    - 滚动触发数字动画（IntersectionObserver）
+    - Terminal 风格代码预览组件
+    - 悬停缩放动画效果
+  - 结构：Hero区 → 代码演示 → 功能卡片 → 统计数字 → CTA
+
+- **Dashboard 分离** (`apps/web/app/dashboard/page.tsx`)
+  - 原 Dashboard 内容移至 `/dashboard` 路由
+  - 使用 AuthCheck 组件保护，需登录访问
+  - 保留所有原有功能：统计卡片、图表、快速操作、最近运行、待审核任务
+
+- **路由保护**
+  - 所有工作页面（dashboard, projects, workflows, runs, knowledge, prompts, reviews）使用 AuthCheck 组件
+  - 未登录用户访问自动重定向到 `/auth/login`
+  - 登录/注册后使用 `window.location.href` 硬跳转确保状态同步
+
+- **Navbar 更新** (`apps/web/components/Navbar.tsx`)
+  - Logo 链接改为 `/`（首页）而非 `/dashboard`
+  - 添加 Logo 图标与 AgentOps 文字组合
+
 #### 7. i18n 国际化支持 (NEW)
 - **技术方案**: 使用 React Context + JSON 文件实现内存中的语言切换
   - 无需 URL 路由变化
@@ -678,7 +707,8 @@ AgentOps Studio 是一个功能完整的 AI 自动化运营中台，具备 Workf
   - `apps/web/components/providers.tsx` - 组合 Provider
 
 - **翻译覆盖页面**:
-  - Dashboard 首页（统计卡片、图表、快速操作）
+  - 首页营销落地页（Hero、功能、统计、CTA）
+  - Dashboard 仪表盘（统计卡片、图表、快速操作）
   - 工作流列表和编辑器
   - 运行记录列表和详情
   - 知识库页面
@@ -687,6 +717,15 @@ AgentOps Studio 是一个功能完整的 AI 自动化运营中台，具备 Workf
   - 项目管理页面
   - 登录/注册页面
   - Navbar 导航栏
+
+- **新增 Landing 翻译 key**:
+  - `landing.tagline` - 平台标语
+  - `landing.heroTitle/heroTitleAccent` - Hero 主标题
+  - `landing.features.*` - 功能卡片（中英文）
+  - `landing.capabilities.*` - 能力列表
+  - `landing.stats.*` - 统计数字标签
+  - `landing.readyTitle/readySubtitle` - CTA 文案
+  - `landing.footer.*` - 页脚链接
 
 - **翻译 key 规范**:
   ```json
@@ -759,17 +798,17 @@ AgentOps Studio 是一个功能完整的 AI 自动化运营中台，具备 Workf
 ```
 Tasks:    7 successful, 7 total
 Route (app)                              Size     First Load JS
-├ ○ /                                    102 kB          216 kB
-├ ○ /_not-found                          984 B           107 kB
-├ ○ /auth/login                          3.06 kB         113 kB
-├ ○ /auth/register                       3.26 kB         113 kB
-├ ○ /knowledge                           4.41 kB         110 kB
-├ ○ /projects                            3.22 kB         109 kB
-├ ○ /prompts                             4.39 kB         110 kB
-├ ○ /reviews                             3.77 kB         110 kB
-├ ○ /runs                                3.19 kB         113 kB
+├ ○ /                                    10.4 kB         120 kB      ← 营销首页
+├ ○ /dashboard                           102 kB          217 kB      ← Dashboard (需登录)
+├ ○ /knowledge                           4.94 kB         111 kB      ← 知识库 (需登录)
+├ ○ /projects                            3.68 kB         109 kB      ← 项目 (需登录)
+├ ○ /prompts                             4.93 kB         111 kB      ← 提示词 (需登录)
+├ ○ /reviews                             4.31 kB         110 kB      ← 审核 (需登录)
+├ ○ /runs                                3.65 kB         114 kB      ← 运行记录 (需登录)
+├ ○ /auth/login                          2.99 kB         113 kB
+├ ○ /auth/register                       3.18 kB         113 kB
 ├ ƒ /runs/[id]                           4.12 kB         114 kB
-├ ○ /workflows                           3.76 kB         114 kB
+├ ○ /workflows                           4.17 kB         114 kB      ← 工作流 (需登录)
 └ ƒ /workflows/[id]                      60.1 kB         175 kB
 + First Load JS shared by all            106 kB
 ```

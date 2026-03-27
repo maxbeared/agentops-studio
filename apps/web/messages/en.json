@@ -11,6 +11,74 @@
     "signIn": "Sign in",
     "register": "Register"
   },
+  "landing": {
+    "tagline": "AI Automation Platform for Modern Teams",
+    "heroTitle": "Orchestrate AI Workflows",
+    "heroTitleAccent": "with Confidence",
+    "heroSubtitle": "Build, deploy, and monitor complex AI automations. Visual workflow builder, multi-model support, human review, and real-time analytics.",
+    "getStarted": "Start Building Free",
+    "viewDemo": "View Demo",
+    "openDashboard": "Open Dashboard",
+    "goToDashboard": "Go to Dashboard",
+    "noCreditCard": "No credit card required",
+    "deployMinutes": "Deploy in 5 minutes",
+    "multiModel": "OpenAI + Anthropic",
+    "workflowBuilder": "Visual Workflow Builder",
+    "workflowBuilderDesc": "Drag-and-drop nodes to create complex AI automations with conditional logic",
+    "featuresTitle": "Everything You Need for AI Automation",
+    "featuresSubtitle": "A complete platform for building, deploying, and monitoring AI workflows",
+    "builtForProduction": "Built for Production",
+    "builtForProductionDesc": "Enterprise-grade features designed for reliability, scalability, and security.",
+    "capabilities": {
+      "async": "Async workflow execution via BullMQ",
+      "websocket": "WebSocket real-time updates",
+      "versionControl": "Version control for workflows",
+      "conditional": "Conditional logic & branching",
+      "context": "Context injection between nodes",
+      "retry": "Failure recovery & retry"
+    },
+    "stats": {
+      "uptime": "Uptime SLA",
+      "response": "Avg Response",
+      "tokens": "Tokens Processed",
+      "integrations": "Integrations"
+    },
+    "readyTitle": "Ready to Build?",
+    "readySubtitle": "Start building AI workflows in minutes. No complex setup, no infrastructure management.",
+    "createFree": "Create Free Account",
+    "footer": {
+      "documentation": "Documentation",
+      "signIn": "Sign In",
+      "signUp": "Sign Up",
+      "tagline": "AI Automation Platform"
+    },
+    "features": {
+      "workflow": {
+        "title": "Visual Workflow Builder",
+        "desc": "Drag-and-drop interface to orchestrate complex AI workflows with conditional branching and parallel execution."
+      },
+      "multiModel": {
+        "title": "Multi-Model AI Integration",
+        "desc": "Seamlessly switch between OpenAI GPT and Anthropic Claude models. Automatic provider selection."
+      },
+      "rag": {
+        "title": "Knowledge Retrieval (RAG)",
+        "desc": "Upload documents, generate embeddings, and enable semantic search across your knowledge base."
+      },
+      "humanReview": {
+        "title": "Human-in-the-Loop Review",
+        "desc": "Pause workflows for human approval. Review AI-generated content before delivery."
+      },
+      "analytics": {
+        "title": "Real-time Analytics",
+        "desc": "Track execution metrics, success rates, token usage, and API costs across all workflows."
+      },
+      "security": {
+        "title": "Enterprise Security",
+        "desc": "JWT authentication, organization isolation, audit logging, and secure credential management."
+      }
+    }
+  },
   "dashboard": {
     "title": "AI Automation Platform",
     "subtitle": "Demonstrating full-stack capabilities for AI application engineers — workflow orchestration, knowledge retrieval, human review, and cost analysis.",

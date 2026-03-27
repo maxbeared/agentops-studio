@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
 import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { useTranslation } from '../../contexts/locale-context';
+import { AuthCheck } from '../../components/auth-check';
 
 export default function ProjectsPage() {
   const { t } = useTranslation();
@@ -45,9 +46,10 @@ export default function ProjectsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-6 py-10 text-white">
-      <div className="mx-auto max-w-7xl">
-        <header className="mb-8">
+    <AuthCheck>
+      <main className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-6 py-10 text-white">
+        <div className="mx-auto max-w-7xl">
+          <header className="mb-8">
           <h1 className="text-3xl font-bold">{t('projects.title')}</h1>
           <p className="mt-2 text-slate-400">{t('projects.subtitle')}</p>
         </header>
@@ -91,5 +93,6 @@ export default function ProjectsPage() {
         </div>
       </div>
     </main>
+    </AuthCheck>
   );
 }

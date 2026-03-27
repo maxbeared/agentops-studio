@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { api } from '../../../lib/api';
 import { LogIn, Mail, Lock, AlertCircle } from 'lucide-react';
@@ -9,7 +8,6 @@ import { useTranslation } from '../../../contexts/locale-context';
 
 export default function LoginPage() {
   const { t } = useTranslation();
-  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -21,12 +19,9 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const data = await api.auth.login({ email, password });
-      if (data.organization) {
-        router.push('/');
-      } else {
-        router.push('/');
-      }
+      await api.auth.login({ email, password });
+      // Hard navigation to ensure auth state is properly synced
+      window.location.href = '/dashboard';
     } catch (err: any) {
       setError(t('auth.login.invalidCredentials'));
     } finally {

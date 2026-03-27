@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { api } from '../../../lib/api';
 import { UserPlus, Mail, Lock, User, AlertCircle } from 'lucide-react';
@@ -9,7 +8,6 @@ import { useTranslation } from '../../../contexts/locale-context';
 
 export default function RegisterPage() {
   const { t } = useTranslation();
-  const router = useRouter();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -34,12 +32,9 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const data = await api.auth.register({ email, password, name });
-      if (data.organization) {
-        router.push('/');
-      } else {
-        router.push('/');
-      }
+      await api.auth.register({ email, password, name });
+      // Hard navigation to ensure auth state is properly synced
+      window.location.href = '/dashboard';
     } catch (err: any) {
       setError(t('auth.register.registrationFailed'));
     } finally {

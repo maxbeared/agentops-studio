@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { api } from '../../lib/api';
 import { Plus, Edit2, Play, Clock, Loader2 } from 'lucide-react';
 import { useTranslation } from '../../contexts/locale-context';
+import { AuthCheck } from '../../components/auth-check';
 
 function StatusBadge({ status, label }: { status: string; label: string }) {
   const colors: Record<string, string> = {
@@ -109,8 +110,9 @@ export default function WorkflowsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-6 py-10 text-white">
-      <div className="mx-auto max-w-7xl">
+    <AuthCheck>
+      <main className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-6 py-10 text-white">
+        <div className="mx-auto max-w-7xl">
         <header className="mb-8 flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">{t('workflows.title')}</h1>
@@ -242,5 +244,6 @@ export default function WorkflowsPage() {
         </div>
       </div>
     </main>
+    </AuthCheck>
   );
 }
