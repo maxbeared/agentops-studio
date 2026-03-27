@@ -169,7 +169,7 @@ const workflowWorker = new Worker(
             tokenUsageInput: result?.usage?.inputTokens || 0,
             tokenUsageOutput: result?.usage?.outputTokens || 0,
             cost: result?.usage?.cost?.toString() || '0',
-          });
+          }).returning();
           nodeRunId = inserted.id;
         }
 
@@ -329,7 +329,7 @@ const workflowContinueWorker = new Worker(
             tokenUsageInput: result?.usage?.inputTokens || 0,
             tokenUsageOutput: result?.usage?.outputTokens || 0,
             cost: result?.usage?.cost?.toString() || '0',
-          });
+          }).returning();
           nodeRunId = inserted.id;
         }
 

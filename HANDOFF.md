@@ -231,6 +231,19 @@ agentops-studio/
 5. 通过 NodeExecutionListener 回调记录每个节点执行到数据库
 6. 最终结果从 `ctx.outputs` 返回，避免循环引用
 
+### 审核后继续执行
+当审核被批准后，工作流可以从下一个节点继续执行：
+1. Worker 创建 `workflow-continue` 队列任务
+2. API 审核 approve 端点触发继续执行
+3. WorkflowEngine.executeFrom() 从下一个节点恢复执行
+
+### BullMQ 队列
+| 队列名 | 功能 |
+|--------|------|
+| `workflow-execution` | 工作流初始执行 |
+| `workflow-continue` | 审核批准后继续执行 |
+| `document-processing` | 文档处理（待实现） |
+
 ### ExecutionContext 结构
 ```typescript
 type ExecutionContext = {
@@ -266,6 +279,11 @@ const evalContext = { ...ctx.state, input: ctx.input, prev: ctx.prevOutputs, out
 result = this.evaluateCondition(condition, evalContext);
 // 支持表达式: input.score > 0.5, prev.LLM.content.includes('error'), etc.
 ```
+
+**安全表达式解析器**：不使用 `new Function()`，实现安全的表达式解析：
+- 支持操作符：`===`, `!==`, `==`, `!=`, `>`, `<`, `>=`, `<=`, `&&`, `||`, `!`
+- 支持三元运算符：`condition ? trueVal : falseVal`
+- 支持属性访问：`input.foo`, `prev.bar`, `outputs.baz`, `state.qux`
 
 ---
 
@@ -369,7 +387,7 @@ Password: demo123456
 - [x] 项目/工作流/执行记录 CRUD（全部使用 JWT 认证）
 - [x] Workflow Builder（React Flow 可视化编辑器）
 - [x] 知识库 + MinIO 文件上传
-- [x] 审核任务 + approve/reject
+- [x] 审核任务 + approve/reject + 继续执行
 - [x] Prompt 模板管理
 - [x] BullMQ 异步任务队列
 - [x] 真实 AI Provider（OpenAI + Anthropic）
@@ -380,16 +398,19 @@ Password: demo123456
 - [x] Workflow 引擎支持节点执行监听器回调
 - [x] 前端路由守卫组件（auth-check）
 - [x] Workflow 引擎输出与状态分离（解决循环引用）
-- [x] **LLM 节点前序上下文注入（prevOutputs）**
-- [x] **真实向量检索服务（OpenAI embedding + 余弦相似度）**
-- [x] **Knowledge processing 生成真实 embedding**
-- [x] **Worker review 节点自动创建审核任务记录**
-- [x] **ConditionNodeExecutor 支持 prevOutputs 上下文**
+- [x] LLM 节点前序上下文注入（prevOutputs）
+- [x] 真实向量检索服务（OpenAI embedding + 余弦相似度）
+- [x] Knowledge processing 生成真实 embedding
+- [x] Worker review 节点自动创建审核任务记录
+- [x] ConditionNodeExecutor 支持 prevOutputs 上下文
+- [x] **工作流审核批准后自动继续执行**
+- [x] **ConditionNodeExecutor 安全表达式解析器（移除 new Function）**
+- [x] **前端按钮添加 type="button" 属性**
 
 ### ⚠️ 已知限制
 - `knowledge_chunks.embedding` 存储为 JSON 序列化的 float array（text 类型），非 pgvector
 - API 生产构建需要处理 MinIO 可选依赖（开发模式不受影响）
-- 部分 LSP 类型警告未完全消除（accessibility 和 button type）
+- 部分 accessibility 属性待完善（aria-label 等）
 
 ---
 
@@ -452,6 +473,28 @@ workflowEngine.setNodeExecutionListener(async (nodeKey, nodeType, status, result
 
   broadcastRunUpdate(runId, { nodeKey, nodeType, status, result: ... });
 });
+```
+
+### WorkflowEngine.executeFrom() 恢复执行
+```typescript
+// packages/workflow/src/engine.ts
+async executeFrom(definition, nodeId, ctx): Promise<WorkflowExecutionResult> {
+  const resumeNode = definition.nodes.find((n) => n.id === nodeId);
+  if (!resumeNode) return { status: 'failed', outputs: { error: `Node ${nodeId} not found` } };
+
+  try {
+    const nextEdges = definition.edges.filter((e) => e.source === nodeId);
+    for (const edge of nextEdges) {
+      const nextNode = definition.nodes.find((n) => n.id === edge.target);
+      if (nextNode) {
+        await this.executeNode(ctx, nextNode, definition);
+      }
+    }
+    return { status: 'success', outputs: ctx.outputs };
+  } catch (error) {
+    return { status: 'failed', outputs: { ...ctx.outputs, error: error.message } };
+  }
+}
 ```
 
 ### Worker 向量检索服务
