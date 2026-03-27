@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
 import { Upload, FileText, Link as LinkIcon, RefreshCw, CheckCircle } from 'lucide-react';
+import { useTranslation } from '../../contexts/locale-context';
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ status, label }: { status: string; label: string }) {
   const colors: Record<string, string> = {
     uploaded: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
     processing: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
@@ -14,12 +15,12 @@ function StatusBadge({ status }: { status: string }) {
 
   return (
     <span className={`rounded-full border px-2 py-0.5 text-xs ${colors[status] || colors.uploaded}`}>
-      {status}
+      {label}
     </span>
   );
 }
 
-function SourceTypeBadge({ type }: { type: string }) {
+function SourceTypeBadge({ type, label }: { type: string; label: string }) {
   const colors: Record<string, string> = {
     file: 'bg-slate-500/20 text-slate-400 border-slate-500/30',
     url: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30',
@@ -28,12 +29,13 @@ function SourceTypeBadge({ type }: { type: string }) {
 
   return (
     <span className={`rounded-full border px-2 py-0.5 text-xs ${colors[type] || colors.file}`}>
-      {type}
+      {label}
     </span>
   );
 }
 
 export default function KnowledgePage() {
+  const { t } = useTranslation();
   const [documents, setDocuments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showUpload, setShowUpload] = useState(false);
@@ -69,7 +71,7 @@ export default function KnowledgePage() {
       const projects = await api.projects.list();
       const projectId = projects[0]?.id;
       if (!projectId) {
-        setUploadError('No project found');
+        setUploadError(t('knowledge.noProject'));
         return;
       }
 
@@ -81,7 +83,7 @@ export default function KnowledgePage() {
 
       await processDocument(doc.id);
     } catch (err) {
-      setUploadError('Upload failed');
+      setUploadError(t('knowledge.uploadFailed'));
     } finally {
       setUploading(false);
     }
@@ -104,8 +106,8 @@ export default function KnowledgePage() {
       <main className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-6 py-10 text-white">
         <div className="mx-auto max-w-7xl">
           <header className="mb-8">
-            <h1 className="text-3xl font-bold">Knowledge Base</h1>
-            <p className="mt-2 text-slate-400">Loading...</p>
+            <h1 className="text-3xl font-bold">{t('knowledge.title')}</h1>
+            <p className="mt-2 text-slate-400">{t('common.loading')}</p>
           </header>
         </div>
       </main>
@@ -117,8 +119,8 @@ export default function KnowledgePage() {
       <div className="mx-auto max-w-7xl">
         <header className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Knowledge Base</h1>
-            <p className="mt-2 text-slate-400">Manage documents for RAG retrieval</p>
+            <h1 className="text-3xl font-bold">{t('knowledge.title')}</h1>
+            <p className="mt-2 text-slate-400">{t('knowledge.subtitle')}</p>
           </div>
           <button
             type="button"
@@ -126,27 +128,27 @@ export default function KnowledgePage() {
             className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium hover:bg-blue-700"
           >
             <Upload className="h-4 w-4" />
-            Upload Document
+            {t('knowledge.uploadDocument')}
           </button>
         </header>
 
         {showUpload && (
           <div className="mb-6 rounded-2xl border border-slate-700 bg-slate-900/80 p-6 shadow-lg">
-            <h2 className="mb-4 text-lg font-medium">Upload Document</h2>
+            <h2 className="mb-4 text-lg font-medium">{t('knowledge.uploadTitle')}</h2>
             <form onSubmit={handleUpload} className="space-y-4">
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Title</label>
+                <label className="block text-sm text-slate-400 mb-1">{t('knowledge.titleLabel')}</label>
                 <input
                   type="text"
                   value={uploadTitle}
                   onChange={(e) => setUploadTitle(e.target.value)}
-                  placeholder="Document title"
+                  placeholder={t('knowledge.documentTitle')}
                   required
                   className="w-full rounded bg-slate-800 border border-slate-700 px-4 py-2 text-white"
                 />
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">File</label>
+                <label className="block text-sm text-slate-400 mb-1">{t('knowledge.fileLabel')}</label>
                 <input
                   type="file"
                   onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
@@ -162,14 +164,14 @@ export default function KnowledgePage() {
                   disabled={uploading}
                   className="rounded bg-blue-600 px-4 py-2 text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
                 >
-                  {uploading ? 'Uploading...' : 'Upload'}
+                  {uploading ? t('knowledge.uploading') : t('knowledge.upload')}
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowUpload(false)}
                   className="rounded bg-slate-700 px-4 py-2 text-sm font-medium hover:bg-slate-600"
                 >
-                  Cancel
+                  {t('knowledge.cancel')}
                 </button>
               </div>
             </form>
@@ -180,8 +182,8 @@ export default function KnowledgePage() {
           {documents.length === 0 ? (
             <div className="text-center py-12">
               <FileText className="mx-auto h-12 w-12 text-slate-600" />
-              <p className="mt-4 text-slate-400">No documents uploaded yet.</p>
-              <p className="mt-2 text-sm text-slate-500">Upload documents to enable RAG retrieval in your workflows.</p>
+              <p className="mt-4 text-slate-400">{t('knowledge.noDocuments')}</p>
+              <p className="mt-2 text-sm text-slate-500">{t('knowledge.ragRetrieval')}</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -201,8 +203,8 @@ export default function KnowledgePage() {
                     <div>
                       <div className="flex items-center gap-2">
                         <h3 className="font-medium text-white">{doc.title}</h3>
-                        <SourceTypeBadge type={doc.sourceType} />
-                        <StatusBadge status={doc.status} />
+                        <SourceTypeBadge type={doc.sourceType} label={t(`knowledge.source${doc.sourceType.charAt(0).toUpperCase() + doc.sourceType.slice(1)}`)} />
+                        <StatusBadge status={doc.status} label={t(`knowledge.status.${doc.status}`)} />
                         {processingIds.includes(doc.id) && (
                           <RefreshCw className="h-4 w-4 animate-spin text-yellow-400" />
                         )}
@@ -226,7 +228,7 @@ export default function KnowledgePage() {
                         className="flex items-center gap-1.5 rounded bg-yellow-600/20 px-3 py-1.5 text-xs text-yellow-400 hover:bg-yellow-600/30"
                       >
                         <RefreshCw className="h-3 w-3" />
-                        Process
+                        {t('knowledge.process')}
                       </button>
                     )}
                     <span className="text-sm text-slate-500">

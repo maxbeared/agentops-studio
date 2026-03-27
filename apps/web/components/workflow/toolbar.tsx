@@ -3,6 +3,7 @@
 import { useCallback, useRef } from 'react';
 import { useWorkflowEditorStore } from './editor-store';
 import { Play, Save, Plus, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
+import { useTranslation } from '../../contexts/locale-context';
 
 const nodeTypes = [
   { type: 'start', label: 'Start', color: 'bg-emerald-500/20 border-emerald-500 text-emerald-400' },
@@ -15,6 +16,7 @@ const nodeTypes = [
 ];
 
 export function NodeToolbar() {
+  const { t } = useTranslation();
   const { addNode, nodes } = useWorkflowEditorStore();
   const counterRef = useRef(0);
 
@@ -30,20 +32,33 @@ export function NodeToolbar() {
     addNode(type, { x, y });
   }, [addNode, nodes.length]);
 
+  const getNodeLabel = (type: string) => {
+    const labels: Record<string, string> = {
+      start: t('editor.nodes.start'),
+      llm: t('editor.nodes.llm'),
+      retrieval: t('editor.nodes.retrieval'),
+      condition: t('editor.nodes.condition'),
+      review: t('editor.nodes.review'),
+      webhook: t('editor.nodes.webhook'),
+      output: t('editor.nodes.output'),
+    };
+    return labels[type] || type;
+  };
+
   return (
     <div className="flex items-center gap-2" role="toolbar" aria-label="Add workflow nodes">
-      {nodeTypes.map(({ type, label, color }) => (
+      {nodeTypes.map(({ type, color }) => (
         <button
           key={type}
           draggable
           onDragStart={(e) => handleDragStart(e, type)}
           onClick={() => handleAddNode(type)}
           className={`flex items-center gap-1.5 rounded border px-2.5 py-1.5 text-xs font-medium transition-colors hover:opacity-80 ${color}`}
-          aria-label={`Add ${label} node`}
-          title={`Drag or click to add a ${label} node`}
+          aria-label={`Add ${getNodeLabel(type)} node`}
+          title={`Drag or click to add a ${getNodeLabel(type)} node`}
         >
           <Plus className="h-3 w-3" aria-hidden="true" />
-          {label}
+          {getNodeLabel(type)}
         </button>
       ))}
     </div>
@@ -58,6 +73,7 @@ interface EditorToolbarProps {
 }
 
 export function EditorToolbar({ onSave, onRun, isSaving, canRun }: EditorToolbarProps) {
+  const { t } = useTranslation();
   const { workflowName, isDirty, resetEditor } = useWorkflowEditorStore();
 
   return (
@@ -66,7 +82,7 @@ export function EditorToolbar({ onSave, onRun, isSaving, canRun }: EditorToolbar
         <h1 className="text-lg font-semibold text-white" aria-label={`Workflow: ${workflowName}`}>{workflowName}</h1>
         {isDirty && (
           <span className="rounded bg-amber-500/20 px-2 py-0.5 text-xs text-amber-400" role="status" aria-live="polite">
-            Unsaved changes
+            {t('editor.workflowEditor.unsavedChanges')}
           </span>
         )}
       </div>
@@ -78,7 +94,7 @@ export function EditorToolbar({ onSave, onRun, isSaving, canRun }: EditorToolbar
           aria-label="Reset workflow editor"
         >
           <RotateCcw className="h-4 w-4" aria-hidden="true" />
-          Reset
+          {t('editor.toolbar.reset')}
         </button>
         <button
           type="button"
@@ -89,7 +105,7 @@ export function EditorToolbar({ onSave, onRun, isSaving, canRun }: EditorToolbar
           aria-busy={isSaving}
         >
           <Save className="h-4 w-4" aria-hidden="true" />
-          {isSaving ? 'Saving...' : 'Save'}
+          {isSaving ? t('common.saving') : t('editor.toolbar.save')}
         </button>
         {onRun && (
           <button
@@ -101,7 +117,7 @@ export function EditorToolbar({ onSave, onRun, isSaving, canRun }: EditorToolbar
             aria-disabled={!canRun}
           >
             <Play className="h-4 w-4" aria-hidden="true" />
-            Run
+            {t('workflows.run')}
           </button>
         )}
       </div>

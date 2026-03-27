@@ -4,6 +4,7 @@ import React from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
 import type { WorkflowNodeData } from './editor-store';
 import { Play, FileText, Bot, GitBranch, UserCheck, Webhook, LogOut } from 'lucide-react';
+import { useTranslation } from '../../contexts/locale-context';
 
 const nodeIcons: Record<string, React.ReactNode> = {
   start: <Play className="h-4 w-4" />,
@@ -69,6 +70,7 @@ export function RetrievalNode({ data, selected }: NodeProps) {
 }
 
 export function ConditionNode({ data, selected }: NodeProps) {
+  const { t } = useTranslation();
   const nodeData = data as WorkflowNodeData;
   const condition = nodeData.config?.condition;
   return (
@@ -83,7 +85,7 @@ export function ConditionNode({ data, selected }: NodeProps) {
       {condition ? (
         <p className="mt-1.5 text-xs text-slate-400 truncate" title={condition}>{condition}</p>
       ) : (
-        <p className="mt-1.5 text-xs text-slate-500 italic">No condition set</p>
+        <p className="mt-1.5 text-xs text-slate-500 italic">{t('editor.nodeConfig.noCondition')}</p>
       )}
       <div className="mt-1 flex gap-1 text-xs">
         <span className="text-emerald-400">Y</span>

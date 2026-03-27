@@ -106,7 +106,9 @@ agentops-studio/
 ### 前端组件 (`apps/web/components/`)
 | 文件 | 功能 |
 |------|------|
-| `Navbar.tsx` | 全局导航栏（带用户状态） |
+| `Navbar.tsx` | 全局导航栏（带用户状态 + 语言切换器） |
+| `language-switcher.tsx` | 语言切换下拉选择器 |
+| `providers.tsx` | 组合 Provider（Locale + Auth） |
 | `auth-check.tsx` | 路由守卫（未登录重定向） |
 | `workflow/editor-store.ts` | Zustand 工作流编辑器状态 |
 | `workflow/nodes.tsx` | React Flow 自定义节点 |
@@ -118,6 +120,17 @@ agentops-studio/
 | 文件 | 功能 |
 |------|------|
 | `auth-context.tsx` | AuthProvider 用户状态管理 |
+| `locale-context.tsx` | LocaleProvider + useTranslation hook |
+
+### i18n 国际化 (`apps/web/`)
+| 文件 | 功能 |
+|------|------|
+| `messages/en.json` | 英文翻译 |
+| `messages/zh.json` | 中文翻译 |
+| `i18n/index.ts` | next-intl 配置 |
+| `i18n/provider.tsx` | NextIntlClientProvider 封装 |
+| `components/language-switcher.tsx` | 语言切换组件 |
+| `components/providers.tsx` | 组合 Provider（Locale + Auth） |
 
 ---
 
@@ -408,6 +421,7 @@ Password: demo123456
 - [x] **前端按钮添加 type="button" 属性**
 - [x] **Condition 节点配置面板（支持表达式编辑）**
 - [x] **Dashboard 页面改为 Client Component（避免 hydration 问题）**
+- [x] **国际化 (i18n) 支持** - 中英文切换，语言偏好 localStorage 持久化
 
 ### ✅ 最近修复
 - [x] **构建错误修复** - projects/runs 页面从 Server Component 改为 Client Component
@@ -601,6 +615,7 @@ AgentOps Studio 是一个功能完整的 AI 自动化运营中台，具备 Workf
 ### 提交历史
 | Commit | 描述 |
 |--------|------|
+| `NEW` | i18n国际化：添加中英文切换支持，修复缺失翻译 |
 | `NEW` | 全面测试与Bug修复：React状态问题、错误处理、边缘转换等6个修复 |
 | `NEW` | 修复API路由auth、修复runs查询性能 |
 | `25fb29d` | 修复前端bug：stale closure、添加API方法、实现Run按钮功能 |
@@ -647,6 +662,60 @@ AgentOps Studio 是一个功能完整的 AI 自动化运营中台，具备 Workf
   - 修复审核节点恢复执行时输出未添加到 ctx.outputs 的问题
   - 确保审核批准后工作流正确继续执行
 
+#### 7. i18n 国际化支持 (NEW)
+- **技术方案**: 使用 React Context + JSON 文件实现内存中的语言切换
+  - 无需 URL 路由变化
+  - 语言偏好持久化到 localStorage
+  - 使用 next-intl 库
+
+- **新增文件**:
+  - `apps/web/messages/en.json` - 英文翻译（完整覆盖所有页面）
+  - `apps/web/messages/zh.json` - 中文翻译
+  - `apps/web/i18n/index.ts` - next-intl 配置
+  - `apps/web/i18n/provider.tsx` - NextIntlClientProvider 封装
+  - `apps/web/contexts/locale-context.tsx` - LocaleProvider + useTranslation hook
+  - `apps/web/components/language-switcher.tsx` - 语言切换下拉组件
+  - `apps/web/components/providers.tsx` - 组合 Provider
+
+- **翻译覆盖页面**:
+  - Dashboard 首页（统计卡片、图表、快速操作）
+  - 工作流列表和编辑器
+  - 运行记录列表和详情
+  - 知识库页面
+  - Prompt 模板管理
+  - 人工审核页面
+  - 项目管理页面
+  - 登录/注册页面
+  - Navbar 导航栏
+
+- **翻译 key 规范**:
+  ```json
+  {
+    "nav": { "dashboard": "Dashboard", "projects": "Projects", ... },
+    "dashboard": { "title": "...", "features": {...}, ... },
+    "workflows": { "title": "...", "status": {...}, ... },
+    "runs": { "status": { "pending": "等待中", "running": "运行中", ... }, ... },
+    "common": { "save": "Save", "cancel": "Cancel", ... }
+  }
+  ```
+
+- **使用方式**:
+  ```typescript
+  import { useTranslation } from '../contexts/locale-context';
+
+  function MyComponent() {
+    const { t } = useTranslation();
+    return <button>{t('common.save')}</button>;
+  }
+  ```
+
+- **修复的缺失翻译**:
+  - StatusBadge 状态标签（pending/running/success/failed 等）
+  - 图表 legend（Success/Failed）
+  - 错误消息（Failed to load runs、Invalid credentials 等）
+  - 空状态提示（No workflows、No tasks pending 等）
+  - 表单占位符文本
+
 #### 1. 增强 Dashboard 展示 (13303ba)
 - **Dashboard 页面重构** (`apps/web/app/page.tsx`)
   - 添加 Recharts 面积图显示执行趋势
@@ -690,16 +759,19 @@ AgentOps Studio 是一个功能完整的 AI 自动化运营中台，具备 Workf
 ```
 Tasks:    7 successful, 7 total
 Route (app)                              Size     First Load JS
-├ ○ /                                    101 kB         216 kB
-├ ○ /projects                            2.69 kB        108 kB
-├ ○ /runs                                2.6 kB         112 kB
-├ ○ /workflows                           3.21 kB        113 kB
-├ ƒ /runs/[id]                           3.54 kB        113 kB
-├ ƒ /workflows/[id]                      59.5 kB        174 kB
-├ ○ /knowledge                           3.82 kB        110 kB
-├ ○ /reviews                             3.23 kB        109 kB
-├ ○ /prompts                             3.92 kB        110 kB
-...
+├ ○ /                                    102 kB          216 kB
+├ ○ /_not-found                          984 B           107 kB
+├ ○ /auth/login                          3.06 kB         113 kB
+├ ○ /auth/register                       3.26 kB         113 kB
+├ ○ /knowledge                           4.41 kB         110 kB
+├ ○ /projects                            3.22 kB         109 kB
+├ ○ /prompts                             4.39 kB         110 kB
+├ ○ /reviews                             3.77 kB         110 kB
+├ ○ /runs                                3.19 kB         113 kB
+├ ƒ /runs/[id]                           4.12 kB         114 kB
+├ ○ /workflows                           3.76 kB         114 kB
+└ ƒ /workflows/[id]                      60.1 kB         175 kB
++ First Load JS shared by all            106 kB
 ```
 
 ### 启动检查清单
@@ -707,8 +779,9 @@ Route (app)                              Size     First Load JS
 - [x] 数据库迁移完成
 - [x] 数据库种子已填充（含演示数据）
 - [x] 构建通过
-- [x] 前端页面全部可访问
+- [x] 前端页面全部可访问（含登录/注册）
 - [x] ESLint 检查通过
+- [x] i18n 翻译文件完整（中英文）
 
 ---
 

@@ -3,19 +3,22 @@
 import Link from 'next/link';
 import { useAuth } from '../contexts/auth-context';
 import { LogOut, User as UserIcon } from 'lucide-react';
-
-const navItems = [
-  { href: '/', label: 'Dashboard' },
-  { href: '/projects', label: 'Projects' },
-  { href: '/workflows', label: 'Workflows' },
-  { href: '/runs', label: 'Runs' },
-  { href: '/knowledge', label: 'Knowledge' },
-  { href: '/prompts', label: 'Prompts' },
-  { href: '/reviews', label: 'Reviews' },
-];
+import { LanguageSwitcher } from './language-switcher';
+import { useTranslation } from '../contexts/locale-context';
 
 export default function Navbar() {
   const { user, loading, logout } = useAuth();
+  const { t } = useTranslation();
+
+  const navItems = [
+    { href: '/', label: t('nav.dashboard') },
+    { href: '/projects', label: t('nav.projects') },
+    { href: '/workflows', label: t('nav.workflows') },
+    { href: '/runs', label: t('nav.runs') },
+    { href: '/knowledge', label: t('nav.knowledge') },
+    { href: '/prompts', label: t('nav.prompts') },
+    { href: '/reviews', label: t('nav.reviews') },
+  ];
 
   if (loading) {
     return (
@@ -55,6 +58,7 @@ export default function Navbar() {
             )}
           </div>
           <div className="flex items-center gap-4">
+            <LanguageSwitcher />
             {user ? (
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2 text-sm text-slate-400" role="status">
@@ -65,10 +69,10 @@ export default function Navbar() {
                   type="button"
                   onClick={logout}
                   className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
-                  aria-label="Sign out"
+                  aria-label={t('nav.logout')}
                 >
                   <LogOut className="h-4 w-4" aria-hidden="true" />
-                  <span>Logout</span>
+                  <span>{t('nav.logout')}</span>
                 </button>
               </div>
             ) : (
@@ -76,16 +80,16 @@ export default function Navbar() {
                 <Link
                   href="/auth/login"
                   className="rounded-lg px-3 py-1.5 text-sm text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
-                  aria-label="Sign in to your account"
+                  aria-label={t('nav.signIn')}
                 >
-                  Sign in
+                  {t('nav.signIn')}
                 </Link>
                 <Link
                   href="/auth/register"
                   className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-700"
-                  aria-label="Register a new account"
+                  aria-label={t('nav.register')}
                 >
-                  Register
+                  {t('nav.register')}
                 </Link>
               </div>
             )}

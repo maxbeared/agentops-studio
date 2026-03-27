@@ -5,6 +5,7 @@ import { api } from '../lib/api';
 import Link from 'next/link';
 import { Activity, CheckCircle, Clock, DollarSign, FileText, GitBranch, Play, User, Zap, TrendingUp, Loader2 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import { useTranslation } from '../contexts/locale-context';
 
 interface DashboardStats {
   totalRuns: number;
@@ -79,7 +80,20 @@ function QuickAction({ label, href, icon: Icon, color }: { label: string; href: 
   );
 }
 
+function getStatusLabel(t: (key: string) => string, status: string): string {
+  const labels: Record<string, string> = {
+    pending: t('runs.pending'),
+    running: t('runs.running'),
+    success: t('runs.success'),
+    failed: t('runs.failed'),
+    waiting_review: t('runs.waitingReview'),
+    cancelled: t('runs.cancelled'),
+  };
+  return labels[status] || status;
+}
+
 export default function HomePage() {
+  const { t } = useTranslation();
   const [stats, setStats] = useState<DashboardStats>({
     totalRuns: 0,
     successRate: 0,
@@ -116,7 +130,7 @@ export default function HomePage() {
         <div className="mx-auto flex max-w-7xl flex-col gap-8">
           <div className="flex items-center justify-center py-32">
             <Loader2 className="h-10 w-10 animate-spin text-indigo-400" aria-hidden="true" />
-            <span className="ml-4 text-lg text-slate-400">Loading dashboard...</span>
+            <span className="ml-4 text-lg text-slate-400">{t('common.loading')}</span>
           </div>
         </div>
       </main>
@@ -134,57 +148,57 @@ export default function HomePage() {
               AgentOps Studio
             </div>
             <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-300">
-              System Online
+              {t('dashboard.systemOnline')}
             </span>
           </div>
           <h1 className="mt-4 text-4xl font-bold tracking-tight">
-            AI 自动化运营中台
+            {t('dashboard.title')}
           </h1>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300">
-            展示 AI 应用工程师所需的全栈能力 — 工作流编排、知识检索、人工审核、成本分析。
+            {t('dashboard.subtitle')}
           </p>
           {/* Quick Actions */}
           <div className="mt-6 grid gap-3 md:grid-cols-4">
-            <QuickAction label="新建工作流" href="/workflows" icon={GitBranch} color="text-blue-400" />
-            <QuickAction label="查看执行记录" href="/runs" icon={Activity} color="text-emerald-400" />
-            <QuickAction label="知识库管理" href="/knowledge" icon={FileText} color="text-purple-400" />
-            <QuickAction label="人工审核" href="/reviews" icon={User} color="text-pink-400" />
+            <QuickAction label={t('dashboard.quickActions.newWorkflow')} href="/workflows" icon={GitBranch} color="text-blue-400" />
+            <QuickAction label={t('dashboard.quickActions.viewRuns')} href="/runs" icon={Activity} color="text-emerald-400" />
+            <QuickAction label={t('dashboard.quickActions.knowledgeBase')} href="/knowledge" icon={FileText} color="text-purple-400" />
+            <QuickAction label={t('dashboard.quickActions.humanReview')} href="/reviews" icon={User} color="text-pink-400" />
           </div>
         </header>
 
         {/* Stats Grid */}
         <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <StatCard
-            title="Workflow Runs"
+            title={t('dashboard.workflowRuns')}
             value={stats.totalRuns.toString()}
-            hint="Total executions"
+            hint={t('dashboard.totalExecutions')}
             icon={Play}
             trend="+12%"
           />
           <StatCard
-            title="Success Rate"
+            title={t('dashboard.successRate')}
             value={`${stats.successRate}%`}
-            hint="Last 7 days"
+            hint={t('dashboard.last7Days')}
             icon={CheckCircle}
             trend="+3%"
           />
           <StatCard
-            title="Token Usage"
+            title={t('dashboard.tokenUsage')}
             value={stats.totalTokens.toLocaleString()}
-            hint="Total tokens consumed"
+            hint={t('dashboard.tokensConsumed')}
             icon={Zap}
           />
           <StatCard
-            title="Total Cost"
+            title={t('dashboard.totalCost')}
             value={`$${stats.totalCost.toFixed(2)}`}
-            hint="API costs"
+            hint={t('dashboard.apiCosts')}
             icon={DollarSign}
           />
         </section>
 
         {/* Charts and Lists */}
         <section className="grid gap-6 lg:grid-cols-[1fr_1fr]">
-          <SectionCard title="执行趋势" action={{ label: 'View all', href: '/runs' }}>
+          <SectionCard title={t('dashboard.executionTrend')} action={{ label: t('dashboard.viewAll'), href: '/runs' }}>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={stats.runsOverTime || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -216,7 +230,7 @@ export default function HomePage() {
                     strokeWidth={2}
                     fillOpacity={1}
                     fill="url(#colorSuccess)"
-                    name="Success"
+                    name={t('runs.chartLegend.success')}
                   />
                   <Area
                     type="monotone"
@@ -225,24 +239,24 @@ export default function HomePage() {
                     strokeWidth={2}
                     fillOpacity={1}
                     fill="url(#colorFailed)"
-                    name="Failed"
+                    name={t('runs.chartLegend.failed')}
                   />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
           </SectionCard>
 
-          <SectionCard title="Recent Runs" action={{ label: 'View all', href: '/runs' }}>
+          <SectionCard title={t('dashboard.recentRuns')} action={{ label: t('dashboard.viewAll'), href: '/runs' }}>
             {stats.recentRuns.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <Clock className="h-12 w-12 text-slate-600" aria-hidden="true" />
-                <p className="mt-4 text-slate-400">No recent runs</p>
-                <p className="mt-2 text-sm text-slate-500">Trigger a workflow to see execution history</p>
+                <p className="mt-4 text-slate-400">{t('dashboard.noRecentRuns')}</p>
+                <p className="mt-2 text-sm text-slate-500">{t('dashboard.triggerWorkflow')}</p>
                 <Link
                   href="/workflows"
                   className="mt-4 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
                 >
-                  Go to Workflows
+                  {t('dashboard.goToWorkflows')}
                 </Link>
               </div>
             ) : (
@@ -273,7 +287,7 @@ export default function HomePage() {
                       run.status === 'running' ? 'border-blue-500/30 bg-blue-500/20 text-blue-400' :
                       'border-yellow-500/30 bg-yellow-500/20 text-yellow-400'
                     }`}>
-                      {run.status}
+                      {getStatusLabel(t, run.status)}
                     </span>
                   </Link>
                 ))}
@@ -284,15 +298,15 @@ export default function HomePage() {
 
         {/* Features Grid */}
         <section className="grid gap-6 lg:grid-cols-2">
-          <SectionCard title="核心模块">
+          <SectionCard title={t('dashboard.coreModules')}>
             <div className="grid gap-4 md:grid-cols-2">
               {[
-                ['知识库', '文档上传、切片、向量检索、版本管理', 'purple'],
-                ['工作流', '节点编排、版本发布、可视化编辑', 'blue'],
-                ['执行引擎', '异步执行、日志追踪、失败重试', 'emerald'],
-                ['人工审核', '待审队列、修改回流、人机协作', 'pink'],
-                ['投递集成', 'Webhook、Email、导出', 'cyan'],
-                ['分析面板', '成功率、耗时、成本、活跃度', 'amber'],
+                [t('dashboard.features.knowledgeBase.title'), t('dashboard.features.knowledgeBase.desc'), 'purple'],
+                [t('dashboard.features.workflow.title'), t('dashboard.features.workflow.desc'), 'blue'],
+                [t('dashboard.features.executionEngine.title'), t('dashboard.features.executionEngine.desc'), 'emerald'],
+                [t('dashboard.features.humanReview.title'), t('dashboard.features.humanReview.desc'), 'pink'],
+                [t('dashboard.features.deliveryIntegration.title'), t('dashboard.features.deliveryIntegration.desc'), 'cyan'],
+                [t('dashboard.features.analytics.title'), t('dashboard.features.analytics.desc'), 'amber'],
               ].map(([title, desc, color]) => (
                 <div key={title} className="rounded-xl border border-slate-800 bg-slate-950/70 p-4 transition-colors hover:border-slate-700">
                   <div className={`font-medium text-${color === 'purple' ? 'purple' : color === 'blue' ? 'blue' : color === 'emerald' ? 'emerald' : color === 'pink' ? 'pink' : color === 'cyan' ? 'cyan' : 'amber'}-400`}>
@@ -304,7 +318,7 @@ export default function HomePage() {
             </div>
           </SectionCard>
 
-          <SectionCard title="Pending Reviews">
+          <SectionCard title={t('dashboard.pendingReviews')}>
             {stats.pendingReviews > 0 ? (
               <div className="flex items-center gap-4 rounded-xl border border-pink-500/30 bg-pink-500/10 p-4">
                 <div className="rounded-full bg-pink-500/20 p-3">
@@ -312,20 +326,20 @@ export default function HomePage() {
                 </div>
                 <div className="flex-1">
                   <div className="text-2xl font-semibold text-white">{stats.pendingReviews}</div>
-                  <div className="text-sm text-slate-400">Tasks awaiting review</div>
+                  <div className="text-sm text-slate-400">{t('dashboard.tasksAwaitingReview')}</div>
                 </div>
                 <Link
                   href="/reviews"
                   className="rounded-lg bg-pink-600 px-4 py-2 text-sm font-medium text-white hover:bg-pink-700"
                 >
-                  Review Now
+                  {t('dashboard.quickActions.humanReview')}
                 </Link>
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <CheckCircle className="h-12 w-12 text-emerald-400" aria-hidden="true" />
-                <p className="mt-4 text-slate-300">All caught up!</p>
-                <p className="mt-2 text-sm text-slate-500">No pending review tasks</p>
+                <p className="mt-4 text-slate-300">{t('dashboard.allCaughtUp')}</p>
+                <p className="mt-2 text-sm text-slate-500">{t('dashboard.noPendingReviewTasks')}</p>
               </div>
             )}
           </SectionCard>

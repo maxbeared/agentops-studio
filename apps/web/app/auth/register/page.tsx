@@ -5,8 +5,10 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { api } from '../../../lib/api';
 import { UserPlus, Mail, Lock, User, AlertCircle } from 'lucide-react';
+import { useTranslation } from '../../../contexts/locale-context';
 
 export default function RegisterPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -20,12 +22,12 @@ export default function RegisterPage() {
     setError('');
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setError(t('auth.register.passwordMismatch'));
       return;
     }
 
     if (password.length < 6) {
-      setError('Password must be at least 6 characters');
+      setError(t('auth.register.passwordMinLength'));
       return;
     }
 
@@ -39,7 +41,7 @@ export default function RegisterPage() {
         router.push('/');
       }
     } catch (err: any) {
-      setError(err?.message || 'Registration failed');
+      setError(t('auth.register.registrationFailed'));
     } finally {
       setLoading(false);
     }
@@ -49,8 +51,8 @@ export default function RegisterPage() {
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
       <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900/80 p-8 shadow-xl">
         <div className="mb-8 text-center">
-          <h1 className="text-2xl font-bold text-white">Create an account</h1>
-          <p className="mt-2 text-slate-400">Get started with AgentOps Studio</p>
+          <h1 className="text-2xl font-bold text-white">{t('auth.register.title')}</h1>
+          <p className="mt-2 text-slate-400">{t('auth.register.subtitle')}</p>
         </div>
 
         {error && (
@@ -62,7 +64,7 @@ export default function RegisterPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="name" className="block text-sm text-slate-400 mb-1">Full Name</label>
+            <label htmlFor="name" className="block text-sm text-slate-400 mb-1">{t('auth.register.name')}</label>
             <div className="relative">
               <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
               <input
@@ -70,7 +72,7 @@ export default function RegisterPage() {
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="John Doe"
+                placeholder={t('auth.register.namePlaceholder')}
                 required
                 className="w-full rounded-lg border border-slate-700 bg-slate-800 py-2.5 pl-10 pr-4 text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
@@ -78,7 +80,7 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label htmlFor="email" className="block text-sm text-slate-400 mb-1">Email</label>
+            <label htmlFor="email" className="block text-sm text-slate-400 mb-1">{t('auth.register.email')}</label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
               <input
@@ -86,7 +88,7 @@ export default function RegisterPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
+                placeholder={t('auth.register.emailPlaceholder')}
                 required
                 className="w-full rounded-lg border border-slate-700 bg-slate-800 py-2.5 pl-10 pr-4 text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
@@ -94,7 +96,7 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm text-slate-400 mb-1">Password</label>
+            <label htmlFor="password" className="block text-sm text-slate-400 mb-1">{t('auth.register.password')}</label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
               <input
@@ -102,7 +104,7 @@ export default function RegisterPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Min. 6 characters"
+                placeholder={t('auth.register.passwordPlaceholder')}
                 required
                 minLength={6}
                 className="w-full rounded-lg border border-slate-700 bg-slate-800 py-2.5 pl-10 pr-4 text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -111,7 +113,7 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label htmlFor="confirmPassword" className="block text-sm text-slate-400 mb-1">Confirm Password</label>
+            <label htmlFor="confirmPassword" className="block text-sm text-slate-400 mb-1">{t('auth.register.confirmPassword')}</label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
               <input
@@ -119,7 +121,7 @@ export default function RegisterPage() {
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Re-enter your password"
+                placeholder={t('auth.register.confirmPasswordPlaceholder')}
                 required
                 className="w-full rounded-lg border border-slate-700 bg-slate-800 py-2.5 pl-10 pr-4 text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
@@ -132,20 +134,20 @@ export default function RegisterPage() {
             className="w-full rounded-lg bg-blue-600 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {loading ? (
-              'Creating account...'
+              t('auth.register.registering')
             ) : (
               <>
                 <UserPlus className="h-4 w-4" />
-                Create account
+                {t('auth.register.register')}
               </>
             )}
           </button>
         </form>
 
         <p className="mt-6 text-center text-sm text-slate-400">
-          Already have an account?{' '}
+          {t('auth.register.hasAccount')}{' '}
           <Link href="/auth/login" className="text-blue-400 hover:text-blue-300">
-            Sign in
+            {t('auth.register.signIn')}
           </Link>
         </p>
       </div>

@@ -3,6 +3,7 @@
 import { X, Trash2 } from 'lucide-react';
 import { useWorkflowEditorStore } from './editor-store';
 import type { WorkflowNodeData } from './editor-store';
+import { useTranslation } from '../../contexts/locale-context';
 
 const nodeTypeLabels: Record<string, string> = {
   start: 'Start Node',
@@ -197,6 +198,7 @@ function OutputConfig({ data, onChange }: { data: WorkflowNodeData; onChange: (c
 
 export function NodeConfigPanel() {
   const { selectedNode, updateNodeData, deleteNode, selectNode } = useWorkflowEditorStore();
+  const { t } = useTranslation();
 
   if (!selectedNode) return null;
 
@@ -216,7 +218,7 @@ export function NodeConfigPanel() {
             type="button"
             onClick={() => deleteNode(selectedNode.id)}
             className="rounded p-1.5 text-red-400 hover:bg-red-500/20"
-            aria-label="Delete node"
+            aria-label={t('common.delete')}
           >
             <Trash2 className="h-4 w-4" aria-hidden="true" />
           </button>

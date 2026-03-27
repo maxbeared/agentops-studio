@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
 import Link from 'next/link';
 import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import { useTranslation } from '../../contexts/locale-context';
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ status, label }: { status: string; label: string }) {
   const colors: Record<string, string> = {
     pending: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
     running: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
@@ -16,12 +17,25 @@ function StatusBadge({ status }: { status: string }) {
 
   return (
     <span className={`rounded-full border px-2 py-0.5 text-xs ${colors[status] || colors.pending}`}>
-      {status}
+      {label}
     </span>
   );
 }
 
+function getStatusLabel(t: (key: string) => string, status: string): string {
+  const labels: Record<string, string> = {
+    pending: t('runs.pending'),
+    running: t('runs.running'),
+    success: t('runs.success'),
+    failed: t('runs.failed'),
+    waiting_review: t('runs.waitingReview'),
+    cancelled: t('runs.cancelled'),
+  };
+  return labels[status] || status;
+}
+
 export default function RunsPage() {
+  const { t } = useTranslation();
   const [runs, setRuns] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +47,7 @@ export default function RunsPage() {
       const data = await api.runs.list();
       setRuns(data);
     } catch {
-      setError('Failed to load runs. Please try again.');
+      setError(t('runs.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -48,11 +62,11 @@ export default function RunsPage() {
       <main className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-6 py-10 text-white">
         <div className="mx-auto max-w-7xl">
           <header className="mb-8">
-            <h1 className="text-3xl font-bold">Workflow Runs</h1>
+            <h1 className="text-3xl font-bold">{t('runs.title')}</h1>
           </header>
           <div className="flex items-center justify-center py-20" role="status">
             <Loader2 className="h-8 w-8 animate-spin text-blue-400" aria-hidden="true" />
-            <span className="ml-3 text-slate-400">Loading runs...</span>
+            <span className="ml-3 text-slate-400">{t('runs.loading')}</span>
           </div>
         </div>
       </main>
@@ -63,8 +77,8 @@ export default function RunsPage() {
     <main className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-6 py-10 text-white">
       <div className="mx-auto max-w-7xl">
         <header className="mb-8">
-          <h1 className="text-3xl font-bold">Workflow Runs</h1>
-          <p className="mt-2 text-slate-400">View execution history and logs</p>
+          <h1 className="text-3xl font-bold">{t('runs.title')}</h1>
+          <p className="mt-2 text-slate-400">{t('runs.subtitle')}</p>
         </header>
 
         {error && (
@@ -74,27 +88,27 @@ export default function RunsPage() {
             <button
               onClick={loadRuns}
               className="flex items-center gap-1.5 rounded bg-red-600/30 px-3 py-1.5 text-sm text-red-300 hover:bg-red-600/50"
-              aria-label="Retry loading runs"
+              aria-label={t('runs.retry')}
             >
               <RefreshCw className="h-4 w-4" aria-hidden="true" />
-              Retry
+              {t('runs.retry')}
             </button>
           </div>
         )}
 
         <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-lg">
           {runs.length === 0 && !error ? (
-            <p className="text-slate-400">No runs yet. Trigger a workflow to see execution history here.</p>
+            <p className="text-slate-400">{t('runs.noRuns')}</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-slate-800 text-left text-sm text-slate-400">
-                    <th className="pb-3 font-medium">Run ID</th>
-                    <th className="pb-3 font-medium">Status</th>
-                    <th className="pb-3 font-medium">Trigger</th>
-                    <th className="pb-3 font-medium">Started</th>
-                    <th className="pb-3 font-medium">Duration</th>
+                    <th className="pb-3 font-medium">{t('runs.runId')}</th>
+                    <th className="pb-3 font-medium">{t('runs.status')}</th>
+                    <th className="pb-3 font-medium">{t('runs.trigger')}</th>
+                    <th className="pb-3 font-medium">{t('runs.started')}</th>
+                    <th className="pb-3 font-medium">{t('runs.duration')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800">
@@ -112,7 +126,7 @@ export default function RunsPage() {
                             {run.id.slice(0, 8)}...
                           </Link>
                         </td>
-                        <td className="py-3"><StatusBadge status={run.status} /></td>
+                        <td className="py-3"><StatusBadge status={run.status} label={getStatusLabel(t, run.status)} /></td>
                         <td className="py-3 text-slate-400">{run.triggerType}</td>
                         <td className="py-3 text-slate-400">
                           {startedAt ? startedAt.toLocaleString() : '-'}

@@ -3,8 +3,10 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
 import { Plus, Edit2, Trash2, FileText, Copy, CheckCircle } from 'lucide-react';
+import { useTranslation } from '../../contexts/locale-context';
 
 export default function PromptsPage() {
+  const { t } = useTranslation();
   const [prompts, setPrompts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -73,7 +75,7 @@ export default function PromptsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this prompt template?')) return;
+    if (!confirm(t('prompts.deleteConfirm'))) return;
     try {
       await api.prompts.delete(id);
       setPrompts(prompts.filter((p) => p.id !== id));
@@ -102,8 +104,8 @@ export default function PromptsPage() {
       <main className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-6 py-10 text-white">
         <div className="mx-auto max-w-7xl">
           <header className="mb-8">
-            <h1 className="text-3xl font-bold">Prompt Templates</h1>
-            <p className="mt-2 text-slate-400">Loading...</p>
+            <h1 className="text-3xl font-bold">{t('prompts.title')}</h1>
+            <p className="mt-2 text-slate-400">{t('common.loading')}</p>
           </header>
         </div>
       </main>
@@ -115,8 +117,8 @@ export default function PromptsPage() {
       <div className="mx-auto max-w-7xl">
         <header className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Prompt Templates</h1>
-            <p className="mt-2 text-slate-400">Create and manage reusable prompt templates</p>
+            <h1 className="text-3xl font-bold">{t('prompts.title')}</h1>
+            <p className="mt-2 text-slate-400">{t('prompts.subtitle')}</p>
           </div>
           <button
             type="button"
@@ -124,46 +126,46 @@ export default function PromptsPage() {
             className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium hover:bg-blue-700"
           >
             <Plus className="h-4 w-4" />
-            New Template
+            {t('prompts.newTemplate')}
           </button>
         </header>
 
         {(showCreate || showEdit) && (
           <div className="mb-6 rounded-2xl border border-slate-700 bg-slate-900/80 p-6 shadow-lg">
-            <h2 className="mb-4 text-lg font-medium">{showEdit ? 'Edit Template' : 'Create Template'}</h2>
+            <h2 className="mb-4 text-lg font-medium">{showEdit ? t('prompts.editTemplate') : t('prompts.createTemplate')}</h2>
             <form onSubmit={showEdit ? handleUpdate : handleCreate} className="space-y-4">
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Name</label>
+                <label className="block text-sm text-slate-400 mb-1">{t('prompts.name')}</label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Customer Support Response"
+                  placeholder={t('prompts.namePlaceholder')}
                   required
                   className="w-full rounded bg-slate-800 border border-slate-700 px-4 py-2 text-white"
                 />
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Description</label>
+                <label className="block text-sm text-slate-400 mb-1">{t('prompts.description')}</label>
                 <input
                   type="text"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Template for responding to customer inquiries"
+                  placeholder={t('prompts.descriptionPlaceholder')}
                   className="w-full rounded bg-slate-800 border border-slate-700 px-4 py-2 text-white"
                 />
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Template</label>
+                <label className="block text-sm text-slate-400 mb-1">{t('prompts.template')}</label>
                 <textarea
                   value={formData.template}
                   onChange={(e) => setFormData({ ...formData, template: e.target.value })}
-                  placeholder="You are a helpful customer support agent. Respond to the following inquiry:&#10;&#10;{{user_input}}"
+                  placeholder={t('prompts.templatePlaceholder')}
                   rows={8}
                   required
                   className="w-full rounded bg-slate-800 border border-slate-700 px-4 py-2 text-white font-mono text-sm resize-none"
                 />
-                <p className="mt-1 text-xs text-slate-500">Use {"{{variable}}"} for template variables</p>
+                <p className="mt-1 text-xs text-slate-500">{t('prompts.templateVariables')}</p>
               </div>
               <div className="flex gap-2">
                 <button
@@ -171,7 +173,7 @@ export default function PromptsPage() {
                   disabled={saving}
                   className="rounded bg-blue-600 px-4 py-2 text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
                 >
-                  {saving ? 'Saving...' : showEdit ? 'Update' : 'Create'}
+                  {saving ? t('prompts.saving') : showEdit ? t('prompts.update') : t('prompts.create')}
                 </button>
                 <button
                   type="button"
@@ -182,7 +184,7 @@ export default function PromptsPage() {
                   }}
                   className="rounded bg-slate-700 px-4 py-2 text-sm font-medium hover:bg-slate-600"
                 >
-                  Cancel
+                  {t('prompts.cancel')}
                 </button>
               </div>
             </form>
@@ -193,8 +195,8 @@ export default function PromptsPage() {
           {prompts.length === 0 ? (
             <div className="text-center py-12">
               <FileText className="mx-auto h-12 w-12 text-slate-600" />
-              <p className="mt-4 text-slate-400">No prompt templates yet.</p>
-              <p className="mt-2 text-sm text-slate-500">Create templates to use in your workflow nodes.</p>
+              <p className="mt-4 text-slate-400">{t('prompts.noTemplates')}</p>
+              <p className="mt-2 text-sm text-slate-500">{t('prompts.createTemplates')}</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -224,7 +226,7 @@ export default function PromptsPage() {
                         type="button"
                         onClick={() => handleCopyTemplate(prompt.id, prompt.template)}
                         className="rounded p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white"
-                        title="Copy template"
+                        title={t('prompts.copyTemplate')}
                       >
                         {copiedId === prompt.id ? (
                           <CheckCircle className="h-4 w-4 text-green-400" />
@@ -236,7 +238,7 @@ export default function PromptsPage() {
                         type="button"
                         onClick={() => openEdit(prompt)}
                         className="rounded p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white"
-                        title="Edit"
+                        title={t('common.edit')}
                       >
                         <Edit2 className="h-4 w-4" />
                       </button>
@@ -244,7 +246,7 @@ export default function PromptsPage() {
                         type="button"
                         onClick={() => handleDelete(prompt.id)}
                         className="rounded p-1.5 text-red-400 hover:bg-red-500/20"
-                        title="Delete"
+                        title={t('common.delete')}
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>

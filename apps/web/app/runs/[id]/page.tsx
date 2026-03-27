@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { api } from '../../../lib/api';
 import { RefreshCw, Clock, CheckCircle, XCircle, Loader2, AlertTriangle } from 'lucide-react';
+import { useTranslation } from '../../../contexts/locale-context';
 
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
@@ -57,6 +58,7 @@ function StatusIcon({ status }: { status: string }) {
 }
 
 export default function RunDetailPage() {
+  const { t } = useTranslation();
   const params = useParams();
   const runId = params.id as string;
 
@@ -111,9 +113,9 @@ export default function RunDetailPage() {
     return (
       <main className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-6 py-10 text-white">
         <div className="mx-auto max-w-4xl">
-          <h1 className="text-2xl font-bold">Run not found</h1>
+          <h1 className="text-2xl font-bold">{t('runs.runDetail.notFound')}</h1>
           <Link href="/runs" className="mt-4 text-blue-400 hover:underline">
-            Back to Runs
+            {t('runs.runDetail.backToRuns')}
           </Link>
         </div>
       </main>
@@ -132,11 +134,11 @@ export default function RunDetailPage() {
         <header className="mb-8 flex items-center justify-between">
           <div>
             <Link href="/runs" className="text-sm text-slate-400 hover:text-white mb-4 inline-block">
-              ← Back to Runs
+              ← {t('runs.runDetail.backToRuns')}
             </Link>
             <h1 className="text-3xl font-bold flex items-center gap-3">
               <StatusIcon status={run.status} />
-              Run Details
+              {t('runs.runDetail.title')}
             </h1>
           </div>
           <button
@@ -146,7 +148,7 @@ export default function RunDetailPage() {
             className="flex items-center gap-2 rounded-lg bg-slate-800 px-3 py-2 text-sm text-slate-300 hover:bg-slate-700 disabled:opacity-50"
           >
             <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-            Refresh
+            {t('runs.runDetail.refresh')}
           </button>
         </header>
 
@@ -154,37 +156,37 @@ export default function RunDetailPage() {
           <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-lg">
             <div className="grid gap-4 md:grid-cols-2">
               <div>
-                <div className="text-sm text-slate-400">Run ID</div>
+                <div className="text-sm text-slate-400">{t('runs.runId')}</div>
                 <div className="font-mono text-sm text-slate-300">{run.id}</div>
               </div>
               <div>
-                <div className="text-sm text-slate-400">Status</div>
+                <div className="text-sm text-slate-400">{t('runs.status')}</div>
                 <div className="mt-1"><StatusBadge status={run.status} /></div>
               </div>
               <div>
-                <div className="text-sm text-slate-400">Trigger Type</div>
+                <div className="text-sm text-slate-400">{t('runs.runDetail.triggerType')}</div>
                 <div className="text-slate-300 capitalize">{run.triggerType}</div>
               </div>
               <div>
-                <div className="text-sm text-slate-400">Duration</div>
+                <div className="text-sm text-slate-400">{t('runs.duration')}</div>
                 <div className="text-slate-300">{duration !== null ? `${duration}s` : '-'}</div>
               </div>
               <div>
-                <div className="text-sm text-slate-400">Started</div>
+                <div className="text-sm text-slate-400">{t('runs.started')}</div>
                 <div className="text-slate-300">{startedAt ? startedAt.toLocaleString() : '-'}</div>
               </div>
               <div>
-                <div className="text-sm text-slate-400">Finished</div>
+                <div className="text-sm text-slate-400">{t('runs.runDetail.finished')}</div>
                 <div className="text-slate-300">{finishedAt ? finishedAt.toLocaleString() : '-'}</div>
               </div>
               {(run.totalTokens > 0 || run.totalCost > 0) && (
                 <>
                   <div>
-                    <div className="text-sm text-slate-400">Total Tokens</div>
+                    <div className="text-sm text-slate-400">{t('runs.runDetail.totalTokens')}</div>
                     <div className="text-slate-300">{run.totalTokens?.toLocaleString() || '-'}</div>
                   </div>
                   <div>
-                    <div className="text-sm text-slate-400">Total Cost</div>
+                    <div className="text-sm text-slate-400">{t('runs.runDetail.totalCost')}</div>
                     <div className="text-slate-300">${run.totalCost?.toFixed(6) || '-'}</div>
                   </div>
                 </>
@@ -194,14 +196,14 @@ export default function RunDetailPage() {
 
           {run.errorMessage && (
             <div className="rounded-2xl border border-red-800/50 bg-red-900/20 p-6 shadow-lg">
-              <h2 className="text-lg font-semibold text-red-400">Error</h2>
+              <h2 className="text-lg font-semibold text-red-400">{t('runs.runDetail.error')}</h2>
               <p className="mt-2 text-sm text-red-300">{run.errorMessage}</p>
             </div>
           )}
 
           {run.outputPayload && Object.keys(run.outputPayload).length > 0 && (
             <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-lg">
-              <h2 className="text-lg font-semibold text-white">Output</h2>
+              <h2 className="text-lg font-semibold text-white">{t('runs.runDetail.output')}</h2>
               <pre className="mt-3 overflow-x-auto text-xs text-slate-300">
                 {JSON.stringify(run.outputPayload, null, 2)}
               </pre>
@@ -209,10 +211,10 @@ export default function RunDetailPage() {
           )}
 
           <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-lg">
-            <h2 className="text-lg font-semibold text-white">Node Executions</h2>
+            <h2 className="text-lg font-semibold text-white">{t('runs.runDetail.nodeExecutions')}</h2>
             <div className="mt-4 space-y-3">
               {nodeRuns.length === 0 ? (
-                <p className="text-sm text-slate-400">No node executions recorded</p>
+                <p className="text-sm text-slate-400">{t('runs.runDetail.noNodeExecutions')}</p>
               ) : (
                 nodeRuns.map((node: any) => (
                   <div key={node.id} className="rounded-xl border border-slate-700 bg-slate-950/50 p-4">
@@ -225,22 +227,22 @@ export default function RunDetailPage() {
                     </div>
                     {node.durationMs && (
                       <div className="mt-2 text-xs text-slate-500">
-                        Duration: {node.durationMs}ms
+                        {t('runs.runDetail.durationMs')}: {node.durationMs}ms
                       </div>
                     )}
                     {node.tokenUsageInput !== undefined && node.tokenUsageInput > 0 && (
                       <div className="mt-1 text-xs text-slate-500">
-                        Tokens: {node.tokenUsageInput} in / {node.tokenUsageOutput} out
+                        {t('runs.runDetail.tokensInOut')}: {node.tokenUsageInput} in / {node.tokenUsageOutput} out
                       </div>
                     )}
                     {node.cost > 0 && (
                       <div className="mt-1 text-xs text-slate-500">
-                        Cost: ${node.cost}
+                        {t('runs.runDetail.cost')}: ${node.cost}
                       </div>
                     )}
                     {node.outputPayload && (
                       <details className="mt-2">
-                        <summary className="cursor-pointer text-xs text-slate-500">View Output</summary>
+                        <summary className="cursor-pointer text-xs text-slate-500">{t('runs.runDetail.viewOutput')}</summary>
                         <pre className="mt-2 overflow-x-auto text-xs text-slate-400 bg-slate-900/50 p-2 rounded">
                           {JSON.stringify(node.outputPayload, null, 2)}
                         </pre>

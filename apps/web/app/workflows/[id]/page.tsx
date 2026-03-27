@@ -7,6 +7,7 @@ import { ArrowLeft, AlertCircle } from 'lucide-react';
 import { api } from '../../../lib/api';
 import { useWorkflowEditorStore, EditorNode, EditorEdge } from '../../../components/workflow';
 import { WorkflowEditor, EditorToolbar, NodeConfigPanel } from '../../../components/workflow';
+import { useTranslation } from '../../../contexts/locale-context';
 
 function convertApiToEditorNodes(nodes: any[]): EditorNode[] {
   return nodes.map((n) => ({
@@ -43,6 +44,7 @@ function convertEditorToApiNodes(nodes: EditorNode[]): any[] {
 }
 
 export default function WorkflowEditorPage() {
+  const { t } = useTranslation();
   const params = useParams();
   const router = useRouter();
   const workflowId = params.id as string;
@@ -63,12 +65,12 @@ export default function WorkflowEditorPage() {
         initWorkflow(workflowId, workflow.name, editorNodes, editorEdges);
         setLoading(false);
       } catch (err) {
-        setError('Failed to load workflow');
+        setError(t('editor.workflowEditor.loadFailed'));
         setLoading(false);
       }
     }
     loadWorkflow();
-  }, [workflowId, initWorkflow]);
+  }, [workflowId, initWorkflow, t]);
 
   const handleSave = useCallback(async () => {
     setIsSaving(true);
@@ -80,15 +82,15 @@ export default function WorkflowEditorPage() {
       await api.workflows.publish(workflowId, definition);
       useWorkflowEditorStore.setState({ isDirty: false });
     } catch (err) {
-      setError('Failed to save workflow');
+      setError(t('editor.workflowEditor.saveFailed'));
     } finally {
       setIsSaving(false);
     }
-  }, [workflowId, nodes, edges]);
+  }, [workflowId, nodes, edges, t]);
 
   const handleRun = useCallback(async () => {
     if (isDirty) {
-      setError('Please save the workflow before running');
+      setError(t('editor.workflowEditor.publishFirst'));
       return;
     }
     setError(null);
@@ -96,7 +98,7 @@ export default function WorkflowEditorPage() {
     try {
       const workflow = await api.workflows.get(workflowId);
       if (!workflow.latestVersionId) {
-        setError('Publish the workflow first before running');
+        setError(t('editor.workflowEditor.publishFirst'));
         return;
       }
       const run = await api.runs.create({
@@ -105,16 +107,16 @@ export default function WorkflowEditorPage() {
       });
       router.push(`/runs/${run.id}`);
     } catch (err) {
-      setError('Failed to run workflow');
+      setError(t('editor.workflowEditor.runFailed'));
     } finally {
       setIsRunning(false);
     }
-  }, [workflowId, isDirty, router]);
+  }, [workflowId, isDirty, router, t]);
 
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-slate-950">
-        <div className="text-slate-400">Loading workflow...</div>
+        <div className="text-slate-400">{t('editor.workflowEditor.loading')}</div>
       </div>
     );
   }
@@ -126,7 +128,7 @@ export default function WorkflowEditorPage() {
           <AlertCircle className="mx-auto h-12 w-12 text-red-400" />
           <h2 className="mt-4 text-lg font-medium text-white">{error}</h2>
           <Link href="/workflows" className="mt-4 text-blue-400 hover:underline">
-            Back to workflows
+            {t('editor.workflowEditor.backToWorkflows')}
           </Link>
         </div>
       </div>
@@ -142,11 +144,11 @@ export default function WorkflowEditorPage() {
             className="flex items-center gap-1 text-sm text-slate-400 hover:text-white"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back
+            {t('editor.workflowEditor.back')}
           </Link>
           <div>
             <h1 className="font-semibold text-white">{workflowName}</h1>
-            <p className="text-xs text-slate-500">Workflow Editor</p>
+            <p className="text-xs text-slate-500">{t('editor.workflowEditor.title')}</p>
           </div>
         </div>
         <EditorToolbar onSave={handleSave} onRun={handleRun} isSaving={isSaving} canRun={!isDirty && !isRunning} />

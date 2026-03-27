@@ -3,8 +3,10 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
 import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import { useTranslation } from '../../contexts/locale-context';
 
 export default function ProjectsPage() {
+  const { t } = useTranslation();
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -16,7 +18,7 @@ export default function ProjectsPage() {
       const data = await api.projects.list();
       setProjects(data);
     } catch {
-      setError('Failed to load projects. Please try again.');
+      setError(t('projects.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -31,11 +33,11 @@ export default function ProjectsPage() {
       <main className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-6 py-10 text-white">
         <div className="mx-auto max-w-7xl">
           <header className="mb-8">
-            <h1 className="text-3xl font-bold">Projects</h1>
+            <h1 className="text-3xl font-bold">{t('projects.title')}</h1>
           </header>
           <div className="flex items-center justify-center py-20" role="status">
             <Loader2 className="h-8 w-8 animate-spin text-blue-400" aria-hidden="true" />
-            <span className="ml-3 text-slate-400">Loading projects...</span>
+            <span className="ml-3 text-slate-400">{t('common.loading')}</span>
           </div>
         </div>
       </main>
@@ -46,8 +48,8 @@ export default function ProjectsPage() {
     <main className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-6 py-10 text-white">
       <div className="mx-auto max-w-7xl">
         <header className="mb-8">
-          <h1 className="text-3xl font-bold">Projects</h1>
-          <p className="mt-2 text-slate-400">Manage your AI workflow projects</p>
+          <h1 className="text-3xl font-bold">{t('projects.title')}</h1>
+          <p className="mt-2 text-slate-400">{t('projects.subtitle')}</p>
         </header>
 
         {error && (
@@ -57,17 +59,17 @@ export default function ProjectsPage() {
             <button
               onClick={loadProjects}
               className="flex items-center gap-1.5 rounded bg-red-600/30 px-3 py-1.5 text-sm text-red-300 hover:bg-red-600/50"
-              aria-label="Retry loading projects"
+              aria-label={t('common.retry')}
             >
               <RefreshCw className="h-4 w-4" aria-hidden="true" />
-              Retry
+              {t('common.retry')}
             </button>
           </div>
         )}
 
         <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-lg">
           {projects.length === 0 && !error ? (
-            <p className="text-slate-400">No projects yet. Create your first project to get started.</p>
+            <p className="text-slate-400">{t('projects.noProjects')}</p>
           ) : (
             <div className="space-y-4">
               {projects.map((project) => (
@@ -77,7 +79,7 @@ export default function ProjectsPage() {
                 >
                   <div>
                     <h3 className="font-medium text-white">{project.name}</h3>
-                    <p className="mt-1 text-sm text-slate-400">{project.description || 'No description'}</p>
+                    <p className="mt-1 text-sm text-slate-400">{project.description || t('projects.noDescription')}</p>
                   </div>
                   <div className="text-sm text-slate-500">
                     {new Date(project.createdAt).toLocaleDateString()}
