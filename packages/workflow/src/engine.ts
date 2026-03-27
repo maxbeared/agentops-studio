@@ -62,7 +62,7 @@ export class WorkflowEngine {
 
     try {
       await this.executeNode(ctx, startNode, definition);
-      
+
       return {
         status: 'success',
         outputs: ctx.outputs,
@@ -71,6 +71,48 @@ export class WorkflowEngine {
       return {
         status: 'failed',
         outputs: {
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
+      };
+    }
+  }
+
+  /**
+   * Resume workflow execution from a specific node with existing context.
+   * Used when a workflow pauses at a review node and is later approved.
+   */
+  async executeFrom(
+    definition: WorkflowDefinition,
+    nodeId: string,
+    ctx: ExecutionContext
+  ): Promise<WorkflowExecutionResult> {
+    const resumeNode = definition.nodes.find((n) => n.id === nodeId);
+    if (!resumeNode) {
+      return {
+        status: 'failed',
+        outputs: { ...ctx.outputs, error: `Node ${nodeId} not found` },
+      };
+    }
+
+    try {
+      // Execute from the next nodes after the review node
+      const nextEdges = definition.edges.filter((e) => e.source === nodeId);
+      for (const edge of nextEdges) {
+        const nextNode = definition.nodes.find((n) => n.id === edge.target);
+        if (nextNode) {
+          await this.executeNode(ctx, nextNode, definition);
+        }
+      }
+
+      return {
+        status: 'success',
+        outputs: ctx.outputs,
+      };
+    } catch (error) {
+      return {
+        status: 'failed',
+        outputs: {
+          ...ctx.outputs,
           error: error instanceof Error ? error.message : 'Unknown error',
         },
       };

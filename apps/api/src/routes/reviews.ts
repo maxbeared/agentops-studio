@@ -1,7 +1,14 @@
 import { Hono } from 'hono';
 import { db } from '@agentops/db';
-import { reviewTasks, workflowRuns, workflowNodeRuns, users } from '@agentops/db/schema';
+import { reviewTasks, workflowRuns, workflowNodeRuns, workflowVersions, users } from '@agentops/db/schema';
 import { eq, desc } from 'drizzle-orm';
+import { Queue } from 'bullmq';
+
+const connection = {
+  url: process.env.REDIS_URL || 'redis://localhost:6379',
+};
+
+const workflowContinueQueue = new Queue('workflow-continue', { connection });
 
 export const reviewRoutes = new Hono();
 
@@ -120,33 +127,88 @@ reviewRoutes.post('/:id/approve', async (c) => {
     return c.json({ error: { formErrors: ['Task has already been reviewed'] } }, 400);
   }
 
+  // Get the full workflow run and version info
+  const run = await db.query.workflowRuns.findFirst({
+    where: eq(workflowRuns.id, task.workflowRunId),
+  });
+
+  if (!run) {
+    return c.json({ error: { formErrors: ['Workflow run not found'] } }, 404);
+  }
+
+  const version = await db.query.workflowVersions.findFirst({
+    where: eq(workflowVersions.id, run.workflowVersionId),
+  });
+
+  if (!version) {
+    return c.json({ error: { formErrors: ['Workflow version not found'] } }, 404);
+  }
+
+  // Get all node runs to reconstruct outputs
+  const nodeRuns = await db.query.workflowNodeRuns.findMany({
+    where: eq(workflowNodeRuns.workflowRunId, task.workflowRunId),
+  });
+
+  // Get the node run for this review task
+  const reviewNodeRun = await db.query.workflowNodeRuns.findFirst({
+    where: eq(workflowNodeRuns.id, task.workflowNodeRunId),
+  });
+
+  if (!reviewNodeRun) {
+    return c.json({ error: { formErrors: ['Review node run not found'] } }, 404);
+  }
+
+  // Build outputs map from all completed node runs
+  const outputs: Record<string, any> = {};
+  for (const nodeRun of nodeRuns) {
+    if (nodeRun.outputPayload) {
+      outputs[nodeRun.nodeKey] = nodeRun.outputPayload;
+    }
+  }
+
+  // Build execution context for resume
+  const context = {
+    input: run.inputPayload || {},
+    state: task.reviewedOutput || {},
+    outputs,
+    prevOutputs: {},
+  };
+
+  // Use approved output or keep the original
+  const approvedOutput = body.output || task.reviewedOutput;
+
+  // Update task status
   await db
     .update(reviewTasks)
     .set({
       status: 'approved',
       reviewComment: body.comment || null,
-      reviewedOutput: body.output || null,
+      reviewedOutput: approvedOutput,
       reviewedAt: new Date(),
     })
     .where(eq(reviewTasks.id, id));
 
-  await db
-    .update(workflowRuns)
-    .set({
-      status: 'running',
-    })
-    .where(eq(workflowRuns.id, task.workflowRunId));
-
+  // Update node run
   await db
     .update(workflowNodeRuns)
     .set({
       status: 'success',
-      outputPayload: body.output || task.reviewedOutput,
+      outputPayload: approvedOutput,
     })
     .where(eq(workflowNodeRuns.id, task.workflowNodeRunId));
 
+  // Add continue job to the queue
+  await workflowContinueQueue.add('continue', {
+    runId: task.workflowRunId,
+    workflowVersionId: run.workflowVersionId,
+    definition: version.definition,
+    context,
+    resumeFromNodeId: reviewNodeRun.nodeKey,
+    approvedOutput,
+  });
+
   return c.json({
-    data: { id, status: 'approved', message: 'Review approved' },
+    data: { id, status: 'approved', message: 'Review approved, workflow continuing' },
   });
 });
 

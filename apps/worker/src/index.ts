@@ -267,12 +267,149 @@ const documentWorker = new Worker(
   { connection }
 );
 
+// Worker for continuing workflow execution after review approval
+const workflowContinueWorker = new Worker(
+  'workflow-continue',
+  async (job) => {
+    console.log('Processing workflow continue job', job.id, job.data);
+
+    const { runId, workflowVersionId, definition, context, resumeFromNodeId, approvedOutput } = job.data;
+
+    await db
+      .update(workflowRuns)
+      .set({ status: 'running' })
+      .where(eq(workflowRuns.id, runId));
+
+    broadcastRunUpdate(runId, { status: 'running' });
+
+    const workflowEngine = new WorkflowEngine();
+    workflowEngine.setRetrievalService(retrievalService);
+
+    // Set up the same listener for node execution tracking
+    workflowEngine.setNodeExecutionListener(async (nodeKey, nodeType, status, result?: NodeExecutionResult) => {
+      try {
+        const nodeDef = definition.nodes.find((n: any) => n.id === nodeKey);
+        const nodeConfig = nodeDef?.config || {};
+
+        let nodeRunId: string | null = null;
+
+        const existing = await db.query.workflowNodeRuns.findFirst({
+          where: and(
+            eq(workflowNodeRuns.workflowRunId, runId),
+            eq(workflowNodeRuns.nodeKey, nodeKey)
+          ),
+        });
+
+        if (existing) {
+          await db
+            .update(workflowNodeRuns)
+            .set({
+              status,
+              outputPayload: result?.output ? safeJsonSerialize(result.output) : undefined,
+              errorMessage: result?.errorMessage,
+              finishedAt: new Date(),
+              durationMs: result?.latencyMs,
+              tokenUsageInput: result?.usage?.inputTokens,
+              tokenUsageOutput: result?.usage?.outputTokens,
+              cost: result?.usage?.cost?.toString(),
+            })
+            .where(eq(workflowNodeRuns.id, existing.id));
+          nodeRunId = existing.id;
+        } else {
+          const [inserted] = await db.insert(workflowNodeRuns).values({
+            workflowRunId: runId,
+            nodeKey,
+            nodeType,
+            status,
+            outputPayload: result?.output ? safeJsonSerialize(result.output) : undefined,
+            errorMessage: result?.errorMessage,
+            startedAt: new Date(),
+            finishedAt: new Date(),
+            durationMs: result?.latencyMs,
+            tokenUsageInput: result?.usage?.inputTokens || 0,
+            tokenUsageOutput: result?.usage?.outputTokens || 0,
+            cost: result?.usage?.cost?.toString() || '0',
+          });
+          nodeRunId = inserted.id;
+        }
+
+        broadcastRunUpdate(runId, {
+          nodeKey,
+          nodeType,
+          status,
+          result: result ? {
+            output: result.output,
+            errorMessage: result.errorMessage,
+            latencyMs: result.latencyMs,
+          } : undefined,
+        });
+      } catch (err) {
+        console.error('Failed to record node run:', err);
+      }
+    });
+
+    try {
+      // The context is already a plain object from the job data (JSON serialized/deserialized by BullMQ)
+      // Apply approved output to the review node's output
+      if (approvedOutput && context.outputs) {
+        context.outputs[resumeFromNodeId] = approvedOutput;
+      }
+
+      const result = await workflowEngine.executeFrom(definition, resumeFromNodeId, context);
+
+      await db
+        .update(workflowRuns)
+        .set({
+          status: result.status,
+          outputPayload: safeJsonSerialize(result.outputs || {}),
+          finishedAt: new Date(),
+        })
+        .where(eq(workflowRuns.id, runId));
+
+      broadcastRunUpdate(runId, {
+        status: result.status,
+        output: result.outputs,
+        finishedAt: new Date().toISOString(),
+      });
+
+      console.log('Workflow continue result', result);
+      return result;
+    } catch (error) {
+      await db
+        .update(workflowRuns)
+        .set({
+          status: 'failed',
+          errorMessage: error instanceof Error ? error.message : 'Unknown error',
+          finishedAt: new Date(),
+        })
+        .where(eq(workflowRuns.id, runId));
+
+      broadcastRunUpdate(runId, {
+        status: 'failed',
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        finishedAt: new Date().toISOString(),
+      });
+
+      throw error;
+    }
+  },
+  { connection }
+);
+
 workflowWorker.on('completed', (job) => {
   console.log(`Workflow job ${job.id} completed`);
 });
 
 workflowWorker.on('failed', (job, err) => {
   console.error(`Workflow job ${job?.id} failed`, err);
+});
+
+workflowContinueWorker.on('completed', (job) => {
+  console.log(`Workflow continue job ${job.id} completed`);
+});
+
+workflowContinueWorker.on('failed', (job, err) => {
+  console.error(`Workflow continue job ${job?.id} failed`, err);
 });
 
 documentWorker.on('completed', (job) => {
