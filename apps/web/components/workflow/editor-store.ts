@@ -35,7 +35,7 @@ const nodeTypeDefaults: Record<string, Partial<WorkflowNodeData>> = {
   start: { label: 'Start', config: {} },
   llm: { label: 'LLM Call', config: { model: 'gpt-4', prompt: '', temperature: 0.7 } },
   retrieval: { label: 'Knowledge Retrieval', config: { projectId: '', topK: 5 } },
-  condition: { label: 'Condition', config: { conditions: [] } },
+  condition: { label: 'Condition', config: { condition: '' } },
   review: { label: 'Human Review', config: { assigneeEmail: '' } },
   webhook: { label: 'Webhook', config: { url: '', method: 'POST' } },
   output: { label: 'Output', config: { template: '' } },

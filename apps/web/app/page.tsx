@@ -1,3 +1,6 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import { api } from '../lib/api';
 import Link from 'next/link';
 
@@ -20,21 +23,23 @@ function SectionCard({ title, children }: { title: string; children: React.React
   );
 }
 
-export default async function HomePage() {
-  let stats = {
+export default function HomePage() {
+  const [stats, setStats] = useState({
     totalRuns: 0,
     successRate: 0,
     totalTokens: 0,
     totalCost: 0,
     pendingReviews: 0,
     recentRuns: [] as any[],
-  };
+  });
+  const [loading, setLoading] = useState(true);
 
-  try {
-    stats = await api.dashboard.stats();
-  } catch (e) {
-    console.error('Failed to fetch dashboard stats:', e);
-  }
+  useEffect(() => {
+    api.dashboard.stats()
+      .then(setStats)
+      .catch((e) => console.error('Failed to fetch dashboard stats:', e))
+      .finally(() => setLoading(false));
+  }, []);
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-6 py-10 text-white">
@@ -78,7 +83,9 @@ export default async function HomePage() {
           </SectionCard>
 
           <SectionCard title="Recent Runs">
-            {stats.recentRuns.length === 0 ? (
+            {loading ? (
+              <p className="text-sm text-slate-400">Loading...</p>
+            ) : stats.recentRuns.length === 0 ? (
               <p className="text-sm text-slate-400">No recent runs</p>
             ) : (
               <div className="space-y-3">

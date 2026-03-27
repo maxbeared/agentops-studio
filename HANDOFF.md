@@ -406,6 +406,8 @@ Password: demo123456
 - [x] **工作流审核批准后自动继续执行**
 - [x] **ConditionNodeExecutor 安全表达式解析器（移除 new Function）**
 - [x] **前端按钮添加 type="button" 属性**
+- [x] **Condition 节点配置面板（支持表达式编辑）**
+- [x] **Dashboard 页面改为 Client Component（避免 hydration 问题）**
 
 ### ⚠️ 已知限制
 - `knowledge_chunks.embedding` 存储为 JSON 序列化的 float array（text 类型），非 pgvector

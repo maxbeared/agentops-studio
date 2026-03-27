@@ -69,8 +69,9 @@ export function RetrievalNode({ data, selected }: NodeProps) {
 
 export function ConditionNode({ data, selected }: NodeProps) {
   const nodeData = data as WorkflowNodeData;
+  const condition = nodeData.config?.condition;
   return (
-    <div className={`relative rounded-lg border-2 p-3 min-w-[140px] ${nodeColors.condition} ${selected ? 'ring-2 ring-amber-400' : ''}`}>
+    <div className={`relative rounded-lg border-2 p-3 min-w-[160px] ${nodeColors.condition} ${selected ? 'ring-2 ring-amber-400' : ''}`}>
       <Handle type="target" position={Position.Top} className="!bg-amber-500" />
       <Handle type="source" position={Position.Bottom} id="yes" className="!bg-amber-500" style={{ left: '30%' }} />
       <Handle type="source" position={Position.Bottom} id="no" className="!bg-amber-500" style={{ left: '70%' }} />
@@ -78,7 +79,16 @@ export function ConditionNode({ data, selected }: NodeProps) {
         <div className="rounded-full bg-amber-500/20 p-1.5 text-amber-400">{nodeIcons.condition}</div>
         <span className="font-medium text-amber-400">{nodeData.label}</span>
       </div>
-      <p className="mt-1.5 text-xs text-slate-400">Branching</p>
+      {condition ? (
+        <p className="mt-1.5 text-xs text-slate-400 truncate" title={condition}>{condition}</p>
+      ) : (
+        <p className="mt-1.5 text-xs text-slate-500 italic">No condition set</p>
+      )}
+      <div className="mt-1 flex gap-1 text-xs">
+        <span className="text-emerald-400">Y</span>
+        <span className="text-slate-600">/</span>
+        <span className="text-red-400">N</span>
+      </div>
     </div>
   );
 }

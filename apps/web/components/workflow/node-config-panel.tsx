@@ -133,6 +133,40 @@ function WebhookConfig({ data, onChange }: { data: WorkflowNodeData; onChange: (
   );
 }
 
+function ConditionConfig({ data, onChange }: { data: WorkflowNodeData; onChange: (config: Record<string, any>) => void }) {
+  return (
+    <div className="space-y-3">
+      <div>
+        <label className="block text-xs text-slate-400 mb-1">Condition Expression</label>
+        <textarea
+          value={data.config?.condition || ''}
+          onChange={(e) => onChange({ ...data.config, condition: e.target.value })}
+          placeholder="e.g., input.score > 0.5"
+          rows={3}
+          className="w-full rounded bg-slate-800 border border-slate-700 px-3 py-1.5 text-sm text-white resize-none font-mono"
+        />
+      </div>
+      <div className="rounded bg-slate-800/50 p-2 text-xs text-slate-500">
+        <p className="font-medium text-slate-400 mb-1">Available variables:</p>
+        <ul className="space-y-0.5">
+          <li><code className="text-purple-400">input.*</code> - workflow input</li>
+          <li><code className="text-purple-400">prev.*</code> - previous node output</li>
+          <li><code className="text-purple-400">outputs.*</code> - all outputs</li>
+          <li><code className="text-purple-400">state.*</code> - current state</li>
+        </ul>
+      </div>
+      <div className="rounded bg-slate-800/50 p-2 text-xs text-slate-500">
+        <p className="font-medium text-slate-400 mb-1">Examples:</p>
+        <ul className="space-y-0.5">
+          <li><code className="text-blue-400">input.score &gt; 0.5</code></li>
+          <li><code className="text-blue-400">prev.LLM.content.includes('error')</code></li>
+          <li><code className="text-blue-400">input.status === 'approved'</code></li>
+        </ul>
+      </div>
+    </div>
+  );
+}
+
 function OutputConfig({ data, onChange }: { data: WorkflowNodeData; onChange: (config: Record<string, any>) => void }) {
   return (
     <div className="space-y-3">
@@ -195,6 +229,7 @@ export function NodeConfigPanel() {
         </div>
         {selectedNode.type === 'llm' && <LLMConfig data={selectedNode.data} onChange={handleConfigChange} />}
         {selectedNode.type === 'retrieval' && <RetrievalConfig data={selectedNode.data} onChange={handleConfigChange} />}
+        {selectedNode.type === 'condition' && <ConditionConfig data={selectedNode.data} onChange={handleConfigChange} />}
         {selectedNode.type === 'review' && <ReviewConfig data={selectedNode.data} onChange={handleConfigChange} />}
         {selectedNode.type === 'webhook' && <WebhookConfig data={selectedNode.data} onChange={handleConfigChange} />}
         {selectedNode.type === 'output' && <OutputConfig data={selectedNode.data} onChange={handleConfigChange} />}
