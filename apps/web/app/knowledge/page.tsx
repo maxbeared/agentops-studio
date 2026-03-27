@@ -73,30 +73,13 @@ export default function KnowledgePage() {
         return;
       }
 
-      const formData = new FormData();
-      formData.append('file', selectedFile);
-      formData.append('projectId', projectId);
-      formData.append('title', uploadTitle);
+      const doc = await api.knowledge.upload(selectedFile, projectId, uploadTitle);
+      setDocuments((prev) => [doc, ...prev]);
+      setShowUpload(false);
+      setUploadTitle('');
+      setSelectedFile(null);
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/knowledge/upload`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`,
-        },
-        body: formData,
-      });
-
-      const json = await res.json();
-      if (json.data) {
-        setDocuments([json.data, ...documents]);
-        setShowUpload(false);
-        setUploadTitle('');
-        setSelectedFile(null);
-
-        await processDocument(json.data.id);
-      } else {
-        setUploadError(json.error?.formErrors?.[0] || 'Upload failed');
-      }
+      await processDocument(doc.id);
     } catch (err) {
       setUploadError('Upload failed');
     } finally {
@@ -107,13 +90,7 @@ export default function KnowledgePage() {
   const processDocument = async (id: string) => {
     setProcessingIds((prev) => new Set(prev).add(id));
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/knowledge/${id}/process`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`,
-        },
-      });
+      await api.knowledge.process(id);
       await loadDocuments();
     } catch (err) {
       console.error('Process failed:', err);

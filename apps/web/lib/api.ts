@@ -97,6 +97,43 @@ export const api = {
     get: (id: string) => fetchApi<any>(`/knowledge/${id}`),
     create: (data: { projectId: string; title: string; sourceType: string; sourceUrl?: string; mimeType?: string }) =>
       fetchApi<any>('/knowledge', { method: 'POST', body: JSON.stringify(data) }),
+    upload: async (file: File, projectId: string, title: string): Promise<any> => {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('projectId', projectId);
+      formData.append('title', title);
+
+      const res = await fetch(`${API_BASE}/knowledge/upload`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
+      });
+
+      if (!res.ok) {
+        throw new Error(`Upload error: ${res.status}`);
+      }
+
+      const json = await res.json();
+      return json.data;
+    },
+    process: async (id: string): Promise<any> => {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+      const res = await fetch(`${API_BASE}/knowledge/${id}/process`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+
+      if (!res.ok) {
+        throw new Error(`Process error: ${res.status}`);
+      }
+
+      const json = await res.json();
+      return json.data;
+    },
   },
 
   reviews: {

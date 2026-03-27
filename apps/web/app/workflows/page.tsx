@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { api } from '../../lib/api';
-import { Plus, Edit2, Play, Clock } from 'lucide-react';
+import { Plus, Edit2, Play, Clock, Loader2 } from 'lucide-react';
 
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
@@ -20,12 +21,14 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default function WorkflowsPage() {
+  const router = useRouter();
   const [workflows, setWorkflows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [creating, setCreating] = useState(false);
+  const [runningId, setRunningId] = useState<string | null>(null);
 
   useEffect(() => {
     api.workflows.list().then((data) => {
@@ -46,7 +49,7 @@ export default function WorkflowsPage() {
           name: newName,
           description: newDesc,
         });
-        setWorkflows([...workflows, workflow]);
+        setWorkflows((prev) => [...prev, workflow]);
         setShowCreate(false);
         setNewName('');
         setNewDesc('');
@@ -57,6 +60,26 @@ export default function WorkflowsPage() {
       setCreating(false);
     }
   };
+
+  const handleRun = useCallback(async (workflowId: string) => {
+    setRunningId(workflowId);
+    try {
+      const workflow = await api.workflows.get(workflowId);
+      if (!workflow.latestVersionId) {
+        alert('Please publish the workflow before running');
+        return;
+      }
+      const run = await api.runs.create({
+        workflowVersionId: workflow.latestVersionId,
+        inputPayload: {},
+      });
+      router.push(`/runs/${run.id}`);
+    } catch (err) {
+      console.error('Failed to run workflow:', err);
+    } finally {
+      setRunningId(null);
+    }
+  }, [router]);
 
   if (loading) {
     return (
@@ -173,9 +196,15 @@ export default function WorkflowsPage() {
                     {workflow.status === 'published' && (
                       <button
                         type="button"
-                        className="flex items-center gap-1.5 rounded bg-emerald-600/20 px-3 py-1.5 text-xs text-emerald-400 hover:bg-emerald-600/30"
+                        onClick={() => handleRun(workflow.id)}
+                        disabled={runningId === workflow.id}
+                        className="flex items-center gap-1.5 rounded bg-emerald-600/20 px-3 py-1.5 text-xs text-emerald-400 hover:bg-emerald-600/30 disabled:opacity-50"
                       >
-                        <Play className="h-3 w-3" />
+                        {runningId === workflow.id ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Play className="h-3 w-3" />
+                        )}
                         Run
                       </button>
                     )}
