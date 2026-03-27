@@ -92,9 +92,11 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>((set, get) => 
 
   onConnect: (connection) => {
     const newEdge: EditorEdge = {
-      id: `e${connection.source}-${connection.target}`,
+      id: `e${connection.source}-${connection.target}${connection.sourceHandle ? `-${connection.sourceHandle}` : ''}`,
       source: connection.source!,
       target: connection.target!,
+      sourceHandle: connection.sourceHandle,
+      targetHandle: connection.targetHandle,
       type: 'default',
     };
     set((state) => ({

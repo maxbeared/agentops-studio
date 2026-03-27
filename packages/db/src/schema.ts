@@ -127,6 +127,7 @@ export const workflowEdges = pgTable('workflow_edges', {
   workflowVersionId: uuid('workflow_version_id').notNull().references(() => workflowVersions.id),
   sourceNodeKey: varchar('source_node_key', { length: 120 }).notNull(),
   targetNodeKey: varchar('target_node_key', { length: 120 }).notNull(),
+  sourceHandle: varchar('source_handle', { length: 20 }),
   conditionConfig: jsonb('condition_config').$type<Record<string, unknown>>(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });

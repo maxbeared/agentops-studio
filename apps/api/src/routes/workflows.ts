@@ -115,6 +115,7 @@ workflowRoutes.get('/:id', async (c) => {
       id: e.id,
       source: e.sourceNodeKey,
       target: e.targetNodeKey,
+      sourceHandle: e.sourceHandle,
       condition: e.conditionConfig,
     }));
   }
@@ -198,6 +199,7 @@ workflowRoutes.post('/:id/publish', async (c) => {
         workflowVersionId: version.id,
         sourceNodeKey: edge.source,
         targetNodeKey: edge.target,
+        sourceHandle: edge.sourceHandle || null,
         conditionConfig: edge.condition,
       });
     }

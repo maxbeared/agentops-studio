@@ -166,7 +166,29 @@ export class WorkflowEngine {
       await this.listener(node.id, node.type, 'success', result);
     }
 
-    const nextEdges = definition.edges.filter((e) => e.source === node.id);
+    // For condition nodes, only follow the edge matching the condition result
+    let nextEdges = definition.edges.filter((e) => e.source === node.id);
+
+    if (node.type === 'condition') {
+      const conditionOutput = ctx.outputs[node.id];
+      const conditionPath = conditionOutput?.path; // 'yes' or 'no'
+
+      if (conditionPath) {
+        // Filter edges to only follow the one matching the condition result
+        // Edge sourceHandle should match the path ('yes' or 'no')
+        nextEdges = nextEdges.filter((e) => {
+          // The edge's sourceHandle in React Flow corresponds to the handle ID
+          const edgeHandle = (e as any).sourceHandle;
+          return edgeHandle === conditionPath || (!edgeHandle && conditionPath === 'yes');
+        });
+
+        // If no edges match (e.g., no explicit handle set), default to first edge
+        if (nextEdges.length === 0 && definition.edges.filter((e) => e.source === node.id).length > 0) {
+          nextEdges = [definition.edges.filter((e) => e.source === node.id)[0]];
+        }
+      }
+    }
+
     for (const edge of nextEdges) {
       const nextNode = definition.nodes.find((n) => n.id === edge.target);
       if (nextNode) {

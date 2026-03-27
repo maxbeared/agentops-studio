@@ -73,7 +73,7 @@ export default function WorkflowEditorPage() {
     try {
       const definition = {
         nodes: convertEditorToApiNodes(nodes),
-        edges: edges.map((e) => ({ id: e.id, source: e.source, target: e.target })),
+        edges: edges.map((e) => ({ id: e.id, source: e.source, target: e.target, sourceHandle: e.sourceHandle || undefined })),
       };
       await api.workflows.publish(workflowId, definition);
       useWorkflowEditorStore.setState({ isDirty: false });

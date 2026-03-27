@@ -18,8 +18,9 @@ function LLMConfig({ data, onChange }: { data: WorkflowNodeData; onChange: (conf
   return (
     <div className="space-y-3">
       <div>
-        <label className="block text-xs text-slate-400 mb-1">Model</label>
+        <label htmlFor="llm-model" className="block text-xs text-slate-400 mb-1">Model</label>
         <select
+          id="llm-model"
           value={data.config?.model || 'gpt-4'}
           onChange={(e) => onChange({ ...data.config, model: e.target.value })}
           className="w-full rounded bg-slate-800 border border-slate-700 px-3 py-1.5 text-sm text-white"
@@ -32,8 +33,9 @@ function LLMConfig({ data, onChange }: { data: WorkflowNodeData; onChange: (conf
         </select>
       </div>
       <div>
-        <label className="block text-xs text-slate-400 mb-1">Temperature</label>
+        <label htmlFor="llm-temperature" className="block text-xs text-slate-400 mb-1">Temperature</label>
         <input
+          id="llm-temperature"
           type="number"
           step="0.1"
           min="0"
@@ -44,8 +46,9 @@ function LLMConfig({ data, onChange }: { data: WorkflowNodeData; onChange: (conf
         />
       </div>
       <div>
-        <label className="block text-xs text-slate-400 mb-1">System Prompt</label>
+        <label htmlFor="llm-prompt" className="block text-xs text-slate-400 mb-1">System Prompt</label>
         <textarea
+          id="llm-prompt"
           value={data.config?.prompt || ''}
           onChange={(e) => onChange({ ...data.config, prompt: e.target.value })}
           placeholder="You are a helpful assistant..."
@@ -61,8 +64,9 @@ function RetrievalConfig({ data, onChange }: { data: WorkflowNodeData; onChange:
   return (
     <div className="space-y-3">
       <div>
-        <label className="block text-xs text-slate-400 mb-1">Knowledge Base ID</label>
+        <label htmlFor="retrieval-kb-id" className="block text-xs text-slate-400 mb-1">Knowledge Base ID</label>
         <input
+          id="retrieval-kb-id"
           type="text"
           value={data.config?.knowledgeBaseId || ''}
           onChange={(e) => onChange({ ...data.config, knowledgeBaseId: e.target.value })}
@@ -71,8 +75,9 @@ function RetrievalConfig({ data, onChange }: { data: WorkflowNodeData; onChange:
         />
       </div>
       <div>
-        <label className="block text-xs text-slate-400 mb-1">Top-K Results</label>
+        <label htmlFor="retrieval-topk" className="block text-xs text-slate-400 mb-1">Top-K Results</label>
         <input
+          id="retrieval-topk"
           type="number"
           min="1"
           max="20"
@@ -89,8 +94,9 @@ function ReviewConfig({ data, onChange }: { data: WorkflowNodeData; onChange: (c
   return (
     <div className="space-y-3">
       <div>
-        <label className="block text-xs text-slate-400 mb-1">Assignee Email</label>
+        <label htmlFor="review-email" className="block text-xs text-slate-400 mb-1">Assignee Email</label>
         <input
+          id="review-email"
           type="email"
           value={data.config?.assigneeEmail || ''}
           onChange={(e) => onChange({ ...data.config, assigneeEmail: e.target.value })}
@@ -106,8 +112,9 @@ function WebhookConfig({ data, onChange }: { data: WorkflowNodeData; onChange: (
   return (
     <div className="space-y-3">
       <div>
-        <label className="block text-xs text-slate-400 mb-1">Method</label>
+        <label htmlFor="webhook-method" className="block text-xs text-slate-400 mb-1">Method</label>
         <select
+          id="webhook-method"
           value={data.config?.method || 'POST'}
           onChange={(e) => onChange({ ...data.config, method: e.target.value })}
           className="w-full rounded bg-slate-800 border border-slate-700 px-3 py-1.5 text-sm text-white"
@@ -120,8 +127,9 @@ function WebhookConfig({ data, onChange }: { data: WorkflowNodeData; onChange: (
         </select>
       </div>
       <div>
-        <label className="block text-xs text-slate-400 mb-1">URL</label>
+        <label htmlFor="webhook-url" className="block text-xs text-slate-400 mb-1">URL</label>
         <input
+          id="webhook-url"
           type="url"
           value={data.config?.url || ''}
           onChange={(e) => onChange({ ...data.config, url: e.target.value })}
@@ -137,16 +145,18 @@ function ConditionConfig({ data, onChange }: { data: WorkflowNodeData; onChange:
   return (
     <div className="space-y-3">
       <div>
-        <label className="block text-xs text-slate-400 mb-1">Condition Expression</label>
+        <label htmlFor="condition-expression" className="block text-xs text-slate-400 mb-1">Condition Expression</label>
         <textarea
+          id="condition-expression"
           value={data.config?.condition || ''}
           onChange={(e) => onChange({ ...data.config, condition: e.target.value })}
           placeholder="e.g., input.score > 0.5"
           rows={3}
           className="w-full rounded bg-slate-800 border border-slate-700 px-3 py-1.5 text-sm text-white resize-none font-mono"
+          aria-describedby="condition-help"
         />
       </div>
-      <div className="rounded bg-slate-800/50 p-2 text-xs text-slate-500">
+      <div id="condition-help" className="rounded bg-slate-800/50 p-2 text-xs text-slate-500">
         <p className="font-medium text-slate-400 mb-1">Available variables:</p>
         <ul className="space-y-0.5">
           <li><code className="text-purple-400">input.*</code> - workflow input</li>
@@ -171,8 +181,9 @@ function OutputConfig({ data, onChange }: { data: WorkflowNodeData; onChange: (c
   return (
     <div className="space-y-3">
       <div>
-        <label className="block text-xs text-slate-400 mb-1">Output Template</label>
+        <label htmlFor="output-template" className="block text-xs text-slate-400 mb-1">Output Template</label>
         <textarea
+          id="output-template"
           value={data.config?.template || ''}
           onChange={(e) => onChange({ ...data.config, template: e.target.value })}
           placeholder="The result is: {{result}}"
@@ -205,26 +216,30 @@ export function NodeConfigPanel() {
             type="button"
             onClick={() => deleteNode(selectedNode.id)}
             className="rounded p-1.5 text-red-400 hover:bg-red-500/20"
+            aria-label="Delete node"
           >
-            <Trash2 className="h-4 w-4" />
+            <Trash2 className="h-4 w-4" aria-hidden="true" />
           </button>
           <button
             type="button"
             onClick={() => selectNode(null)}
             className="rounded p-1.5 text-slate-400 hover:bg-slate-800"
+            aria-label="Close panel"
           >
-            <X className="h-4 w-4" />
+            <X className="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
       </div>
       <div className="p-4">
         <div className="mb-4">
-          <label className="block text-xs text-slate-400 mb-1">Node Name</label>
+          <label htmlFor="node-name" className="block text-xs text-slate-400 mb-1">Node Name</label>
           <input
+            id="node-name"
             type="text"
             value={selectedNode.data.label}
             onChange={(e) => updateNodeData(selectedNode.id, { label: e.target.value })}
             className="w-full rounded bg-slate-800 border border-slate-700 px-3 py-1.5 text-sm text-white"
+            aria-label="Node name"
           />
         </div>
         {selectedNode.type === 'llm' && <LLMConfig data={selectedNode.data} onChange={handleConfigChange} />}

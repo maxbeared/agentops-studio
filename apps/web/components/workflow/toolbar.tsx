@@ -28,7 +28,7 @@ export function NodeToolbar() {
   };
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2" role="toolbar" aria-label="Add workflow nodes">
       {nodeTypes.map(({ type, label, color }) => (
         <button
           key={type}
@@ -36,8 +36,10 @@ export function NodeToolbar() {
           onDragStart={(e) => handleDragStart(e, type)}
           onClick={() => handleAddNode(type)}
           className={`flex items-center gap-1.5 rounded border px-2.5 py-1.5 text-xs font-medium transition-colors hover:opacity-80 ${color}`}
+          aria-label={`Add ${label} node`}
+          title={`Drag or click to add a ${label} node`}
         >
-          <Plus className="h-3 w-3" />
+          <Plus className="h-3 w-3" aria-hidden="true" />
           {label}
         </button>
       ))}
@@ -56,11 +58,11 @@ export function EditorToolbar({ onSave, onRun, isSaving, canRun }: EditorToolbar
   const { workflowName, isDirty, resetEditor } = useWorkflowEditorStore();
 
   return (
-    <div className="flex items-center justify-between border-b border-slate-700 bg-slate-900/80 px-4 py-3">
+    <div className="flex items-center justify-between border-b border-slate-700 bg-slate-900/80 px-4 py-3" role="toolbar" aria-label="Workflow editor toolbar">
       <div className="flex items-center gap-4">
-        <h1 className="text-lg font-semibold text-white">{workflowName}</h1>
+        <h1 className="text-lg font-semibold text-white" aria-label={`Workflow: ${workflowName}`}>{workflowName}</h1>
         {isDirty && (
-          <span className="rounded bg-amber-500/20 px-2 py-0.5 text-xs text-amber-400">
+          <span className="rounded bg-amber-500/20 px-2 py-0.5 text-xs text-amber-400" role="status" aria-live="polite">
             Unsaved changes
           </span>
         )}
@@ -70,8 +72,9 @@ export function EditorToolbar({ onSave, onRun, isSaving, canRun }: EditorToolbar
           type="button"
           onClick={resetEditor}
           className="flex items-center gap-1.5 rounded bg-slate-800 px-3 py-1.5 text-sm text-slate-300 hover:bg-slate-700"
+          aria-label="Reset workflow editor"
         >
-          <RotateCcw className="h-4 w-4" />
+          <RotateCcw className="h-4 w-4" aria-hidden="true" />
           Reset
         </button>
         <button
@@ -79,8 +82,10 @@ export function EditorToolbar({ onSave, onRun, isSaving, canRun }: EditorToolbar
           onClick={onSave}
           disabled={isSaving || !isDirty}
           className="flex items-center gap-1.5 rounded bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
+          aria-label={isSaving ? 'Saving workflow' : 'Save workflow'}
+          aria-busy={isSaving}
         >
-          <Save className="h-4 w-4" />
+          <Save className="h-4 w-4" aria-hidden="true" />
           {isSaving ? 'Saving...' : 'Save'}
         </button>
         {onRun && (
@@ -89,8 +94,10 @@ export function EditorToolbar({ onSave, onRun, isSaving, canRun }: EditorToolbar
             onClick={onRun}
             disabled={!canRun}
             className="flex items-center gap-1.5 rounded bg-emerald-600 px-3 py-1.5 text-sm text-white hover:bg-emerald-700 disabled:opacity-50"
+            aria-label="Run workflow"
+            aria-disabled={!canRun}
           >
-            <Play className="h-4 w-4" />
+            <Play className="h-4 w-4" aria-hidden="true" />
             Run
           </button>
         )}

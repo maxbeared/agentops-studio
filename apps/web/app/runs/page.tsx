@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
 import Link from 'next/link';
+import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
@@ -23,12 +24,19 @@ function StatusBadge({ status }: { status: string }) {
 export default function RunsPage() {
   const [runs, setRuns] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const loadRuns = () => {
+    setLoading(true);
+    setError(null);
     api.runs.list()
       .then(setRuns)
-      .catch((e) => console.error('Failed to fetch runs:', e))
+      .catch((e) => setError('Failed to load runs. Please try again.'))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadRuns();
   }, []);
 
   if (loading) {
@@ -37,8 +45,11 @@ export default function RunsPage() {
         <div className="mx-auto max-w-7xl">
           <header className="mb-8">
             <h1 className="text-3xl font-bold">Workflow Runs</h1>
-            <p className="mt-2 text-slate-400">Loading...</p>
           </header>
+          <div className="flex items-center justify-center py-20" role="status">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-400" aria-hidden="true" />
+            <span className="ml-3 text-slate-400">Loading runs...</span>
+          </div>
         </div>
       </main>
     );
@@ -52,8 +63,23 @@ export default function RunsPage() {
           <p className="mt-2 text-slate-400">View execution history and logs</p>
         </header>
 
+        {error && (
+          <div className="mb-6 rounded-xl border border-red-800/50 bg-red-900/20 p-4 flex items-center gap-3" role="alert">
+            <AlertCircle className="h-5 w-5 text-red-400 flex-shrink-0" aria-hidden="true" />
+            <span className="text-red-300 text-sm flex-1">{error}</span>
+            <button
+              onClick={loadRuns}
+              className="flex items-center gap-1.5 rounded bg-red-600/30 px-3 py-1.5 text-sm text-red-300 hover:bg-red-600/50"
+              aria-label="Retry loading runs"
+            >
+              <RefreshCw className="h-4 w-4" aria-hidden="true" />
+              Retry
+            </button>
+          </div>
+        )}
+
         <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-lg">
-          {runs.length === 0 ? (
+          {runs.length === 0 && !error ? (
             <p className="text-slate-400">No runs yet. Trigger a workflow to see execution history here.</p>
           ) : (
             <div className="overflow-x-auto">

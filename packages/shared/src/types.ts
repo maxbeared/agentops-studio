@@ -81,6 +81,7 @@ export type WorkflowEdge = {
   id: string;
   source: string;
   target: string;
+  sourceHandle?: string;
   condition?: Record<string, any>;
 };
 

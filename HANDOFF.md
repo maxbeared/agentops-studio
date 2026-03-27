@@ -630,11 +630,11 @@ AgentOps Studio 是一个功能完整的 AI 自动化运营中台，具备 Workf
 Tasks:    3 successful, 3 total
 Route (app)                              Size     First Load JS
 ├ ○ /                                    2.44 kB         111 kB
-├ ○ /projects                            1.47 kB         107 kB
-├ ○ /runs                                1.87 kB         111 kB
+├ ○ /projects                            2.52 kB         108 kB
+├ ○ /runs                                2.91 kB         112 kB
 ├ ○ /workflows                           3.14 kB         112 kB
 ├ ƒ /runs/[id]                           3.86 kB         113 kB
-├ ƒ /workflows/[id]                     63.5 kB         173 kB
+├ ƒ /workflows/[id]                     63.9 kB         173 kB
 ...
 ```
 
@@ -644,3 +644,46 @@ Route (app)                              Size     First Load JS
 - [x] 数据库种子已填充
 - [x] 构建通过
 - [x] 前端页面全部可访问
+
+---
+
+## 15. 近期改进
+
+### 条件节点路由修复
+修复了工作流引擎中条件节点的路由逻辑：
+- **问题**：条件节点执行后，引擎会跟随所有输出边，而不是只跟随与条件结果匹配的边
+- **修复**：
+  - `packages/workflow/src/engine.ts` - 添加条件节点路由逻辑，检查 `sourceHandle` 来决定走 yes 还是 no 分支
+  - `packages/db/src/schema.ts` - 添加 `sourceHandle` 字段到 `workflowEdges` 表
+  - `packages/shared/src/types.ts` - 添加 `sourceHandle` 到 `WorkflowEdge` 类型
+  - `apps/api/src/routes/workflows.ts` - 保存和返回 edges 时包含 `sourceHandle`
+  - `apps/web/components/workflow/editor-store.ts` - 连接边时保存 `sourceHandle`
+  - `apps/web/app/workflows/[id]/page.tsx` - 保存时传递 `sourceHandle`
+
+### 可访问性改进
+提升了 UI 组件的可访问性（Accessibility）：
+- **Navbar** (`apps/web/components/Navbar.tsx`)
+  - 添加 `aria-label` 到导航链接
+  - 添加 `aria-hidden` 到图标
+  - 添加 `role="status"` 和 `aria-live` 到状态提示
+- **EditorToolbar** (`apps/web/components/workflow/toolbar.tsx`)
+  - 添加 `role="toolbar"` 和 `aria-label`
+  - 添加 `aria-busy` 和 `aria-disabled` 属性
+  - 添加图标 `aria-hidden`
+- **NodeToolbar** - 添加 `aria-label` 和 `title`
+- **NodeConfigPanel** (`apps/web/components/workflow/node-config-panel.tsx`)
+  - 所有表单输入添加 `id` 和关联的 `htmlFor`
+  - 按钮添加 `aria-label`
+  - 帮助文本添加 `aria-describedby`
+
+### 错误处理与加载状态
+改进了页面的错误处理和加载状态：
+- **AuthCheck** (`apps/web/components/auth-check.tsx`)
+  - 使用旋转加载图标替代纯文本
+  - 添加 `role="status"` 和 `aria-label`
+- **RunsPage** (`apps/web/app/runs/page.tsx`)
+  - 添加错误状态显示和重试按钮
+  - 加载状态使用旋转图标
+  - 使用 `role="alert"` 展示错误信息
+- **ProjectsPage** (`apps/web/app/projects/page.tsx`)
+  - 同上错误处理改进
