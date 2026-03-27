@@ -601,53 +601,80 @@ AgentOps Studio 是一个功能完整的 AI 自动化运营中台，具备 Workf
 ### 提交历史
 | Commit | 描述 |
 |--------|------|
-| `14cdfe4` | 修复构建错误：将Server Component页面改为Client Component并修正useEffect使用 |
-| `b83efaf` | 修复代码质量：添加缺失React导入、移除未使用导入、清理docker-compose配置 |
+| `25fb29d` | 修复前端bug：stale closure、添加API方法、实现Run按钮功能 |
+| `13303ba` | 增强Dashboard展示和ESLint配置 |
+| `8536e5c` | 修复条件节点路由、完善可访问性与错误处理 |
+| `5bf0bd2` | 更新HANDOFF文档，添加最近提交记录和构建修复说明 |
 | `6afb3ed` | 添加缺失的WS_PORT和WS_URL环境变量 |
 
-### 构建修复说明
-最近修复了以下构建问题：
+### 最近改进
 
-1. **Server Component → Client Component 转换**
-   - `apps/web/app/projects/page.tsx` - 原来使用 async/await 直接调用 API，构建时 API 不可用导致失败
-   - `apps/web/app/runs/page.tsx` - 同上问题
-   - 解决方案：改为 Client Component，使用 `useEffect` 进行数据获取
+#### 1. 增强 Dashboard 展示 (13303ba)
+- **Dashboard 页面重构** (`apps/web/app/page.tsx`)
+  - 添加 Recharts 面积图显示执行趋势
+  - 新增 StatCard 组件显示趋势指标（+12%, +3%）
+  - 添加快速操作按钮（新建工作流、查看执行记录、知识库管理、人工审核）
+  - 改进 Recent Runs 列表，显示状态指示器和更多详情
+  - 添加 Pending Reviews 面板
+  - 添加加载状态旋转图标
 
-2. **useState 误用修复**
-   - `apps/web/app/workflows/page.tsx` - 错误使用 `useState(() => {...})` 而非 `useEffect(() => {...}, [])`
-   - 已修正为正确的 useEffect 模式
+- **演示数据增强** (`packages/db/src/seed.ts`)
+  - 创建示例项目 "AI Content Generator"
+  - 创建示例知识文档和向量块
+  - 创建示例 Prompt 模板
+  - 创建示例工作流 "Content Review Pipeline"（包含完整节点定义）
+  - 创建 5 条不同状态的运行记录（success/pending/failed）
 
-3. **代码质量改进**
-   - `apps/web/components/workflow/nodes.tsx` - 添加缺失的 React 导入
-   - `apps/web/components/workflow/editor-store.ts` - 移除未使用的 `addEdge` 导入
-   - `docker-compose.yml` - 移除过时的 `version: '3.9'` 属性
+- **ESLint 配置**
+  - 配置 ESLint 9.x 兼容 Next.js (`apps/web/eslint.config.mjs`)
+  - 修复所有 ESLint 警告
 
-4. **环境变量补充**
-   - `.env` 和 `.env.example` 添加 `WS_PORT` 和 `WS_URL`
+#### 2. 修复前端 Bug (25fb29d)
+- **Stale Closure 修复**
+  - `workflows/page.tsx` - `handleCreate` 使用函数式 setState
+  - `knowledge/page.tsx` - `handleUpload` 使用函数式 setState
+
+- **API 方法扩展** (`apps/web/lib/api.ts`)
+  - 添加 `api.knowledge.upload()` - 文件上传到 MinIO
+  - 添加 `api.knowledge.process()` - 处理文档生成 chunks
+
+- **Workflows 列表 Run 按钮**
+  - 实现 Run 按钮功能，点击后创建运行并跳转到详情页
+  - 添加 loading 状态显示
+
+#### 3. 条件节点路由修复 (8536e5c)
+- `packages/workflow/src/engine.ts` - 检查 `sourceHandle` 决定走 yes/no 分支
+- `packages/db/src/schema.ts` - 添加 `sourceHandle` 字段
+- `packages/shared/src/types.ts` - 添加 `sourceHandle` 类型
+- `apps/api/src/routes/workflows.ts` - 保存和返回 edges 时包含 `sourceHandle`
 
 ### 当前构建状态
 ```
 Tasks:    3 successful, 3 total
 Route (app)                              Size     First Load JS
-├ ○ /                                    2.44 kB         111 kB
-├ ○ /projects                            2.52 kB         108 kB
-├ ○ /runs                                2.91 kB         112 kB
-├ ○ /workflows                           3.14 kB         112 kB
-├ ƒ /runs/[id]                           3.86 kB         113 kB
-├ ƒ /workflows/[id]                     63.9 kB         173 kB
+├ ○ /                                    101 kB         216 kB
+├ ○ /projects                            2.69 kB        108 kB
+├ ○ /runs                                2.6 kB         112 kB
+├ ○ /workflows                           3.12 kB        113 kB
+├ ƒ /runs/[id]                           3.54 kB        113 kB
+├ ƒ /workflows/[id]                      59.4 kB        174 kB
+├ ○ /knowledge                           3.83 kB        110 kB
+├ ○ /reviews                             3.24 kB        109 kB
+├ ○ /prompts                             3.92 kB        110 kB
 ...
 ```
 
 ### 启动检查清单
 - [x] Docker 服务运行中 (PostgreSQL, Redis, MinIO)
 - [x] 数据库迁移完成
-- [x] 数据库种子已填充
+- [x] 数据库种子已填充（含演示数据）
 - [x] 构建通过
 - [x] 前端页面全部可访问
+- [x] ESLint 检查通过
 
 ---
 
-## 15. 近期改进
+## 15. 前期修复记录
 
 ### 条件节点路由修复
 修复了工作流引擎中条件节点的路由逻辑：
