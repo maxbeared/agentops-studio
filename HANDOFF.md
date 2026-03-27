@@ -409,6 +409,12 @@ Password: demo123456
 - [x] **Condition 节点配置面板（支持表达式编辑）**
 - [x] **Dashboard 页面改为 Client Component（避免 hydration 问题）**
 
+### ✅ 最近修复
+- [x] **构建错误修复** - projects/runs 页面从 Server Component 改为 Client Component
+- [x] **useState 误用修复** - workflows 页面正确使用 useEffect 进行数据获取
+- [x] **代码质量** - nodes.tsx 添加 React 导入、移除未使用导入
+- [x] **docker-compose** - 移除过时 version 属性
+
 ### ⚠️ 已知限制
 - `knowledge_chunks.embedding` 存储为 JSON 序列化的 float array（text 类型），非 pgvector
 - API 生产构建需要处理 MinIO 可选依赖（开发模式不受影响）
@@ -587,3 +593,54 @@ function getWebSocketClient(): WebSocket {
 ## 13. 项目一句话总结
 
 AgentOps Studio 是一个功能完整的 AI 自动化运营中台，具备 Workflow Builder 可视化编排、真实 AI Provider 集成、MinIO 文件存储、JWT 认证、节点执行追踪、审核流程和 WebSocket 实时推送等能力，用于展示全栈开发与 AI 应用集成的综合实力。
+
+---
+
+## 14. 最近提交记录
+
+### 提交历史
+| Commit | 描述 |
+|--------|------|
+| `14cdfe4` | 修复构建错误：将Server Component页面改为Client Component并修正useEffect使用 |
+| `b83efaf` | 修复代码质量：添加缺失React导入、移除未使用导入、清理docker-compose配置 |
+| `6afb3ed` | 添加缺失的WS_PORT和WS_URL环境变量 |
+
+### 构建修复说明
+最近修复了以下构建问题：
+
+1. **Server Component → Client Component 转换**
+   - `apps/web/app/projects/page.tsx` - 原来使用 async/await 直接调用 API，构建时 API 不可用导致失败
+   - `apps/web/app/runs/page.tsx` - 同上问题
+   - 解决方案：改为 Client Component，使用 `useEffect` 进行数据获取
+
+2. **useState 误用修复**
+   - `apps/web/app/workflows/page.tsx` - 错误使用 `useState(() => {...})` 而非 `useEffect(() => {...}, [])`
+   - 已修正为正确的 useEffect 模式
+
+3. **代码质量改进**
+   - `apps/web/components/workflow/nodes.tsx` - 添加缺失的 React 导入
+   - `apps/web/components/workflow/editor-store.ts` - 移除未使用的 `addEdge` 导入
+   - `docker-compose.yml` - 移除过时的 `version: '3.9'` 属性
+
+4. **环境变量补充**
+   - `.env` 和 `.env.example` 添加 `WS_PORT` 和 `WS_URL`
+
+### 当前构建状态
+```
+Tasks:    3 successful, 3 total
+Route (app)                              Size     First Load JS
+├ ○ /                                    2.44 kB         111 kB
+├ ○ /projects                            1.47 kB         107 kB
+├ ○ /runs                                1.87 kB         111 kB
+├ ○ /workflows                           3.14 kB         112 kB
+├ ƒ /runs/[id]                           3.86 kB         113 kB
+├ ƒ /workflows/[id]                     63.5 kB         173 kB
+...
+```
+
+### 启动检查清单
+- [x] Docker 服务运行中 (PostgreSQL, Redis, MinIO)
+- [x] 数据库迁移完成
+- [x] 数据库种子已填充
+- [x] 构建通过
+- [x] 前端页面全部可访问
