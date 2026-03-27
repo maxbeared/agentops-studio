@@ -1,5 +1,6 @@
 'use client';
 
+import { useCallback, useRef } from 'react';
 import { useWorkflowEditorStore } from './editor-store';
 import { Play, Save, Plus, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 
@@ -15,17 +16,19 @@ const nodeTypes = [
 
 export function NodeToolbar() {
   const { addNode, nodes } = useWorkflowEditorStore();
+  const counterRef = useRef(0);
 
-  const handleDragStart = (e: React.DragEvent, nodeType: string) => {
+  const handleDragStart = useCallback((e: React.DragEvent, nodeType: string) => {
     e.dataTransfer.setData('application/reactflow', nodeType);
     e.dataTransfer.effectAllowed = 'move';
-  };
+  }, []);
 
-  const handleAddNode = (type: string) => {
-    const x = 250 + Math.random() * 100;
+  const handleAddNode = useCallback((type: string) => {
+    counterRef.current += 1;
+    const x = 250 + (counterRef.current % 10) * 10;
     const y = 100 + nodes.length * 100;
     addNode(type, { x, y });
-  };
+  }, [addNode, nodes.length]);
 
   return (
     <div className="flex items-center gap-2" role="toolbar" aria-label="Add workflow nodes">

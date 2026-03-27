@@ -26,13 +26,17 @@ export default function RunsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadRuns = () => {
+  const loadRuns = async () => {
     setLoading(true);
     setError(null);
-    api.runs.list()
-      .then(setRuns)
-      .catch((e) => setError('Failed to load runs. Please try again.'))
-      .finally(() => setLoading(false));
+    try {
+      const data = await api.runs.list();
+      setRuns(data);
+    } catch {
+      setError('Failed to load runs. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {

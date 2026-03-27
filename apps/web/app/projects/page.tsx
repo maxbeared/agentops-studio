@@ -9,13 +9,17 @@ export default function ProjectsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadProjects = () => {
+  const loadProjects = async () => {
     setLoading(true);
     setError(null);
-    api.projects.list()
-      .then(setProjects)
-      .catch(() => setError('Failed to load projects. Please try again.'))
-      .finally(() => setLoading(false));
+    try {
+      const data = await api.projects.list();
+      setProjects(data);
+    } catch {
+      setError('Failed to load projects. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {

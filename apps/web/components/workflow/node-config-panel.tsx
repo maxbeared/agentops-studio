@@ -169,8 +169,8 @@ function ConditionConfig({ data, onChange }: { data: WorkflowNodeData; onChange:
         <p className="font-medium text-slate-400 mb-1">Examples:</p>
         <ul className="space-y-0.5">
           <li><code className="text-blue-400">input.score &gt; 0.5</code></li>
-          <li><code className="text-blue-400">prev.LLM.content.includes('error')</code></li>
-          <li><code className="text-blue-400">input.status === 'approved'</code></li>
+          <li><code className="text-blue-400">prev.LLM.content.includes(&apos;error&apos;)</code></li>
+          <li><code className="text-blue-400">input.status === &apos;approved&apos;</code></li>
         </ul>
       </div>
     </div>
