@@ -1,3 +1,6 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
 import Link from 'next/link';
 
@@ -17,8 +20,29 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-export default async function RunsPage() {
-  const runs = await api.runs.list();
+export default function RunsPage() {
+  const [runs, setRuns] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.runs.list()
+      .then(setRuns)
+      .catch((e) => console.error('Failed to fetch runs:', e))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-6 py-10 text-white">
+        <div className="mx-auto max-w-7xl">
+          <header className="mb-8">
+            <h1 className="text-3xl font-bold">Workflow Runs</h1>
+            <p className="mt-2 text-slate-400">Loading...</p>
+          </header>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-6 py-10 text-white">

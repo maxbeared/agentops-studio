@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { api } from '../../lib/api';
 import { Plus, Edit2, Play, Clock } from 'lucide-react';
@@ -27,12 +27,12 @@ export default function WorkflowsPage() {
   const [newDesc, setNewDesc] = useState('');
   const [creating, setCreating] = useState(false);
 
-  useState(() => {
+  useEffect(() => {
     api.workflows.list().then((data) => {
       setWorkflows(data);
       setLoading(false);
     }).catch(() => setLoading(false));
-  });
+  }, []);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();

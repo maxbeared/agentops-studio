@@ -1,7 +1,31 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
 
-export default async function ProjectsPage() {
-  const projects = await api.projects.list();
+export default function ProjectsPage() {
+  const [projects, setProjects] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.projects.list()
+      .then(setProjects)
+      .catch((e) => console.error('Failed to fetch projects:', e))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-6 py-10 text-white">
+        <div className="mx-auto max-w-7xl">
+          <header className="mb-8">
+            <h1 className="text-3xl font-bold">Projects</h1>
+            <p className="mt-2 text-slate-400">Loading...</p>
+          </header>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-6 py-10 text-white">
