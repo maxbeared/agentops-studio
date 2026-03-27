@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Node, Edge, Connection, addEdge } from '@xyflow/react';
+import type { Node, Edge, Connection } from '@xyflow/react';
 
 export type WorkflowNodeData = {
   label: string;

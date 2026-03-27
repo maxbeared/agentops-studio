@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
 import type { WorkflowNodeData } from './editor-store';
 import { Play, FileText, Bot, GitBranch, UserCheck, Webhook, LogOut } from 'lucide-react';
