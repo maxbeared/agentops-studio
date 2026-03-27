@@ -24,38 +24,48 @@ export default function WorkflowsPage() {
   const router = useRouter();
   const [workflows, setWorkflows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [creating, setCreating] = useState(false);
   const [runningId, setRunningId] = useState<string | null>(null);
+  const [runError, setRunError] = useState<string | null>(null);
 
   useEffect(() => {
     api.workflows.list().then((data) => {
       setWorkflows(data);
       setLoading(false);
-    }).catch(() => setLoading(false));
+    }).catch((err) => {
+      console.error('Failed to load workflows:', err);
+      setError('Failed to load workflows');
+      setLoading(false);
+    });
   }, []);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newName.trim()) return;
     setCreating(true);
+    setError(null);
     try {
       const project = await api.projects.list().then(p => p[0]);
-      if (project) {
-        const workflow = await api.workflows.create({
-          projectId: project.id,
-          name: newName,
-          description: newDesc,
-        });
-        setWorkflows((prev) => [...prev, workflow]);
-        setShowCreate(false);
-        setNewName('');
-        setNewDesc('');
+      if (!project) {
+        setError('No project found. Please create a project first.');
+        return;
       }
+      const workflow = await api.workflows.create({
+        projectId: project.id,
+        name: newName,
+        description: newDesc,
+      });
+      setWorkflows((prev) => [...prev, workflow]);
+      setShowCreate(false);
+      setNewName('');
+      setNewDesc('');
     } catch (err) {
-      console.error('Failed to create workflow');
+      console.error('Failed to create workflow:', err);
+      setError('Failed to create workflow');
     } finally {
       setCreating(false);
     }
@@ -63,10 +73,11 @@ export default function WorkflowsPage() {
 
   const handleRun = useCallback(async (workflowId: string) => {
     setRunningId(workflowId);
+    setRunError(null);
     try {
       const workflow = await api.workflows.get(workflowId);
       if (!workflow.latestVersionId) {
-        alert('Please publish the workflow before running');
+        setRunError('Please publish the workflow before running');
         return;
       }
       const run = await api.runs.create({
@@ -76,6 +87,7 @@ export default function WorkflowsPage() {
       router.push(`/runs/${run.id}`);
     } catch (err) {
       console.error('Failed to run workflow:', err);
+      setRunError('Failed to run workflow');
     } finally {
       setRunningId(null);
     }
@@ -111,6 +123,18 @@ export default function WorkflowsPage() {
             New Workflow
           </button>
         </header>
+
+        {error && (
+          <div className="mb-6 rounded-lg bg-red-500/20 border border-red-500/30 p-4 text-red-400">
+            {error}
+          </div>
+        )}
+
+        {runError && (
+          <div className="mb-6 rounded-lg bg-red-500/20 border border-red-500/30 p-4 text-red-400">
+            {runError}
+          </div>
+        )}
 
         {showCreate && (
           <div className="mb-6 rounded-2xl border border-slate-700 bg-slate-900/80 p-6 shadow-lg">

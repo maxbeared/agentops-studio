@@ -147,13 +147,11 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>((set, get) => 
   selectNode: (node) => set({ selectedNode: node }),
 
   initWorkflow: (id, name, nodes, edges) => {
-    nodeIdCounter = Math.max(
-      ...nodes.map((n) => {
-        const match = n.id.match(/_(\d+)$/);
-        return match ? parseInt(match[1], 10) : 0;
-      }),
-      0
-    ) + 1;
+    const nodeCounters = nodes.map((n) => {
+      const match = n.id.match(/_(\d+)$/);
+      return match ? parseInt(match[1], 10) : 0;
+    });
+    nodeIdCounter = nodeCounters.length > 0 ? Math.max(...nodeCounters, 0) + 1 : 1;
     set({ workflowId: id, workflowName: name, nodes, edges, isDirty: false, selectedNode: null });
   },
 

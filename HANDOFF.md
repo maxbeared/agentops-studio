@@ -601,6 +601,7 @@ AgentOps Studio 是一个功能完整的 AI 自动化运营中台，具备 Workf
 ### 提交历史
 | Commit | 描述 |
 |--------|------|
+| `NEW` | 全面测试与Bug修复：React状态问题、错误处理、边缘转换等6个修复 |
 | `NEW` | 修复API路由auth、修复runs查询性能 |
 | `25fb29d` | 修复前端bug：stale closure、添加API方法、实现Run按钮功能 |
 | `13303ba` | 增强Dashboard展示和ESLint配置 |
@@ -610,7 +611,7 @@ AgentOps Studio 是一个功能完整的 AI 自动化运营中台，具备 Workf
 
 ### 最近改进
 
-#### 4. API路由安全性与性能改进 (NEW)
+#### 5. API路由安全性与性能改进 (NEW)
 - **API 路由安全性修复** (`apps/api/src/routes/prompts.ts`)
   - 为 `PUT /:id` 端点添加 JWT 认证检查
   - 为 `DELETE /:id` 端点添加 JWT 认证检查
@@ -619,6 +620,32 @@ AgentOps Studio 是一个功能完整的 AI 自动化运营中台，具备 Workf
   - 修复 `GET /` 路由的 in-memory 过滤问题
   - 使用 Drizzle ORM 的 `and()` 函数在数据库层面组合过滤条件
   - 避免在大数据量时先获取所有记录再过滤的低效操作
+
+#### 6. 全面测试与Bug修复 (NEW)
+- **Reviews 页面 React 状态修复** (`apps/web/app/reviews/page.tsx`)
+  - 将 `Set<string>` 改为 `string[]` 解决 React 无法检测 Set 变化的问题
+  - 修复 `processingIds.has()` 改为 `processingIds.includes()`
+
+- **Knowledge 页面 React 状态修复** (`apps/web/app/knowledge/page.tsx`)
+  - 同样将 `Set<string>` 改为 `string[]`
+
+- **Workflows 页面错误处理增强** (`apps/web/app/workflows/page.tsx`)
+  - 添加 `error` 状态显示加载错误
+  - 添加 `runError` 状态显示运行错误
+  - 修复无项目时创建工作流静默失败问题
+  - 将 `alert()` 改为状态错误显示
+
+- **Workflow 编辑器边缘转换修复** (`apps/web/app/workflows/[id]/page.tsx`)
+  - `convertApiToEditorEdges` 添加 `targetHandle` 支持
+  - `handleSave` 保存边缘时包含 `targetHandle`
+
+- **Editor Store 计数器修复** (`apps/web/components/workflow/editor-store.ts`)
+  - 修复 `initWorkflow` 中 `Math.max()` 空数组问题
+  - 改进节点 ID 计数器初始化逻辑
+
+- **Workflow 引擎 executeFrom 修复** (`packages/workflow/src/engine.ts`)
+  - 修复审核节点恢复执行时输出未添加到 ctx.outputs 的问题
+  - 确保审核批准后工作流正确继续执行
 
 #### 1. 增强 Dashboard 展示 (13303ba)
 - **Dashboard 页面重构** (`apps/web/app/page.tsx`)
@@ -661,16 +688,16 @@ AgentOps Studio 是一个功能完整的 AI 自动化运营中台，具备 Workf
 
 ### 当前构建状态
 ```
-Tasks:    3 successful, 3 total
+Tasks:    7 successful, 7 total
 Route (app)                              Size     First Load JS
 ├ ○ /                                    101 kB         216 kB
 ├ ○ /projects                            2.69 kB        108 kB
 ├ ○ /runs                                2.6 kB         112 kB
-├ ○ /workflows                           3.12 kB        113 kB
+├ ○ /workflows                           3.21 kB        113 kB
 ├ ƒ /runs/[id]                           3.54 kB        113 kB
-├ ƒ /workflows/[id]                      59.4 kB        174 kB
-├ ○ /knowledge                           3.83 kB        110 kB
-├ ○ /reviews                             3.24 kB        109 kB
+├ ƒ /workflows/[id]                      59.5 kB        174 kB
+├ ○ /knowledge                           3.82 kB        110 kB
+├ ○ /reviews                             3.23 kB        109 kB
 ├ ○ /prompts                             3.92 kB        110 kB
 ...
 ```
@@ -725,3 +752,21 @@ Route (app)                              Size     First Load JS
   - 使用 `role="alert"` 展示错误信息
 - **ProjectsPage** (`apps/web/app/projects/page.tsx`)
   - 同上错误处理改进
+
+### React 状态管理与边缘转换修复
+- **Reviews/Knowledge 页面 Set 状态问题**
+  - 问题：使用 `Set<string>` 作为 React state，React 无法检测其变化
+  - 修复：将 `Set<string>` 改为 `string[]`，使用 `.includes()` 替代 `.has()`
+  - 文件：`reviews/page.tsx`, `knowledge/page.tsx`
+- **Workflows 页面错误处理增强**
+  - 问题：静默失败，缺少错误反馈
+  - 修复：添加 error/runError 状态，移除 alert() 调用
+- **Workflow 编辑器边缘转换**
+  - 问题：targetHandle 在边缘转换中丢失
+  - 修复：在 convertApiToEditorEdges 和 handleSave 中添加 targetHandle 支持
+- **Editor Store 计数器**
+  - 问题：Math.max() 在空数组时返回 -Infinity
+  - 修复：改进初始化逻辑处理空数组情况
+- **Workflow 引擎 executeFrom**
+  - 问题：审核节点恢复执行时 ctx.outputs 未包含审核输出
+  - 修复：确保审核输出正确添加到 ctx.outputs

@@ -26,6 +26,8 @@ function convertApiToEditorEdges(edges: any[]): EditorEdge[] {
     id: e.id,
     source: e.source,
     target: e.target,
+    sourceHandle: e.sourceHandle,
+    targetHandle: e.targetHandle,
     type: 'default',
   }));
 }
@@ -73,7 +75,7 @@ export default function WorkflowEditorPage() {
     try {
       const definition = {
         nodes: convertEditorToApiNodes(nodes),
-        edges: edges.map((e) => ({ id: e.id, source: e.source, target: e.target, sourceHandle: e.sourceHandle || undefined })),
+        edges: edges.map((e) => ({ id: e.id, source: e.source, target: e.target, sourceHandle: e.sourceHandle || undefined, targetHandle: e.targetHandle || undefined })),
       };
       await api.workflows.publish(workflowId, definition);
       useWorkflowEditorStore.setState({ isDirty: false });

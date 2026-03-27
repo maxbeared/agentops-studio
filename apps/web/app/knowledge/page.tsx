@@ -41,7 +41,7 @@ export default function KnowledgePage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
-  const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
+  const [processingIds, setProcessingIds] = useState<string[]>([]);
 
   useEffect(() => {
     loadDocuments();
@@ -88,18 +88,14 @@ export default function KnowledgePage() {
   };
 
   const processDocument = async (id: string) => {
-    setProcessingIds((prev) => new Set(prev).add(id));
+    setProcessingIds((prev) => [...prev, id]);
     try {
       await api.knowledge.process(id);
       await loadDocuments();
     } catch (err) {
       console.error('Process failed:', err);
     } finally {
-      setProcessingIds((prev) => {
-        const next = new Set(prev);
-        next.delete(id);
-        return next;
-      });
+      setProcessingIds((prev) => prev.filter(pid => pid !== id));
     }
   };
 
@@ -207,7 +203,7 @@ export default function KnowledgePage() {
                         <h3 className="font-medium text-white">{doc.title}</h3>
                         <SourceTypeBadge type={doc.sourceType} />
                         <StatusBadge status={doc.status} />
-                        {processingIds.has(doc.id) && (
+                        {processingIds.includes(doc.id) && (
                           <RefreshCw className="h-4 w-4 animate-spin text-yellow-400" />
                         )}
                         {doc.status === 'ready' && (
@@ -223,7 +219,7 @@ export default function KnowledgePage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    {doc.status === 'uploaded' && !processingIds.has(doc.id) && (
+                    {doc.status === 'uploaded' && !processingIds.includes(doc.id) && (
                       <button
                         type="button"
                         onClick={() => processDocument(doc.id)}

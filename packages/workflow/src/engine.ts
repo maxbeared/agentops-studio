@@ -95,6 +95,13 @@ export class WorkflowEngine {
     }
 
     try {
+      // Ensure the review node's output is in ctx.outputs if not already
+      // The approved output should already be in ctx.outputs, but if resuming
+      // directly we need to ensure it's set
+      if (!ctx.outputs[nodeId] && resumeNode.type === 'review') {
+        ctx.outputs[nodeId] = ctx.state;
+      }
+
       // Execute from the next nodes after the review node
       const nextEdges = definition.edges.filter((e) => e.source === nodeId);
       for (const edge of nextEdges) {

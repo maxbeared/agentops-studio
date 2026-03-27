@@ -21,7 +21,7 @@ function StatusBadge({ status }: { status: string }) {
 export default function ReviewsPage() {
   const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
+  const [processingIds, setProcessingIds] = useState<string[]>([]);
   const [selectedTask, setSelectedTask] = useState<string | null>(null);
   const [comment, setComment] = useState('');
 
@@ -41,7 +41,7 @@ export default function ReviewsPage() {
   };
 
   const handleApprove = async (taskId: string) => {
-    setProcessingIds((prev) => new Set(prev).add(taskId));
+    setProcessingIds((prev) => [...prev, taskId]);
     try {
       await api.reviews.approve(taskId, comment || undefined);
       await loadTasks();
@@ -50,16 +50,12 @@ export default function ReviewsPage() {
     } catch (err) {
       console.error('Approve failed:', err);
     } finally {
-      setProcessingIds((prev) => {
-        const next = new Set(prev);
-        next.delete(taskId);
-        return next;
-      });
+      setProcessingIds((prev) => prev.filter(id => id !== taskId));
     }
   };
 
   const handleReject = async (taskId: string) => {
-    setProcessingIds((prev) => new Set(prev).add(taskId));
+    setProcessingIds((prev) => [...prev, taskId]);
     try {
       await api.reviews.reject(taskId, comment || undefined);
       await loadTasks();
@@ -68,11 +64,7 @@ export default function ReviewsPage() {
     } catch (err) {
       console.error('Reject failed:', err);
     } finally {
-      setProcessingIds((prev) => {
-        const next = new Set(prev);
-        next.delete(taskId);
-        return next;
-      });
+      setProcessingIds((prev) => prev.filter(id => id !== taskId));
     }
   };
 
@@ -165,16 +157,16 @@ export default function ReviewsPage() {
                             <button
                               type="button"
                               onClick={() => handleApprove(task.id)}
-                              disabled={processingIds.has(task.id)}
+                              disabled={processingIds.includes(task.id)}
                               className="flex items-center gap-1.5 rounded bg-green-600 px-4 py-2 text-sm font-medium hover:bg-green-700 disabled:opacity-50"
                             >
                               <CheckCircle className="h-4 w-4" />
-                              {processingIds.has(task.id) ? 'Processing...' : 'Approve'}
+                              {processingIds.includes(task.id) ? 'Processing...' : 'Approve'}
                             </button>
                             <button
                               type="button"
                               onClick={() => handleReject(task.id)}
-                              disabled={processingIds.has(task.id)}
+                              disabled={processingIds.includes(task.id)}
                               className="flex items-center gap-1.5 rounded bg-red-600 px-4 py-2 text-sm font-medium hover:bg-red-700 disabled:opacity-50"
                             >
                               <XCircle className="h-4 w-4" />
