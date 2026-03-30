@@ -5,19 +5,15 @@ import { api } from '../../lib/api';
 import { CheckCircle, XCircle, Clock, User } from 'lucide-react';
 import { useTranslation } from '../../contexts/locale-context';
 import { AuthCheck } from '../../components/auth-check';
+import { PageHeader, Card, Button, StatusBadge, LoadingState, EmptyState, RevealSection } from '../../components/ui';
 
-function StatusBadge({ status, label }: { status: string; label: string }) {
-  const colors: Record<string, string> = {
-    pending: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-    approved: 'bg-green-500/20 text-green-400 border-green-500/30',
-    rejected: 'bg-red-500/20 text-red-400 border-red-500/30',
+function getStatusVariant(status: string): 'success' | 'error' | 'warning' | 'info' | 'default' {
+  const map: Record<string, 'success' | 'error' | 'warning' | 'info' | 'default'> = {
+    pending: 'warning',
+    approved: 'success',
+    rejected: 'error',
   };
-
-  return (
-    <span className={`rounded-full border px-2 py-0.5 text-xs ${colors[status] || colors.pending}`}>
-      {label}
-    </span>
-  );
+  return map[status] || 'default';
 }
 
 export default function ReviewsPage() {
@@ -73,12 +69,9 @@ export default function ReviewsPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-6 py-10 text-white">
+      <main className="min-h-screen bg-zinc-950 px-6 py-10 text-white">
         <div className="mx-auto max-w-7xl">
-          <header className="mb-8">
-            <h1 className="text-3xl font-bold">{t('reviews.title')}</h1>
-            <p className="mt-2 text-slate-400">{t('common.loading')}</p>
-          </header>
+          <LoadingState message={t('common.loading')} />
         </div>
       </main>
     );
@@ -86,126 +79,130 @@ export default function ReviewsPage() {
 
   return (
     <AuthCheck>
-      <main className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-6 py-10 text-white">
+      <main className="min-h-screen bg-zinc-950 px-6 py-10 text-white">
         <div className="mx-auto max-w-7xl">
-        <header className="mb-8">
-          <h1 className="text-3xl font-bold">{t('reviews.title')}</h1>
-          <p className="mt-2 text-slate-400">{t('reviews.subtitle')}</p>
-        </header>
+          <RevealSection>
+            <PageHeader
+              title={t('reviews.title')}
+              subtitle={t('reviews.subtitle')}
+            />
+          </RevealSection>
 
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-lg">
-          {tasks.length === 0 ? (
-            <div className="text-center py-12">
-              <Clock className="mx-auto h-12 w-12 text-slate-600" />
-              <p className="mt-4 text-slate-400">{t('reviews.noTasks')}</p>
-              <p className="mt-2 text-sm text-slate-500">{t('reviews.workflowApproval')}</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {tasks.map((task) => (
-                <div
-                  key={task.id}
-                  className="rounded-xl border border-slate-800 bg-slate-950/70 p-4"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <h3 className="font-medium text-white">{t('reviews.reviewTask')}</h3>
-                      <StatusBadge status={task.status} label={t(`reviews.status.${task.status}`)} />
-                    </div>
-                    <div className="flex items-center gap-4">
-                      {task.assignee && (
-                        <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                          <User className="h-3 w-3" />
-                          {task.assignee.name}
+          <RevealSection delay={100}>
+            <Card className="p-6">
+              {tasks.length === 0 ? (
+                <EmptyState
+                  icon={<Clock className="h-10 w-10 text-zinc-600" />}
+                  title={t('reviews.noTasks')}
+                  description={t('reviews.workflowApproval')}
+                />
+              ) : (
+                <div className="space-y-4">
+                  {tasks.map((task) => (
+                    <div
+                      key={task.id}
+                      className="rounded-xl border border-zinc-800/50 bg-zinc-950/70 p-4 transition-all hover:border-zinc-700/50"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <h3 className="font-medium text-zinc-100">{t('reviews.reviewTask')}</h3>
+                          <StatusBadge status={t(`reviews.status.${task.status}`)} variant={getStatusVariant(task.status)} />
                         </div>
-                      )}
-                      <span className="text-sm text-slate-500">
-                        {new Date(task.createdAt).toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
-
-                  {task.nodeRun && (
-                    <div className="mt-3 rounded-lg bg-slate-900/50 p-3">
-                      <div className="text-xs text-slate-500">
-                        {t('reviews.node')}: {task.nodeRun.nodeKey} ({task.nodeRun.nodeType})
+                        <div className="flex items-center gap-4">
+                          {task.assignee && (
+                            <div className="flex items-center gap-1.5 text-xs text-zinc-500">
+                              <User className="h-3 w-3" />
+                              {task.assignee.name}
+                            </div>
+                          )}
+                          <span className="text-sm text-zinc-500">
+                            {new Date(task.createdAt).toLocaleString()}
+                          </span>
+                        </div>
                       </div>
-                      {task.nodeRun.outputPayload && (
-                        <pre className="mt-2 overflow-x-auto text-xs text-slate-400">
-                          {JSON.stringify(task.nodeRun.outputPayload, null, 2).slice(0, 500)}
-                          {JSON.stringify(task.nodeRun.outputPayload).length > 500 ? '...' : ''}
-                        </pre>
-                      )}
-                    </div>
-                  )}
 
-                  {task.reviewComment && (
-                    <div className="mt-3 rounded-lg bg-slate-800/50 p-3">
-                      <div className="text-xs text-slate-500 mb-1">{t('reviews.reviewComment')}</div>
-                      <p className="text-sm text-slate-300">{task.reviewComment}</p>
-                    </div>
-                  )}
-
-                  {task.status === 'pending' && (
-                    <div className="mt-4">
-                      {selectedTask === task.id ? (
-                        <div className="space-y-3">
-                          <textarea
-                            value={comment}
-                            onChange={(e) => setComment(e.target.value)}
-                            placeholder={t('reviews.addComment')}
-                            rows={2}
-                            className="w-full rounded bg-slate-800 border border-slate-700 px-3 py-2 text-sm text-white resize-none"
-                          />
-                          <div className="flex gap-2">
-                            <button
-                              type="button"
-                              onClick={() => handleApprove(task.id)}
-                              disabled={processingIds.includes(task.id)}
-                              className="flex items-center gap-1.5 rounded bg-green-600 px-4 py-2 text-sm font-medium hover:bg-green-700 disabled:opacity-50"
-                            >
-                              <CheckCircle className="h-4 w-4" />
-                              {processingIds.includes(task.id) ? t('reviews.processing') : t('reviews.approve')}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleReject(task.id)}
-                              disabled={processingIds.includes(task.id)}
-                              className="flex items-center gap-1.5 rounded bg-red-600 px-4 py-2 text-sm font-medium hover:bg-red-700 disabled:opacity-50"
-                            >
-                              <XCircle className="h-4 w-4" />
-                              {t('reviews.reject')}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setSelectedTask(null);
-                                setComment('');
-                              }}
-                              className="rounded bg-slate-700 px-4 py-2 text-sm hover:bg-slate-600"
-                            >
-                              {t('reviews.cancel')}
-                            </button>
+                      {task.nodeRun && (
+                        <div className="mt-3 rounded-lg bg-zinc-900/50 p-3">
+                          <div className="text-xs text-zinc-500">
+                            {t('reviews.node')}: {task.nodeRun.nodeKey} ({task.nodeRun.nodeType})
                           </div>
+                          {task.nodeRun.outputPayload && (
+                            <pre className="mt-2 overflow-x-auto text-xs text-zinc-400">
+                              {JSON.stringify(task.nodeRun.outputPayload, null, 2).slice(0, 500)}
+                              {JSON.stringify(task.nodeRun.outputPayload).length > 500 ? '...' : ''}
+                            </pre>
+                          )}
                         </div>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => setSelectedTask(task.id)}
-                          className="rounded bg-blue-600 px-4 py-2 text-sm font-medium hover:bg-blue-700"
-                        >
-                          {t('reviews.review')}
-                        </button>
+                      )}
+
+                      {task.reviewComment && (
+                        <div className="mt-3 rounded-lg bg-zinc-800/50 p-3">
+                          <div className="text-xs text-zinc-500 mb-1">{t('reviews.reviewComment')}</div>
+                          <p className="text-sm text-zinc-300">{task.reviewComment}</p>
+                        </div>
+                      )}
+
+                      {task.status === 'pending' && (
+                        <div className="mt-4">
+                          {selectedTask === task.id ? (
+                            <div className="space-y-3">
+                              <textarea
+                                value={comment}
+                                onChange={(e) => setComment(e.target.value)}
+                                placeholder={t('reviews.addComment')}
+                                rows={2}
+                                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white placeholder-zinc-500 resize-none focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                              />
+                              <div className="flex gap-2">
+                                <Button
+                                  type="button"
+                                  variant="primary"
+                                  icon={<CheckCircle className="h-4 w-4" />}
+                                  onClick={() => handleApprove(task.id)}
+                                  loading={processingIds.includes(task.id)}
+                                >
+                                  {t('reviews.approve')}
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="danger"
+                                  icon={<XCircle className="h-4 w-4" />}
+                                  onClick={() => handleReject(task.id)}
+                                  disabled={processingIds.includes(task.id)}
+                                >
+                                  {t('reviews.reject')}
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="secondary"
+                                  onClick={() => {
+                                    setSelectedTask(null);
+                                    setComment('');
+                                  }}
+                                >
+                                  {t('reviews.cancel')}
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <Button
+                              type="button"
+                              variant="primary"
+                              onClick={() => setSelectedTask(task.id)}
+                            >
+                              {t('reviews.review')}
+                            </Button>
+                          )}
+                        </div>
                       )}
                     </div>
-                  )}
+                  ))}
                 </div>
-              ))}
-            </div>
-          )}
+              )}
+            </Card>
+          </RevealSection>
         </div>
-      </div>
-    </main>
+      </main>
     </AuthCheck>
   );
 }

@@ -1,5 +1,7 @@
 'use client';
 
+/* eslint-disable react-hooks/exhaustive-deps, react-hooks/set-state-in-effect */
+
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '../contexts/auth-context';
@@ -254,14 +256,16 @@ function CrashCard({ feature, index, t }: { feature: typeof FEATURES[0]; index: 
   const color = CARD_COLORS[index % CARD_COLORS.length];
   const [phase, setPhase] = useState<'idle' | 'approach' | 'impact' | 'settle' | 'landed'>('idle');
   const [isHovered, setIsHovered] = useState(false);
+  const [glowIntensity, setGlowIntensity] = useState(1);
   const isLeftColumn = index % 2 === 0;
-  const rotation = useRef((Math.random() - 0.5) * 12);
+  const [rotation] = useState(() => (Math.random() - 0.5) * 12);
   const phaseRef = useRef('idle');
   const isAnimatedRef = useRef(false);
 
   useEffect(() => {
     if (isVisible && phaseRef.current === 'idle' && !isAnimatedRef.current) {
       isAnimatedRef.current = true;
+      setGlowIntensity(1);
       phaseRef.current = 'approach';
       setPhase('approach');
 
@@ -282,8 +286,32 @@ function CrashCard({ feature, index, t }: { feature: typeof FEATURES[0]; index: 
     }
   }, [isVisible]);
 
+  // Glow fade effect when landed
+  useEffect(() => {
+    if (phase === 'landed') {
+      setGlowIntensity(1);
+      const duration = 6000;
+      const startTime = Date.now();
+      const startIntensity = 1;
+      const endIntensity = 0;
+
+      const interval = setInterval(() => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 2);
+        const newIntensity = startIntensity - (startIntensity - endIntensity) * eased;
+        setGlowIntensity(newIntensity);
+        if (progress >= 1) {
+          clearInterval(interval);
+        }
+      }, 16);
+
+      return () => clearInterval(interval);
+    }
+  }, [phase]);
+
   const getTransform = () => {
-    const rot = rotation.current;
+    const rot = rotation;
     const farX = 500;
 
     switch (phase) {
@@ -315,22 +343,36 @@ function CrashCard({ feature, index, t }: { feature: typeof FEATURES[0]; index: 
     return 'none';
   };
 
+  // Compute glow intensity based on phase with slow fade on landed
+  const getGlowStyle = () => {
+    if (phase === 'idle') return 'none';
+    const intensity = glowIntensity;
+    // Helper to scale both radius and alpha with intensity
+    const glow = (radius: number, alpha: number) =>
+      `0 0 ${radius * intensity}px rgba(${parseInt(color.hex.slice(1,3),16)}, ${parseInt(color.hex.slice(3,5),16)}, ${parseInt(color.hex.slice(5,7),16)}, ${alpha * intensity})`;
+    const inset = (radius: number, alpha: number) =>
+      `inset 0 0 ${radius * intensity}px rgba(${parseInt(color.hex.slice(1,3),16)}, ${parseInt(color.hex.slice(3,5),16)}, ${parseInt(color.hex.slice(5,7),16)}, ${alpha * intensity})`;
+
+    if (phase === 'approach') return `${glow(60, 0.5)}, ${glow(120, 0.3)}, ${inset(40, 0.15)}`;
+    if (phase === 'impact') return `${glow(80, 0.6)}, ${glow(150, 0.4)}, ${inset(50, 0.2)}`;
+    if (phase === 'settle') return `${glow(60, 0.5)}, ${glow(120, 0.3)}, ${inset(40, 0.15)}`;
+    if (phase === 'landed') return `${glow(60, 0.5)}, ${glow(100, 0.25)}, ${inset(30, 0.1)}`;
+    return 'none';
+  };
+
   const Icon = FEATURE_ICONS[index % FEATURE_ICONS.length];
 
   return (
     <div
       ref={ref}
-      className={`relative ${color.bg} border-2 ${color.border} p-10 overflow-hidden`}
+      className={`relative ${color.bg} p-10 overflow-hidden`}
       style={{
         transform: getTransform(),
-        transition: getTransition(),
-        boxShadow: phase === 'impact'
-          ? `0 0 60px ${color.hex}50, 0 0 120px ${color.hex}30, inset 0 0 40px ${color.hex}15`
-          : phase === 'settle'
-            ? `0 0 45px ${color.hex}40, 0 0 100px ${color.hex}20, inset 0 0 25px ${color.hex}10`
-            : phase === 'landed'
-              ? `0 0 35px ${color.hex}30, inset 0 0 20px ${color.hex}08`
-              : 'none',
+        transition: `${getTransition()}, box-shadow ${phase === 'landed' ? '6000ms ease-out' : '200ms ease-out'}`,
+        boxShadow: getGlowStyle(),
+        borderWidth: '3px',
+        borderStyle: 'solid',
+        borderColor: `rgba(${parseInt(color.hex.slice(1,3),16)}, ${parseInt(color.hex.slice(3,5),16)}, ${parseInt(color.hex.slice(5,7),16)}, ${glowIntensity * 0.8})`,
       }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -360,15 +402,15 @@ function CrashCard({ feature, index, t }: { feature: typeof FEATURES[0]; index: 
 
       {/* Bottom accent bar - left cards: left→right, right cards: right→left */}
       <div
-        className="absolute bottom-0 left-0 right-0 h-1"
+        className="absolute bottom-0 left-0 right-0 h-2"
         style={{
           background: isLeftColumn
             ? `linear-gradient(90deg, ${color.hex}, transparent)`
             : `linear-gradient(90deg, transparent, ${color.hex})`,
           transformOrigin: isLeftColumn ? 'left' : 'right',
           transform: isHovered ? 'scaleX(1)' : 'scaleX(0.15)',
-          opacity: isHovered ? 1 : 0.4,
-          transition: 'transform 500ms ease, opacity 500ms ease',
+          opacity: isHovered ? 1 : 0.6,
+          transition: 'transform 500ms ease, opacity 300ms ease',
         }}
       />
     </div>

@@ -119,7 +119,7 @@ agentops-studio/
 |------|------|
 | `GlitchBars` | 全屏故障条动画，滚动出主标题区域后频率降低 |
 | `GlitchText` | 文字 RGB 分离故障效果，独立随机触发 |
-| `CrashCard` | 卡片从屏幕两侧飞入碰撞弹开效果 |
+| `CrashCard` | 卡片从屏幕两侧飞入碰撞弹开效果，碰撞后发光效果缓慢衰减 |
 | `TimelineItem` | 能力区域时间线左右交替布局 |
 | `FloatingStat` | 统计数据圆形悬浮 + 旋转光环 |
 | `RevealSection` | 滚动视差淡入动画 |
@@ -127,7 +127,7 @@ agentops-studio/
 #### 设计特点
 - **配色**：高饱和度霓虹色（#00e5ff 青、#ff4081 粉、#69f0ae 绿等）
 - **故障效果**：RGB 分离 + 卡顿闪烁，主标题与 logo 故障效果独立触发
-- **卡片动画**：左右两列卡片从相反方向飞向中心，碰撞后弹开产生随机倾斜
+- **卡片动画**：左右两列卡片从相反方向飞向中心，碰撞后弹开产生随机倾斜；碰撞后外发光效果持续 6 秒从完全发光缓慢衰减到完全消失
 - **图标设计**：卡片内大型半透明图标作为背景（hover 时透明度 0.8），底部装饰条动画
 - **时间线**：中央节点图标 + 两侧卡片交替排列，hover 展开详细说明
 - **统计数据**：圆形边框 + 旋转光环 + 悬浮抖动动画
@@ -135,16 +135,32 @@ agentops-studio/
 
 #### 动画时序
 - 页面加载 → 主标题故障效果（~2.5s 间隔）
-- 滚动至 CORE 区域 → 卡片飞入碰撞动画
+- 滚动至 CORE 区域 → 卡片飞入碰撞动画，碰撞后发光效果持续 6 秒衰减
 - 滚动至 POWER 区域 → 时间线节点交替淡入
 - 滚动至统计区域 → 圆形悬浮 + 旋转光环
 - 离开主标题区域 → 故障条频率大幅降低
 
+### 共享 UI 组件 (`apps/web/components/ui/`)
+
+| 组件 | 功能 |
+|------|------|
+| `PageHeader` | 统一页面头部（标题 + 副标题 + 操作按钮） |
+| `Card` | 统一卡片样式，支持发光效果 |
+| `Button` | 统一按钮样式（primary/secondary/danger/ghost 变体） |
+| `StatusBadge` | 状态徽章（success/warning/error/info 变体） |
+| `LoadingState` | 加载状态显示 |
+| `EmptyState` | 空状态显示（图标 + 标题 + 描述 + 操作） |
+| `RevealSection` | 滚动淡入动画 |
+| `useInView` | 视口观察 Hook |
+
+**设计风格**：深色锌色背景（bg-zinc-950）+ 青色强调色（#00e5ff）+ 霓虹发光效果
+
 ### 前端组件 (`apps/web/components/`)
 | 文件 | 功能 |
 |------|------|
-| `Navbar.tsx` | 全局导航栏（带用户状态 + 语言切换器） |
+| `Navbar.tsx` | 全局导航栏（赛博朋克青色 Logo + 暗色主题） |
 | `language-switcher.tsx` | 语言切换下拉选择器 |
+| `ui/index.tsx` | 共享 UI 组件库 |
 | `providers.tsx` | 组合 Provider（Locale + Auth） |
 | `auth-check.tsx` | 路由守卫（未登录重定向） |
 | `workflow/editor-store.ts` | Zustand 工作流编辑器状态 |

@@ -3,25 +3,10 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
 import Link from 'next/link';
-import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import { Loader2, AlertCircle, RefreshCw, Clock, Play } from 'lucide-react';
 import { useTranslation } from '../../contexts/locale-context';
 import { AuthCheck } from '../../components/auth-check';
-
-function StatusBadge({ status, label }: { status: string; label: string }) {
-  const colors: Record<string, string> = {
-    pending: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-    running: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-    success: 'bg-green-500/20 text-green-400 border-green-500/30',
-    failed: 'bg-red-500/20 text-red-400 border-red-500/30',
-    waiting_review: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-  };
-
-  return (
-    <span className={`rounded-full border px-2 py-0.5 text-xs ${colors[status] || colors.pending}`}>
-      {label}
-    </span>
-  );
-}
+import { PageHeader, Card, Button, StatusBadge, LoadingState, EmptyState, RevealSection } from '../../components/ui';
 
 function getStatusLabel(t: (key: string) => string, status: string): string {
   const labels: Record<string, string> = {
@@ -33,6 +18,18 @@ function getStatusLabel(t: (key: string) => string, status: string): string {
     cancelled: t('runs.cancelled'),
   };
   return labels[status] || status;
+}
+
+function getStatusVariant(status: string): 'success' | 'error' | 'warning' | 'info' | 'default' {
+  const map: Record<string, 'success' | 'error' | 'warning' | 'info' | 'default'> = {
+    success: 'success',
+    failed: 'error',
+    running: 'info',
+    pending: 'warning',
+    waiting_review: 'warning',
+    cancelled: 'default',
+  };
+  return map[status] || 'default';
 }
 
 export default function RunsPage() {
@@ -60,15 +57,9 @@ export default function RunsPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-6 py-10 text-white">
+      <main className="min-h-screen bg-zinc-950 px-6 py-10 text-white">
         <div className="mx-auto max-w-7xl">
-          <header className="mb-8">
-            <h1 className="text-3xl font-bold">{t('runs.title')}</h1>
-          </header>
-          <div className="flex items-center justify-center py-20" role="status">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-400" aria-hidden="true" />
-            <span className="ml-3 text-slate-400">{t('runs.loading')}</span>
-          </div>
+          <LoadingState message={t('runs.loading')} />
         </div>
       </main>
     );
@@ -76,76 +67,86 @@ export default function RunsPage() {
 
   return (
     <AuthCheck>
-      <main className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-6 py-10 text-white">
+      <main className="min-h-screen bg-zinc-950 px-6 py-10 text-white">
         <div className="mx-auto max-w-7xl">
-          <header className="mb-8">
-          <h1 className="text-3xl font-bold">{t('runs.title')}</h1>
-          <p className="mt-2 text-slate-400">{t('runs.subtitle')}</p>
-        </header>
+          <RevealSection>
+            <PageHeader
+              title={t('runs.title')}
+              subtitle={t('runs.subtitle')}
+            />
+          </RevealSection>
 
-        {error && (
-          <div className="mb-6 rounded-xl border border-red-800/50 bg-red-900/20 p-4 flex items-center gap-3" role="alert">
-            <AlertCircle className="h-5 w-5 text-red-400 flex-shrink-0" aria-hidden="true" />
-            <span className="text-red-300 text-sm flex-1">{error}</span>
-            <button
-              onClick={loadRuns}
-              className="flex items-center gap-1.5 rounded bg-red-600/30 px-3 py-1.5 text-sm text-red-300 hover:bg-red-600/50"
-              aria-label={t('runs.retry')}
-            >
-              <RefreshCw className="h-4 w-4" aria-hidden="true" />
-              {t('runs.retry')}
-            </button>
-          </div>
-        )}
-
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-lg">
-          {runs.length === 0 && !error ? (
-            <p className="text-slate-400">{t('runs.noRuns')}</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-slate-800 text-left text-sm text-slate-400">
-                    <th className="pb-3 font-medium">{t('runs.runId')}</th>
-                    <th className="pb-3 font-medium">{t('runs.status')}</th>
-                    <th className="pb-3 font-medium">{t('runs.trigger')}</th>
-                    <th className="pb-3 font-medium">{t('runs.started')}</th>
-                    <th className="pb-3 font-medium">{t('runs.duration')}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800">
-                  {runs.map((run) => {
-                    const startedAt = run.startedAt ? new Date(run.startedAt) : null;
-                    const finishedAt = run.finishedAt ? new Date(run.finishedAt) : null;
-                    const duration = startedAt && finishedAt
-                      ? Math.round((finishedAt.getTime() - startedAt.getTime()) / 1000)
-                      : null;
-
-                    return (
-                      <tr key={run.id} className="text-sm hover:bg-slate-800/30 cursor-pointer">
-                        <td className="py-3">
-                          <Link href={`/runs/${run.id}`} className="font-mono text-xs text-indigo-400 hover:text-indigo-300">
-                            {run.id.slice(0, 8)}...
-                          </Link>
-                        </td>
-                        <td className="py-3"><StatusBadge status={run.status} label={getStatusLabel(t, run.status)} /></td>
-                        <td className="py-3 text-slate-400">{run.triggerType}</td>
-                        <td className="py-3 text-slate-400">
-                          {startedAt ? startedAt.toLocaleString() : '-'}
-                        </td>
-                        <td className="py-3 text-slate-400">
-                          {duration !== null ? `${duration}s` : '-'}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+          {error && (
+            <Card className="mb-6 p-4 flex items-center gap-3 border-red-500/30 bg-red-500/10" glow glowColor="#ff4081">
+              <AlertCircle className="h-5 w-5 text-red-400 flex-shrink-0" aria-hidden="true" />
+              <span className="text-red-300 text-sm flex-1">{error}</span>
+              <Button variant="secondary" size="sm" icon={<RefreshCw className="h-4 w-4" />} onClick={loadRuns}>
+                {t('runs.retry')}
+              </Button>
+            </Card>
           )}
+
+          <RevealSection delay={100}>
+            <Card className="p-6">
+              {runs.length === 0 && !error ? (
+                <EmptyState
+                  icon={<Play className="h-10 w-10 text-zinc-600" />}
+                  title={t('runs.noRuns')}
+                  description={t('runs.subtitle')}
+                  action={
+                    <Link href="/workflows">
+                      <Button variant="primary" size="sm">{t('workflows.title')}</Button>
+                    </Link>
+                  }
+                />
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-zinc-800 text-left text-sm text-zinc-400">
+                        <th className="pb-3 font-medium">{t('runs.runId')}</th>
+                        <th className="pb-3 font-medium">{t('runs.status')}</th>
+                        <th className="pb-3 font-medium">{t('runs.trigger')}</th>
+                        <th className="pb-3 font-medium">{t('runs.started')}</th>
+                        <th className="pb-3 font-medium">{t('runs.duration')}</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-800/50">
+                      {runs.map((run) => {
+                        const startedAt = run.startedAt ? new Date(run.startedAt) : null;
+                        const finishedAt = run.finishedAt ? new Date(run.finishedAt) : null;
+                        const duration = startedAt && finishedAt
+                          ? Math.round((finishedAt.getTime() - startedAt.getTime()) / 1000)
+                          : null;
+
+                        return (
+                          <tr key={run.id} className="text-sm hover:bg-zinc-800/30 cursor-pointer">
+                            <td className="py-3">
+                              <Link href={`/runs/${run.id}`} className="font-mono text-xs transition-colors hover:text-cyan-400" style={{ color: '#00e5ff' }}>
+                                {run.id.slice(0, 8)}...
+                              </Link>
+                            </td>
+                            <td className="py-3">
+                              <StatusBadge status={getStatusLabel(t, run.status)} variant={getStatusVariant(run.status)} />
+                            </td>
+                            <td className="py-3 text-zinc-400">{run.triggerType}</td>
+                            <td className="py-3 text-zinc-400">
+                              {startedAt ? startedAt.toLocaleString() : '-'}
+                            </td>
+                            <td className="py-3 text-zinc-400">
+                              {duration !== null ? `${duration}s` : '-'}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </Card>
+          </RevealSection>
         </div>
-      </div>
-    </main>
+      </main>
     </AuthCheck>
   );
 }

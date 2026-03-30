@@ -7,6 +7,7 @@ import { Activity, CheckCircle, Clock, DollarSign, FileText, GitBranch, Play, Us
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useTranslation } from '../../contexts/locale-context';
 import { AuthCheck } from '../../components/auth-check';
+import { PageHeader, Card, Button, StatusBadge, LoadingState, EmptyState, RevealSection } from '../../components/ui';
 
 interface DashboardStats {
   totalRuns: number;
@@ -28,17 +29,23 @@ interface DashboardStats {
   }>;
 }
 
-function StatCard({ title, value, hint, icon: Icon, trend }: { title: string; value: string; hint: string; icon: React.ElementType; trend?: string }) {
+function StatCard({ title, value, hint, icon: Icon, trend, color }: { title: string; value: string; hint: string; icon: React.ElementType; trend?: string; color: string }) {
   return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 shadow-lg transition-all hover:border-slate-700">
+    <div
+      className="rounded-xl border border-zinc-800/50 bg-zinc-900/50 p-5 transition-all hover:border-zinc-700/50"
+      style={{ boxShadow: `0 0 30px ${color}08` }}
+    >
       <div className="flex items-start justify-between">
-        <div className="text-sm text-slate-400">{title}</div>
-        <div className="rounded-lg bg-slate-800/50 p-2">
-          <Icon className="h-4 w-4 text-indigo-400" aria-hidden="true" />
+        <div className="text-sm text-zinc-400">{title}</div>
+        <div
+          className="rounded-lg p-2"
+          style={{ background: `${color}15` }}
+        >
+          <Icon className="h-4 w-4" style={{ color }} aria-hidden="true" />
         </div>
       </div>
       <div className="mt-2 text-3xl font-semibold text-white">{value}</div>
-      <div className="mt-1 flex items-center gap-2 text-xs text-slate-500">
+      <div className="mt-1 flex items-center gap-2 text-xs text-zinc-500">
         {hint}
         {trend && (
           <span className="flex items-center gap-0.5 text-emerald-400">
@@ -53,17 +60,17 @@ function StatCard({ title, value, hint, icon: Icon, trend }: { title: string; va
 
 function SectionCard({ title, children, action }: { title: string; children: React.ReactNode; action?: { label: string; href: string } }) {
   return (
-    <section className="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-lg">
+    <Card className="p-6">
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-white">{title}</h2>
+        <h2 className="text-lg font-semibold text-zinc-100">{title}</h2>
         {action && (
-          <Link href={action.href} className="text-sm text-indigo-400 hover:text-indigo-300">
+          <Link href={action.href} className="text-sm transition-colors hover:text-cyan-400" style={{ color: '#00e5ff' }}>
             {action.label} →
           </Link>
         )}
       </div>
       <div>{children}</div>
-    </section>
+    </Card>
   );
 }
 
@@ -71,12 +78,13 @@ function QuickAction({ label, href, icon: Icon, color }: { label: string; href: 
   return (
     <Link
       href={href}
-      className={`flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-950/70 p-4 transition-all hover:border-slate-700 hover:bg-slate-900/70 ${color}`}
+      className="flex items-center gap-3 rounded-xl border border-zinc-800/50 bg-zinc-950/70 p-4 transition-all hover:border-zinc-700/50"
+      style={{ boxShadow: `0 0 20px ${color}08` }}
     >
-      <div className="rounded-lg bg-slate-800/50 p-2.5">
-        <Icon className="h-5 w-5" aria-hidden="true" />
+      <div className="rounded-lg p-2.5" style={{ background: `${color}15` }}>
+        <Icon className="h-5 w-5" style={{ color }} aria-hidden="true" />
       </div>
-      <div className="text-sm font-medium">{label}</div>
+      <div className="text-sm font-medium text-zinc-300">{label}</div>
     </Link>
   );
 }
@@ -91,6 +99,18 @@ function getStatusLabel(t: (key: string) => string, status: string): string {
     cancelled: t('runs.cancelled'),
   };
   return labels[status] || status;
+}
+
+function getStatusVariant(status: string): 'success' | 'error' | 'warning' | 'info' | 'default' {
+  const map: Record<string, 'success' | 'error' | 'warning' | 'info' | 'default'> = {
+    success: 'success',
+    failed: 'error',
+    running: 'info',
+    pending: 'warning',
+    waiting_review: 'warning',
+    cancelled: 'default',
+  };
+  return map[status] || 'default';
 }
 
 export default function DashboardPage() {
@@ -126,12 +146,9 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-6 py-10 text-white">
-        <div className="mx-auto flex max-w-7xl flex-col gap-8">
-          <div className="flex items-center justify-center py-32">
-            <Loader2 className="h-10 w-10 animate-spin text-emerald-400" aria-hidden="true" />
-            <span className="ml-4 text-lg text-slate-400">{t('common.loading')}</span>
-          </div>
+      <main className="min-h-screen bg-zinc-950 px-6 py-10 text-white">
+        <div className="mx-auto max-w-7xl flex flex-col gap-8">
+          <LoadingState message={t('common.loading')} />
         </div>
       </main>
     );
@@ -139,214 +156,218 @@ export default function DashboardPage() {
 
   return (
     <AuthCheck>
-      <main className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-6 py-10 text-white">
-        <div className="mx-auto flex max-w-7xl flex-col gap-8">
+      <main className="min-h-screen bg-zinc-950 px-6 py-10 text-white">
+        <div className="mx-auto max-w-7xl flex flex-col gap-8">
           {/* Header */}
-          <header className="rounded-3xl border border-slate-800 bg-slate-900/70 p-8">
-          <div className="flex items-center gap-3">
-            <div className="inline-flex rounded-full border border-indigo-500/30 bg-indigo-500/10 px-3 py-1 text-xs text-indigo-300">
-              <Zap className="mr-1.5 h-3 w-3" aria-hidden="true" />
-              AgentOps Studio
+          <PageHeader
+            title={t('dashboard.title')}
+            subtitle={t('dashboard.subtitle')}
+            gradient
+          >
+            <div className="flex items-center gap-3">
+              <span className="flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-400">
+                <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                {t('dashboard.systemOnline')}
+              </span>
             </div>
-            <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-300">
-              {t('dashboard.systemOnline')}
-            </span>
-          </div>
-          <h1 className="mt-4 text-4xl font-bold tracking-tight">
-            {t('dashboard.title')}
-          </h1>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300">
-            {t('dashboard.subtitle')}
-          </p>
+          </PageHeader>
+
           {/* Quick Actions */}
-          <div className="mt-6 grid gap-3 md:grid-cols-4">
-            <QuickAction label={t('dashboard.quickActions.newWorkflow')} href="/workflows" icon={GitBranch} color="text-blue-400" />
-            <QuickAction label={t('dashboard.quickActions.viewRuns')} href="/runs" icon={Activity} color="text-emerald-400" />
-            <QuickAction label={t('dashboard.quickActions.knowledgeBase')} href="/knowledge" icon={FileText} color="text-purple-400" />
-            <QuickAction label={t('dashboard.quickActions.humanReview')} href="/reviews" icon={User} color="text-pink-400" />
+          <div className="grid gap-3 md:grid-cols-4">
+            <QuickAction label={t('dashboard.quickActions.newWorkflow')} href="/workflows" icon={GitBranch} color="#00e5ff" />
+            <QuickAction label={t('dashboard.quickActions.viewRuns')} href="/runs" icon={Activity} color="#69f0ae" />
+            <QuickAction label={t('dashboard.quickActions.knowledgeBase')} href="/knowledge" icon={FileText} color="#ea80fc" />
+            <QuickAction label={t('dashboard.quickActions.humanReview')} href="/reviews" icon={User} color="#ff4081" />
           </div>
-        </header>
 
-        {/* Stats Grid */}
-        <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <StatCard
-            title={t('dashboard.workflowRuns')}
-            value={stats.totalRuns.toString()}
-            hint={t('dashboard.totalExecutions')}
-            icon={Play}
-            trend="+12%"
-          />
-          <StatCard
-            title={t('dashboard.successRate')}
-            value={`${stats.successRate}%`}
-            hint={t('dashboard.last7Days')}
-            icon={CheckCircle}
-            trend="+3%"
-          />
-          <StatCard
-            title={t('dashboard.tokenUsage')}
-            value={stats.totalTokens.toLocaleString()}
-            hint={t('dashboard.tokensConsumed')}
-            icon={Zap}
-          />
-          <StatCard
-            title={t('dashboard.totalCost')}
-            value={`$${stats.totalCost.toFixed(2)}`}
-            hint={t('dashboard.apiCosts')}
-            icon={DollarSign}
-          />
-        </section>
+          {/* Stats Grid */}
+          <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <StatCard
+              title={t('dashboard.workflowRuns')}
+              value={stats.totalRuns.toString()}
+              hint={t('dashboard.totalExecutions')}
+              icon={Play}
+              trend="+12%"
+              color="#00e5ff"
+            />
+            <StatCard
+              title={t('dashboard.successRate')}
+              value={`${stats.successRate}%`}
+              hint={t('dashboard.last7Days')}
+              icon={CheckCircle}
+              trend="+3%"
+              color="#69f0ae"
+            />
+            <StatCard
+              title={t('dashboard.tokenUsage')}
+              value={stats.totalTokens.toLocaleString()}
+              hint={t('dashboard.tokensConsumed')}
+              icon={Zap}
+              color="#ffca28"
+            />
+            <StatCard
+              title={t('dashboard.totalCost')}
+              value={`$${stats.totalCost.toFixed(2)}`}
+              hint={t('dashboard.apiCosts')}
+              icon={DollarSign}
+              color="#ff4081"
+            />
+          </section>
 
-        {/* Charts and Lists */}
-        <section className="grid gap-6 lg:grid-cols-[1fr_1fr]">
-          <SectionCard title={t('dashboard.executionTrend')} action={{ label: t('dashboard.viewAll'), href: '/runs' }}>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={stats.runsOverTime || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorSuccess" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="colorFailed" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                  <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} />
-                  <YAxis stroke="#94a3b8" fontSize={12} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#1e293b',
-                      border: '1px solid #334155',
-                      borderRadius: '8px',
-                      color: '#f1f5f9',
-                    }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="success"
-                    stroke="#10b981"
-                    strokeWidth={2}
-                    fillOpacity={1}
-                    fill="url(#colorSuccess)"
-                    name={t('runs.chartLegend.success')}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="failed"
-                    stroke="#ef4444"
-                    strokeWidth={2}
-                    fillOpacity={1}
-                    fill="url(#colorFailed)"
-                    name={t('runs.chartLegend.failed')}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </SectionCard>
+          {/* Charts and Lists */}
+          <section className="grid gap-6 lg:grid-cols-[1fr_1fr]">
+            <RevealSection>
+              <SectionCard title={t('dashboard.executionTrend')} action={{ label: t('dashboard.viewAll'), href: '/runs' }}>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={stats.runsOverTime || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="colorSuccess" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                        </linearGradient>
+                        <linearGradient id="colorFailed" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                      <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} />
+                      <YAxis stroke="#94a3b8" fontSize={12} />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: '#1e293b',
+                          border: '1px solid #334155',
+                          borderRadius: '8px',
+                          color: '#f1f5f9',
+                        }}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="success"
+                        stroke="#10b981"
+                        strokeWidth={2}
+                        fillOpacity={1}
+                        fill="url(#colorSuccess)"
+                        name={t('runs.chartLegend.success')}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="failed"
+                        stroke="#ef4444"
+                        strokeWidth={2}
+                        fillOpacity={1}
+                        fill="url(#colorFailed)"
+                        name={t('runs.chartLegend.failed')}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </SectionCard>
+            </RevealSection>
 
-          <SectionCard title={t('dashboard.recentRuns')} action={{ label: t('dashboard.viewAll'), href: '/runs' }}>
-            {stats.recentRuns.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <Clock className="h-12 w-12 text-slate-600" aria-hidden="true" />
-                <p className="mt-4 text-slate-400">{t('dashboard.noRecentRuns')}</p>
-                <p className="mt-2 text-sm text-slate-500">{t('dashboard.triggerWorkflow')}</p>
-                <Link
-                  href="/workflows"
-                  className="mt-4 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
-                >
-                  {t('dashboard.goToWorkflows')}
-                </Link>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {stats.recentRuns.slice(0, 5).map((run) => (
-                  <Link
-                    key={run.id}
-                    href={`/runs/${run.id}`}
-                    className="flex items-center justify-between rounded-lg border border-slate-800 bg-slate-950/50 p-3 transition-colors hover:border-slate-700 hover:bg-slate-900/50"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`h-2 w-2 rounded-full ${
-                        run.status === 'success' ? 'bg-emerald-400' :
-                        run.status === 'failed' ? 'bg-red-400' :
-                        run.status === 'running' ? 'bg-blue-400 animate-pulse' :
-                        'bg-yellow-400'
-                      }`} aria-hidden="true" />
-                      <div>
-                        <div className="text-sm font-medium text-white">{run.workflowName}</div>
-                        <div className="text-xs text-slate-500">
-                          {new Date(run.createdAt).toLocaleString()}
+            <RevealSection delay={100}>
+              <SectionCard title={t('dashboard.recentRuns')} action={{ label: t('dashboard.viewAll'), href: '/runs' }}>
+                {stats.recentRuns.length === 0 ? (
+                  <EmptyState
+                    icon={<Clock className="h-8 w-8 text-zinc-600" />}
+                    title={t('dashboard.noRecentRuns')}
+                    description={t('dashboard.triggerWorkflow')}
+                    action={
+                      <Link href="/workflows">
+                        <Button variant="primary" size="sm">{t('dashboard.goToWorkflows')}</Button>
+                      </Link>
+                    }
+                  />
+                ) : (
+                  <div className="space-y-3">
+                    {stats.recentRuns.slice(0, 5).map((run) => (
+                      <Link
+                        key={run.id}
+                        href={`/runs/${run.id}`}
+                        className="flex items-center justify-between rounded-lg border border-zinc-800/50 bg-zinc-950/50 p-3 transition-all hover:border-zinc-700/50 hover:bg-zinc-900/50"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`h-2 w-2 rounded-full ${
+                            run.status === 'success' ? 'bg-emerald-400' :
+                            run.status === 'failed' ? 'bg-red-400' :
+                            run.status === 'running' ? 'bg-blue-400 animate-pulse' :
+                            'bg-yellow-400'
+                          }`} aria-hidden="true" />
+                          <div>
+                            <div className="text-sm font-medium text-white">{run.workflowName}</div>
+                            <div className="text-xs text-zinc-500">
+                              {new Date(run.createdAt).toLocaleString()}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                    <span className={`rounded-full border px-2 py-0.5 text-xs ${
-                      run.status === 'success' ? 'border-emerald-500/30 bg-emerald-500/20 text-emerald-400' :
-                      run.status === 'failed' ? 'border-red-500/30 bg-red-500/20 text-red-400' :
-                      run.status === 'running' ? 'border-blue-500/30 bg-blue-500/20 text-blue-400' :
-                      'border-yellow-500/30 bg-yellow-500/20 text-yellow-400'
-                    }`}>
-                      {getStatusLabel(t, run.status)}
-                    </span>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </SectionCard>
-        </section>
-
-        {/* Features Grid */}
-        <section className="grid gap-6 lg:grid-cols-2">
-          <SectionCard title={t('dashboard.coreModules')}>
-            <div className="grid gap-4 md:grid-cols-2">
-              {[
-                [t('dashboard.features.knowledgeBase.title'), t('dashboard.features.knowledgeBase.desc'), 'purple'],
-                [t('dashboard.features.workflow.title'), t('dashboard.features.workflow.desc'), 'blue'],
-                [t('dashboard.features.executionEngine.title'), t('dashboard.features.executionEngine.desc'), 'emerald'],
-                [t('dashboard.features.humanReview.title'), t('dashboard.features.humanReview.desc'), 'pink'],
-                [t('dashboard.features.deliveryIntegration.title'), t('dashboard.features.deliveryIntegration.desc'), 'cyan'],
-                [t('dashboard.features.analytics.title'), t('dashboard.features.analytics.desc'), 'amber'],
-              ].map(([title, desc, color]) => (
-                <div key={title} className="rounded-xl border border-slate-800 bg-slate-950/70 p-4 transition-colors hover:border-slate-700">
-                  <div className={`font-medium text-${color === 'purple' ? 'purple' : color === 'blue' ? 'blue' : color === 'emerald' ? 'emerald' : color === 'pink' ? 'pink' : color === 'cyan' ? 'cyan' : 'amber'}-400`}>
-                    {title}
+                        <StatusBadge status={getStatusLabel(t, run.status)} variant={getStatusVariant(run.status)} />
+                      </Link>
+                    ))}
                   </div>
-                  <div className="mt-2 text-sm text-slate-400">{desc}</div>
-                </div>
-              ))}
-            </div>
-          </SectionCard>
+                )}
+              </SectionCard>
+            </RevealSection>
+          </section>
 
-          <SectionCard title={t('dashboard.pendingReviews')}>
-            {stats.pendingReviews > 0 ? (
-              <div className="flex items-center gap-4 rounded-xl border border-pink-500/30 bg-pink-500/10 p-4">
-                <div className="rounded-full bg-pink-500/20 p-3">
-                  <User className="h-6 w-6 text-pink-400" aria-hidden="true" />
+          {/* Features Grid */}
+          <section className="grid gap-6 lg:grid-cols-2">
+            <RevealSection>
+              <SectionCard title={t('dashboard.coreModules')}>
+                <div className="grid gap-4 md:grid-cols-2">
+                  {[
+                    [t('dashboard.features.knowledgeBase.title'), t('dashboard.features.knowledgeBase.desc'), '#ea80fc'],
+                    [t('dashboard.features.workflow.title'), t('dashboard.features.workflow.desc'), '#00e5ff'],
+                    [t('dashboard.features.executionEngine.title'), t('dashboard.features.executionEngine.desc'), '#69f0ae'],
+                    [t('dashboard.features.humanReview.title'), t('dashboard.features.humanReview.desc'), '#ff4081'],
+                    [t('dashboard.features.deliveryIntegration.title'), t('dashboard.features.deliveryIntegration.desc'), '#40c4ff'],
+                    [t('dashboard.features.analytics.title'), t('dashboard.features.analytics.desc'), '#ffca28'],
+                  ].map(([title, desc, color]) => (
+                    <div
+                      key={title as string}
+                      className="rounded-xl border border-zinc-800/50 bg-zinc-950/70 p-4 transition-all hover:border-zinc-700/50"
+                      style={{ boxShadow: `0 0 20px ${color}08` }}
+                    >
+                      <div className="font-medium" style={{ color }}>
+                        {title}
+                      </div>
+                      <div className="mt-2 text-sm text-zinc-400">{desc}</div>
+                    </div>
+                  ))}
                 </div>
-                <div className="flex-1">
-                  <div className="text-2xl font-semibold text-white">{stats.pendingReviews}</div>
-                  <div className="text-sm text-slate-400">{t('dashboard.tasksAwaitingReview')}</div>
-                </div>
-                <Link
-                  href="/reviews"
-                  className="rounded-lg bg-pink-600 px-4 py-2 text-sm font-medium text-white hover:bg-pink-700"
-                >
-                  {t('dashboard.quickActions.humanReview')}
-                </Link>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <CheckCircle className="h-12 w-12 text-emerald-400" aria-hidden="true" />
-                <p className="mt-4 text-slate-300">{t('dashboard.allCaughtUp')}</p>
-                <p className="mt-2 text-sm text-slate-500">{t('dashboard.noPendingReviewTasks')}</p>
-              </div>
-            )}
-          </SectionCard>
-        </section>
-      </div>
-    </main>
+              </SectionCard>
+            </RevealSection>
+
+            <RevealSection delay={100}>
+              <SectionCard title={t('dashboard.pendingReviews')}>
+                {stats.pendingReviews > 0 ? (
+                  <div
+                    className="flex items-center gap-4 rounded-xl border border-pink-500/30 bg-pink-500/10 p-4"
+                    style={{ boxShadow: '0 0 30px rgba(255,64,129,0.1)' }}
+                  >
+                    <div className="rounded-full bg-pink-500/20 p-3">
+                      <User className="h-6 w-6 text-pink-400" aria-hidden="true" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-2xl font-semibold text-white">{stats.pendingReviews}</div>
+                      <div className="text-sm text-zinc-400">{t('dashboard.tasksAwaitingReview')}</div>
+                    </div>
+                    <Link href="/reviews">
+                      <Button variant="primary" size="sm">{t('dashboard.quickActions.humanReview')}</Button>
+                    </Link>
+                  </div>
+                ) : (
+                  <EmptyState
+                    icon={<CheckCircle className="h-8 w-8 text-emerald-400" />}
+                    title={t('dashboard.allCaughtUp')}
+                    description={t('dashboard.noPendingReviewTasks')}
+                  />
+                )}
+              </SectionCard>
+            </RevealSection>
+          </section>
+        </div>
+      </main>
     </AuthCheck>
   );
 }

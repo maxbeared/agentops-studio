@@ -4,23 +4,10 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { api } from '../../lib/api';
-import { Plus, Edit2, Play, Clock, Loader2 } from 'lucide-react';
+import { Plus, Edit2, Play, Clock, Loader2, GitBranch } from 'lucide-react';
 import { useTranslation } from '../../contexts/locale-context';
 import { AuthCheck } from '../../components/auth-check';
-
-function StatusBadge({ status, label }: { status: string; label: string }) {
-  const colors: Record<string, string> = {
-    draft: 'bg-slate-500/20 text-slate-400 border-slate-500/30',
-    published: 'bg-green-500/20 text-green-400 border-green-500/30',
-    archived: 'bg-slate-700/20 text-slate-500 border-slate-700/30',
-  };
-
-  return (
-    <span className={`rounded-full border px-2 py-0.5 text-xs ${colors[status] || colors.draft}`}>
-      {label}
-    </span>
-  );
-}
+import { PageHeader, Card, Button, StatusBadge, LoadingState, EmptyState, RevealSection } from '../../components/ui';
 
 export default function WorkflowsPage() {
   const { t } = useTranslation();
@@ -98,12 +85,9 @@ export default function WorkflowsPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-6 py-10 text-white">
+      <main className="min-h-screen bg-zinc-950 px-6 py-10 text-white">
         <div className="mx-auto max-w-7xl">
-          <header className="mb-8">
-            <h1 className="text-3xl font-bold">{t('workflows.title')}</h1>
-            <p className="mt-2 text-slate-400">{t('common.loading')}</p>
-          </header>
+          <LoadingState message={t('common.loading')} />
         </div>
       </main>
     );
@@ -111,139 +95,130 @@ export default function WorkflowsPage() {
 
   return (
     <AuthCheck>
-      <main className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-6 py-10 text-white">
+      <main className="min-h-screen bg-zinc-950 px-6 py-10 text-white">
         <div className="mx-auto max-w-7xl">
-        <header className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">{t('workflows.title')}</h1>
-            <p className="mt-2 text-slate-400">{t('workflows.subtitle')}</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium hover:bg-blue-700"
-          >
-            <Plus className="h-4 w-4" />
-            {t('workflows.newWorkflow')}
-          </button>
-        </header>
+          <RevealSection>
+            <PageHeader
+              title={t('workflows.title')}
+              subtitle={t('workflows.subtitle')}
+              action={
+                <Button variant="primary" icon={<Plus className="h-4 w-4" />} onClick={() => setShowCreate(true)}>
+                  {t('workflows.newWorkflow')}
+                </Button>
+              }
+            />
+          </RevealSection>
 
-        {error && (
-          <div className="mb-6 rounded-lg bg-red-500/20 border border-red-500/30 p-4 text-red-400">
-            {error}
-          </div>
-        )}
-
-        {runError && (
-          <div className="mb-6 rounded-lg bg-red-500/20 border border-red-500/30 p-4 text-red-400">
-            {runError}
-          </div>
-        )}
-
-        {showCreate && (
-          <div className="mb-6 rounded-2xl border border-slate-700 bg-slate-900/80 p-6 shadow-lg">
-            <h2 className="mb-4 text-lg font-medium">{t('workflows.createTitle')}</h2>
-            <form onSubmit={handleCreate} className="space-y-4">
-              <div>
-                <label className="block text-sm text-slate-400 mb-1">{t('workflows.name')}</label>
-                <input
-                  type="text"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  placeholder="My Workflow"
-                  className="w-full rounded bg-slate-800 border border-slate-700 px-4 py-2 text-white"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-slate-400 mb-1">{t('workflows.descriptionOptional')}</label>
-                <input
-                  type="text"
-                  value={newDesc}
-                  onChange={(e) => setNewDesc(e.target.value)}
-                  placeholder="What does this workflow do?"
-                  className="w-full rounded bg-slate-800 border border-slate-700 px-4 py-2 text-white"
-                />
-              </div>
-              <div className="flex gap-2">
-                <button
-                  type="submit"
-                  disabled={creating}
-                  className="rounded bg-blue-600 px-4 py-2 text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
-                >
-                  {creating ? t('workflows.creating') : t('workflows.create')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowCreate(false)}
-                  className="rounded bg-slate-700 px-4 py-2 text-sm font-medium hover:bg-slate-600"
-                >
-                  {t('workflows.cancel')}
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-lg">
-          {workflows.length === 0 ? (
-            <p className="text-slate-400">{t('workflows.noWorkflows')}</p>
-          ) : (
-            <div className="space-y-4">
-              {workflows.map((workflow) => (
-                <div
-                  key={workflow.id}
-                  className="group flex items-center justify-between rounded-xl border border-slate-800 bg-slate-950/70 p-4 transition-colors hover:border-slate-700"
-                >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3">
-                      <Link href={`/workflows/${workflow.id}`} className="font-medium text-white hover:text-blue-400">
-                        {workflow.name}
-                      </Link>
-                      <StatusBadge status={workflow.status} label={t(`editor.status.${workflow.status}`)} />
-                    </div>
-                    <p className="mt-1 text-sm text-slate-400">{workflow.description || t('workflows.noDescription')}</p>
-                    <div className="mt-2 flex items-center gap-4 text-xs text-slate-500">
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {new Date(workflow.createdAt).toLocaleDateString()}
-                      </span>
-                      {workflow.latestVersion && (
-                        <span>{t('workflows.version')} {workflow.latestVersion}</span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
-                    <Link
-                      href={`/workflows/${workflow.id}`}
-                      className="flex items-center gap-1.5 rounded bg-blue-600/20 px-3 py-1.5 text-xs text-blue-400 hover:bg-blue-600/30"
-                    >
-                      <Edit2 className="h-3 w-3" />
-                      {t('workflows.edit')}
-                    </Link>
-                    {workflow.status === 'published' && (
-                      <button
-                        type="button"
-                        onClick={() => handleRun(workflow.id)}
-                        disabled={runningId === workflow.id}
-                        className="flex items-center gap-1.5 rounded bg-emerald-600/20 px-3 py-1.5 text-xs text-emerald-400 hover:bg-emerald-600/30 disabled:opacity-50"
-                      >
-                        {runningId === workflow.id ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                          <Play className="h-3 w-3" />
-                        )}
-                        {t('workflows.run')}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
+          {(error || runError) && (
+            <Card className="mb-6 p-4 border-red-500/30 bg-red-500/10" glow glowColor="#ff4081">
+              <span className="text-sm text-red-400">{error || runError}</span>
+            </Card>
           )}
+
+          {showCreate && (
+            <RevealSection>
+              <Card className="mb-6 p-6" glow glowColor="#00e5ff">
+                <h2 className="mb-4 text-lg font-medium text-zinc-100">{t('workflows.createTitle')}</h2>
+                <form onSubmit={handleCreate} className="space-y-4">
+                  <div>
+                    <label className="block text-sm text-zinc-400 mb-1">{t('workflows.name')}</label>
+                    <input
+                      type="text"
+                      value={newName}
+                      onChange={(e) => setNewName(e.target.value)}
+                      placeholder="My Workflow"
+                      className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white placeholder-zinc-500 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-zinc-400 mb-1">{t('workflows.descriptionOptional')}</label>
+                    <input
+                      type="text"
+                      value={newDesc}
+                      onChange={(e) => setNewDesc(e.target.value)}
+                      placeholder="What does this workflow do?"
+                      className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white placeholder-zinc-500 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button type="submit" variant="primary" loading={creating}>
+                      {creating ? t('workflows.creating') : t('workflows.create')}
+                    </Button>
+                    <Button type="button" variant="secondary" onClick={() => setShowCreate(false)}>
+                      {t('workflows.cancel')}
+                    </Button>
+                  </div>
+                </form>
+              </Card>
+            </RevealSection>
+          )}
+
+          <RevealSection delay={100}>
+            <Card className="p-6">
+              {workflows.length === 0 ? (
+                <EmptyState
+                  icon={<GitBranch className="h-10 w-10 text-zinc-600" />}
+                  title={t('workflows.noWorkflows')}
+                  description={t('workflows.createFirst')}
+                />
+              ) : (
+                <div className="space-y-4">
+                  {workflows.map((workflow) => (
+                    <div
+                      key={workflow.id}
+                      className="group flex items-center justify-between rounded-xl border border-zinc-800/50 bg-zinc-950/70 p-4 transition-all hover:border-zinc-700/50"
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3">
+                          <Link href={`/workflows/${workflow.id}`} className="font-medium text-zinc-100 transition-colors hover:text-cyan-400">
+                            {workflow.name}
+                          </Link>
+                          <StatusBadge
+                            status={t(`editor.status.${workflow.status}`)}
+                            variant={workflow.status === 'published' ? 'success' : workflow.status === 'draft' ? 'default' : 'warning'}
+                          />
+                        </div>
+                        <p className="mt-1 text-sm text-zinc-400">{workflow.description || t('workflows.noDescription')}</p>
+                        <div className="mt-2 flex items-center gap-4 text-xs text-zinc-500">
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {new Date(workflow.createdAt).toLocaleDateString()}
+                          </span>
+                          {workflow.latestVersion && (
+                            <span>{t('workflows.version')} {workflow.latestVersion}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
+                        <Link
+                          href={`/workflows/${workflow.id}`}
+                          className="flex items-center gap-1.5 rounded bg-cyan-500/10 px-3 py-1.5 text-xs text-cyan-400 transition-all hover:bg-cyan-500/20 border border-cyan-500/30"
+                        >
+                          <Edit2 className="h-3 w-3" />
+                          {t('workflows.edit')}
+                        </Link>
+                        {workflow.status === 'published' && (
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            icon={runningId === workflow.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3" />}
+                            onClick={() => handleRun(workflow.id)}
+                            disabled={runningId === workflow.id}
+                          >
+                            {t('workflows.run')}
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          </RevealSection>
         </div>
-      </div>
-    </main>
+      </main>
     </AuthCheck>
   );
 }

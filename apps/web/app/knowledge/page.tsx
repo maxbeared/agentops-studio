@@ -5,34 +5,25 @@ import { api } from '../../lib/api';
 import { Upload, FileText, Link as LinkIcon, RefreshCw, CheckCircle } from 'lucide-react';
 import { useTranslation } from '../../contexts/locale-context';
 import { AuthCheck } from '../../components/auth-check';
+import { PageHeader, Card, Button, StatusBadge, LoadingState, EmptyState, RevealSection } from '../../components/ui';
 
-function StatusBadge({ status, label }: { status: string; label: string }) {
-  const colors: Record<string, string> = {
-    uploaded: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-    processing: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-    ready: 'bg-green-500/20 text-green-400 border-green-500/30',
-    failed: 'bg-red-500/20 text-red-400 border-red-500/30',
+function getStatusVariant(status: string): 'success' | 'error' | 'warning' | 'info' | 'default' {
+  const map: Record<string, 'success' | 'error' | 'warning' | 'info' | 'default'> = {
+    ready: 'success',
+    processing: 'warning',
+    uploaded: 'info',
+    failed: 'error',
   };
-
-  return (
-    <span className={`rounded-full border px-2 py-0.5 text-xs ${colors[status] || colors.uploaded}`}>
-      {label}
-    </span>
-  );
+  return map[status] || 'default';
 }
 
-function SourceTypeBadge({ type, label }: { type: string; label: string }) {
-  const colors: Record<string, string> = {
-    file: 'bg-slate-500/20 text-slate-400 border-slate-500/30',
-    url: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30',
-    text: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+function getSourceTypeVariant(type: string): 'success' | 'error' | 'warning' | 'info' | 'default' {
+  const map: Record<string, 'success' | 'error' | 'warning' | 'info' | 'default'> = {
+    file: 'default',
+    url: 'info',
+    text: 'warning',
   };
-
-  return (
-    <span className={`rounded-full border px-2 py-0.5 text-xs ${colors[type] || colors.file}`}>
-      {label}
-    </span>
-  );
+  return map[type] || 'default';
 }
 
 export default function KnowledgePage() {
@@ -104,12 +95,9 @@ export default function KnowledgePage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-6 py-10 text-white">
+      <main className="min-h-screen bg-zinc-950 px-6 py-10 text-white">
         <div className="mx-auto max-w-7xl">
-          <header className="mb-8">
-            <h1 className="text-3xl font-bold">{t('knowledge.title')}</h1>
-            <p className="mt-2 text-slate-400">{t('common.loading')}</p>
-          </header>
+          <LoadingState message={t('common.loading')} />
         </div>
       </main>
     );
@@ -117,133 +105,133 @@ export default function KnowledgePage() {
 
   return (
     <AuthCheck>
-      <main className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-6 py-10 text-white">
+      <main className="min-h-screen bg-zinc-950 px-6 py-10 text-white">
         <div className="mx-auto max-w-7xl">
-        <header className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">{t('knowledge.title')}</h1>
-            <p className="mt-2 text-slate-400">{t('knowledge.subtitle')}</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowUpload(true)}
-            className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium hover:bg-blue-700"
-          >
-            <Upload className="h-4 w-4" />
-            {t('knowledge.uploadDocument')}
-          </button>
-        </header>
+          <RevealSection>
+            <PageHeader
+              title={t('knowledge.title')}
+              subtitle={t('knowledge.subtitle')}
+              action={
+                <Button variant="primary" icon={<Upload className="h-4 w-4" />} onClick={() => setShowUpload(true)}>
+                  {t('knowledge.uploadDocument')}
+                </Button>
+              }
+            />
+          </RevealSection>
 
-        {showUpload && (
-          <div className="mb-6 rounded-2xl border border-slate-700 bg-slate-900/80 p-6 shadow-lg">
-            <h2 className="mb-4 text-lg font-medium">{t('knowledge.uploadTitle')}</h2>
-            <form onSubmit={handleUpload} className="space-y-4">
-              <div>
-                <label className="block text-sm text-slate-400 mb-1">{t('knowledge.titleLabel')}</label>
-                <input
-                  type="text"
-                  value={uploadTitle}
-                  onChange={(e) => setUploadTitle(e.target.value)}
-                  placeholder={t('knowledge.documentTitle')}
-                  required
-                  className="w-full rounded bg-slate-800 border border-slate-700 px-4 py-2 text-white"
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-slate-400 mb-1">{t('knowledge.fileLabel')}</label>
-                <input
-                  type="file"
-                  onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                  className="w-full rounded bg-slate-800 border border-slate-700 px-4 py-2 text-white file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:bg-blue-600 file:text-white"
-                />
-              </div>
-              {uploadError && (
-                <p className="text-sm text-red-400">{uploadError}</p>
-              )}
-              <div className="flex gap-2">
-                <button
-                  type="submit"
-                  disabled={uploading}
-                  className="rounded bg-blue-600 px-4 py-2 text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
-                >
-                  {uploading ? t('knowledge.uploading') : t('knowledge.upload')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowUpload(false)}
-                  className="rounded bg-slate-700 px-4 py-2 text-sm font-medium hover:bg-slate-600"
-                >
-                  {t('knowledge.cancel')}
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-lg">
-          {documents.length === 0 ? (
-            <div className="text-center py-12">
-              <FileText className="mx-auto h-12 w-12 text-slate-600" />
-              <p className="mt-4 text-slate-400">{t('knowledge.noDocuments')}</p>
-              <p className="mt-2 text-sm text-slate-500">{t('knowledge.ragRetrieval')}</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {documents.map((doc) => (
-                <div
-                  key={doc.id}
-                  className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-950/70 p-4"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="rounded-lg bg-slate-800 p-2.5">
-                      {doc.sourceType === 'file' ? (
-                        <FileText className="h-5 w-5 text-slate-400" />
-                      ) : (
-                        <LinkIcon className="h-5 w-5 text-indigo-400" />
-                      )}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-medium text-white">{doc.title}</h3>
-                        <SourceTypeBadge type={doc.sourceType} label={t(`knowledge.source${doc.sourceType.charAt(0).toUpperCase() + doc.sourceType.slice(1)}`)} />
-                        <StatusBadge status={doc.status} label={t(`knowledge.status.${doc.status}`)} />
-                        {processingIds.includes(doc.id) && (
-                          <RefreshCw className="h-4 w-4 animate-spin text-yellow-400" />
-                        )}
-                        {doc.status === 'ready' && (
-                          <CheckCircle className="h-4 w-4 text-green-400" />
-                        )}
-                      </div>
-                      <div className="mt-1 flex gap-4 text-sm text-slate-500">
-                        {doc.mimeType && <span>{doc.mimeType}</span>}
-                        {doc.sourceUrl && (
-                          <span className="truncate max-w-xs">{doc.sourceUrl}</span>
-                        )}
-                      </div>
-                    </div>
+          {showUpload && (
+            <RevealSection>
+              <Card className="mb-6 p-6" glow glowColor="#00e5ff">
+                <h2 className="mb-4 text-lg font-medium text-zinc-100">{t('knowledge.uploadTitle')}</h2>
+                <form onSubmit={handleUpload} className="space-y-4">
+                  <div>
+                    <label className="block text-sm text-zinc-400 mb-1">{t('knowledge.titleLabel')}</label>
+                    <input
+                      type="text"
+                      value={uploadTitle}
+                      onChange={(e) => setUploadTitle(e.target.value)}
+                      placeholder={t('knowledge.documentTitle')}
+                      required
+                      className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white placeholder-zinc-500 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                    />
                   </div>
-                  <div className="flex items-center gap-3">
-                    {doc.status === 'uploaded' && !processingIds.includes(doc.id) && (
-                      <button
-                        type="button"
-                        onClick={() => processDocument(doc.id)}
-                        className="flex items-center gap-1.5 rounded bg-yellow-600/20 px-3 py-1.5 text-xs text-yellow-400 hover:bg-yellow-600/30"
-                      >
-                        <RefreshCw className="h-3 w-3" />
-                        {t('knowledge.process')}
-                      </button>
-                    )}
-                    <span className="text-sm text-slate-500">
-                      v{doc.version} · {new Date(doc.createdAt).toLocaleDateString()}
-                    </span>
+                  <div>
+                    <label className="block text-sm text-zinc-400 mb-1">{t('knowledge.fileLabel')}</label>
+                    <input
+                      type="file"
+                      onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                      className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:bg-cyan-500 file:text-zinc-950 file:font-medium"
+                    />
                   </div>
-                </div>
-              ))}
-            </div>
+                  {uploadError && (
+                    <p className="text-sm text-red-400">{uploadError}</p>
+                  )}
+                  <div className="flex gap-2">
+                    <Button type="submit" variant="primary" loading={uploading}>
+                      {uploading ? t('knowledge.uploading') : t('knowledge.upload')}
+                    </Button>
+                    <Button type="button" variant="secondary" onClick={() => setShowUpload(false)}>
+                      {t('knowledge.cancel')}
+                    </Button>
+                  </div>
+                </form>
+              </Card>
+            </RevealSection>
           )}
+
+          <RevealSection delay={100}>
+            <Card className="p-6">
+              {documents.length === 0 ? (
+                <EmptyState
+                  icon={<FileText className="h-10 w-10 text-zinc-600" />}
+                  title={t('knowledge.noDocuments')}
+                  description={t('knowledge.ragRetrieval')}
+                />
+              ) : (
+                <div className="space-y-4">
+                  {documents.map((doc) => (
+                    <div
+                      key={doc.id}
+                      className="flex items-center justify-between rounded-xl border border-zinc-800/50 bg-zinc-950/70 p-4 transition-all hover:border-zinc-700/50"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="rounded-lg bg-zinc-800/50 p-2.5">
+                          {doc.sourceType === 'file' ? (
+                            <FileText className="h-5 w-5 text-zinc-400" />
+                          ) : (
+                            <LinkIcon className="h-5 w-5 text-cyan-400" />
+                          )}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-medium text-zinc-100">{doc.title}</h3>
+                            <StatusBadge
+                              status={t(`knowledge.source${doc.sourceType.charAt(0).toUpperCase() + doc.sourceType.slice(1)}`)}
+                              variant={getSourceTypeVariant(doc.sourceType)}
+                            />
+                            <StatusBadge
+                              status={t(`knowledge.status.${doc.status}`)}
+                              variant={getStatusVariant(doc.status)}
+                            />
+                            {processingIds.includes(doc.id) && (
+                              <RefreshCw className="h-4 w-4 animate-spin text-yellow-400" />
+                            )}
+                            {doc.status === 'ready' && (
+                              <CheckCircle className="h-4 w-4 text-emerald-400" />
+                            )}
+                          </div>
+                          <div className="mt-1 flex gap-4 text-sm text-zinc-500">
+                            {doc.mimeType && <span>{doc.mimeType}</span>}
+                            {doc.sourceUrl && (
+                              <span className="truncate max-w-xs">{doc.sourceUrl}</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {doc.status === 'uploaded' && !processingIds.includes(doc.id) && (
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            icon={<RefreshCw className="h-3 w-3" />}
+                            onClick={() => processDocument(doc.id)}
+                          >
+                            {t('knowledge.process')}
+                          </Button>
+                        )}
+                        <span className="text-sm text-zinc-500">
+                          v{doc.version} · {new Date(doc.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          </RevealSection>
         </div>
-      </div>
-    </main>
+      </main>
     </AuthCheck>
   );
 }
