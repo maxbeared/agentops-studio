@@ -89,6 +89,11 @@ agentops-studio/
 | `websocket-server.ts` | 独立 WebSocket 服务 (localhost:3002) |
 
 ### 前端页面 (`apps/web/app/`)
+
+| 路径 | 功能 |
+|------|------|
+| `/` | 营销首页（炫酷展示页面，详见下方落地页设计规范） |
+| `/dashboard` | Dashboard 仪表盘（需登录） |
 | 路径 | 功能 |
 |------|------|
 | `/` | 营销首页（炫酷展示页面） |
@@ -103,6 +108,37 @@ agentops-studio/
 | `/reviews` | 审核任务列表 + approve/reject（需登录） |
 | `/auth/login` | 登录页 |
 | `/auth/register` | 注册页 |
+
+### 落地页设计规范 (`apps/web/app/page.tsx`)
+
+**视觉风格**：深色赛博朋克 + 霓虹发光效果
+
+#### 核心组件
+
+| 组件 | 功能 |
+|------|------|
+| `GlitchBars` | 全屏故障条动画，滚动出主标题区域后频率降低 |
+| `GlitchText` | 文字 RGB 分离故障效果，独立随机触发 |
+| `CrashCard` | 卡片从屏幕两侧飞入碰撞弹开效果 |
+| `TimelineItem` | 能力区域时间线左右交替布局 |
+| `FloatingStat` | 统计数据圆形悬浮 + 旋转光环 |
+| `RevealSection` | 滚动视差淡入动画 |
+
+#### 设计特点
+- **配色**：高饱和度霓虹色（#00e5ff 青、#ff4081 粉、#69f0ae 绿等）
+- **故障效果**：RGB 分离 + 卡顿闪烁，主标题与 logo 故障效果独立触发
+- **卡片动画**：左右两列卡片从相反方向飞向中心，碰撞后弹开产生随机倾斜
+- **图标设计**：卡片内大型半透明图标作为背景（hover 时透明度 0.8），底部装饰条动画
+- **时间线**：中央节点图标 + 两侧卡片交替排列，hover 展开详细说明
+- **统计数据**：圆形边框 + 旋转光环 + 悬浮抖动动画
+- **i18n**：导航栏 Globe 图标切换中英文，localStorage 持久化
+
+#### 动画时序
+- 页面加载 → 主标题故障效果（~2.5s 间隔）
+- 滚动至 CORE 区域 → 卡片飞入碰撞动画
+- 滚动至 POWER 区域 → 时间线节点交替淡入
+- 滚动至统计区域 → 圆形悬浮 + 旋转光环
+- 离开主标题区域 → 故障条频率大幅降低
 
 ### 前端组件 (`apps/web/components/`)
 | 文件 | 功能 |
@@ -424,12 +460,7 @@ Password: demo123456
 - [x] **Condition 节点配置面板（支持表达式编辑）**
 - [x] **Dashboard 页面改为 Client Component（避免 hydration 问题）**
 - [x] **国际化 (i18n) 支持** - 中英文切换，语言偏好 localStorage 持久化
-
-### ✅ 最近修复
-- [x] **构建错误修复** - projects/runs 页面从 Server Component 改为 Client Component
-- [x] **useState 误用修复** - workflows 页面正确使用 useEffect 进行数据获取
-- [x] **代码质量** - nodes.tsx 添加 React 导入、移除未使用导入
-- [x] **docker-compose** - 移除过时 version 属性
+- [x] **落地页全面重构** - 赛博朋克风格，故障效果，卡片碰撞动画，时间线，统计数据圆形悬浮
 
 ### ⚠️ 已知限制
 - `knowledge_chunks.embedding` 存储为 JSON 序列化的 float array（text 类型），非 pgvector
@@ -609,276 +640,3 @@ function getWebSocketClient(): WebSocket {
 ## 13. 项目一句话总结
 
 AgentOps Studio 是一个功能完整的 AI 自动化运营中台，具备 Workflow Builder 可视化编排、真实 AI Provider 集成、MinIO 文件存储、JWT 认证、节点执行追踪、审核流程和 WebSocket 实时推送等能力，用于展示全栈开发与 AI 应用集成的综合实力。
-
----
-
-## 14. 最近提交记录
-
-### 提交历史
-| Commit | 描述 |
-|--------|------|
-| `NEW` | 首页重构：营销落地页 + 路由保护 + Dashboard分离 |
-| `NEW` | i18n国际化：添加中英文切换支持，修复缺失翻译 |
-| `NEW` | 全面测试与Bug修复：React状态问题、错误处理、边缘转换等6个修复 |
-| `NEW` | 修复API路由auth、修复runs查询性能 |
-| `25fb29d` | 修复前端bug：stale closure、添加API方法、实现Run按钮功能 |
-| `13303ba` | 增强Dashboard展示和ESLint配置 |
-| `8536e5c` | 修复条件节点路由、完善可访问性与错误处理 |
-| `5bf0bd2` | 更新HANDOFF文档，添加最近提交记录和构建修复说明 |
-| `6afb3ed` | 添加缺失的WS_PORT和WS_URL环境变量 |
-
-### 最近改进
-
-#### 5. API路由安全性与性能改进 (NEW)
-- **API 路由安全性修复** (`apps/api/src/routes/prompts.ts`)
-  - 为 `PUT /:id` 端点添加 JWT 认证检查
-  - 为 `DELETE /:id` 端点添加 JWT 认证检查
-
-- **API 查询性能优化** (`apps/api/src/routes/runs.ts`)
-  - 修复 `GET /` 路由的 in-memory 过滤问题
-  - 使用 Drizzle ORM 的 `and()` 函数在数据库层面组合过滤条件
-  - 避免在大数据量时先获取所有记录再过滤的低效操作
-
-#### 6. 全面测试与Bug修复 (NEW)
-- **Reviews 页面 React 状态修复** (`apps/web/app/reviews/page.tsx`)
-  - 将 `Set<string>` 改为 `string[]` 解决 React 无法检测 Set 变化的问题
-  - 修复 `processingIds.has()` 改为 `processingIds.includes()`
-
-- **Knowledge 页面 React 状态修复** (`apps/web/app/knowledge/page.tsx`)
-  - 同样将 `Set<string>` 改为 `string[]`
-
-- **Workflows 页面错误处理增强** (`apps/web/app/workflows/page.tsx`)
-  - 添加 `error` 状态显示加载错误
-  - 添加 `runError` 状态显示运行错误
-  - 修复无项目时创建工作流静默失败问题
-  - 将 `alert()` 改为状态错误显示
-
-- **Workflow 编辑器边缘转换修复** (`apps/web/app/workflows/[id]/page.tsx`)
-  - `convertApiToEditorEdges` 添加 `targetHandle` 支持
-  - `handleSave` 保存边缘时包含 `targetHandle`
-
-- **Editor Store 计数器修复** (`apps/web/components/workflow/editor-store.ts`)
-  - 修复 `initWorkflow` 中 `Math.max()` 空数组问题
-  - 改进节点 ID 计数器初始化逻辑
-
-- **Workflow 引擎 executeFrom 修复** (`packages/workflow/src/engine.ts`)
-  - 修复审核节点恢复执行时输出未添加到 ctx.outputs 的问题
-  - 确保审核批准后工作流正确继续执行
-
-#### 8. 首页重构与路由保护 (NEW)
-- **首页重设计** (`apps/web/app/page.tsx`)
-  - 全新的营销落地页设计，替代原有的 Dashboard
-  - Emerald/Teal 配色方案的 Cyberpunk 风格
-  - 交互效果：
-    - 粒子星空背景（ConstellationCanvas）- 鼠标交互的粒子连接效果
-    - 视差滚动 Hero 区域
-    - 滚动触发数字动画（IntersectionObserver）
-    - Terminal 风格代码预览组件
-    - 悬停缩放动画效果
-  - 结构：Hero区 → 代码演示 → 功能卡片 → 统计数字 → CTA
-
-- **Dashboard 分离** (`apps/web/app/dashboard/page.tsx`)
-  - 原 Dashboard 内容移至 `/dashboard` 路由
-  - 使用 AuthCheck 组件保护，需登录访问
-  - 保留所有原有功能：统计卡片、图表、快速操作、最近运行、待审核任务
-
-- **路由保护**
-  - 所有工作页面（dashboard, projects, workflows, runs, knowledge, prompts, reviews）使用 AuthCheck 组件
-  - 未登录用户访问自动重定向到 `/auth/login`
-  - 登录/注册后使用 `window.location.href` 硬跳转确保状态同步
-
-- **Navbar 更新** (`apps/web/components/Navbar.tsx`)
-  - Logo 链接改为 `/`（首页）而非 `/dashboard`
-  - 添加 Logo 图标与 AgentOps 文字组合
-
-#### 7. i18n 国际化支持 (NEW)
-- **技术方案**: 使用 React Context + JSON 文件实现内存中的语言切换
-  - 无需 URL 路由变化
-  - 语言偏好持久化到 localStorage
-  - 使用 next-intl 库
-
-- **新增文件**:
-  - `apps/web/messages/en.json` - 英文翻译（完整覆盖所有页面）
-  - `apps/web/messages/zh.json` - 中文翻译
-  - `apps/web/i18n/index.ts` - next-intl 配置
-  - `apps/web/i18n/provider.tsx` - NextIntlClientProvider 封装
-  - `apps/web/contexts/locale-context.tsx` - LocaleProvider + useTranslation hook
-  - `apps/web/components/language-switcher.tsx` - 语言切换下拉组件
-  - `apps/web/components/providers.tsx` - 组合 Provider
-
-- **翻译覆盖页面**:
-  - 首页营销落地页（Hero、功能、统计、CTA）
-  - Dashboard 仪表盘（统计卡片、图表、快速操作）
-  - 工作流列表和编辑器
-  - 运行记录列表和详情
-  - 知识库页面
-  - Prompt 模板管理
-  - 人工审核页面
-  - 项目管理页面
-  - 登录/注册页面
-  - Navbar 导航栏
-
-- **新增 Landing 翻译 key**:
-  - `landing.tagline` - 平台标语
-  - `landing.heroTitle/heroTitleAccent` - Hero 主标题
-  - `landing.features.*` - 功能卡片（中英文）
-  - `landing.capabilities.*` - 能力列表
-  - `landing.stats.*` - 统计数字标签
-  - `landing.readyTitle/readySubtitle` - CTA 文案
-  - `landing.footer.*` - 页脚链接
-
-- **翻译 key 规范**:
-  ```json
-  {
-    "nav": { "dashboard": "Dashboard", "projects": "Projects", ... },
-    "dashboard": { "title": "...", "features": {...}, ... },
-    "workflows": { "title": "...", "status": {...}, ... },
-    "runs": { "status": { "pending": "等待中", "running": "运行中", ... }, ... },
-    "common": { "save": "Save", "cancel": "Cancel", ... }
-  }
-  ```
-
-- **使用方式**:
-  ```typescript
-  import { useTranslation } from '../contexts/locale-context';
-
-  function MyComponent() {
-    const { t } = useTranslation();
-    return <button>{t('common.save')}</button>;
-  }
-  ```
-
-- **修复的缺失翻译**:
-  - StatusBadge 状态标签（pending/running/success/failed 等）
-  - 图表 legend（Success/Failed）
-  - 错误消息（Failed to load runs、Invalid credentials 等）
-  - 空状态提示（No workflows、No tasks pending 等）
-  - 表单占位符文本
-
-#### 1. 增强 Dashboard 展示 (13303ba)
-- **Dashboard 页面重构** (`apps/web/app/page.tsx`)
-  - 添加 Recharts 面积图显示执行趋势
-  - 新增 StatCard 组件显示趋势指标（+12%, +3%）
-  - 添加快速操作按钮（新建工作流、查看执行记录、知识库管理、人工审核）
-  - 改进 Recent Runs 列表，显示状态指示器和更多详情
-  - 添加 Pending Reviews 面板
-  - 添加加载状态旋转图标
-
-- **演示数据增强** (`packages/db/src/seed.ts`)
-  - 创建示例项目 "AI Content Generator"
-  - 创建示例知识文档和向量块
-  - 创建示例 Prompt 模板
-  - 创建示例工作流 "Content Review Pipeline"（包含完整节点定义）
-  - 创建 5 条不同状态的运行记录（success/pending/failed）
-
-- **ESLint 配置**
-  - 配置 ESLint 9.x 兼容 Next.js (`apps/web/eslint.config.mjs`)
-  - 修复所有 ESLint 警告
-
-#### 2. 修复前端 Bug (25fb29d)
-- **Stale Closure 修复**
-  - `workflows/page.tsx` - `handleCreate` 使用函数式 setState
-  - `knowledge/page.tsx` - `handleUpload` 使用函数式 setState
-
-- **API 方法扩展** (`apps/web/lib/api.ts`)
-  - 添加 `api.knowledge.upload()` - 文件上传到 MinIO
-  - 添加 `api.knowledge.process()` - 处理文档生成 chunks
-
-- **Workflows 列表 Run 按钮**
-  - 实现 Run 按钮功能，点击后创建运行并跳转到详情页
-  - 添加 loading 状态显示
-
-#### 3. 条件节点路由修复 (8536e5c)
-- `packages/workflow/src/engine.ts` - 检查 `sourceHandle` 决定走 yes/no 分支
-- `packages/db/src/schema.ts` - 添加 `sourceHandle` 字段
-- `packages/shared/src/types.ts` - 添加 `sourceHandle` 类型
-- `apps/api/src/routes/workflows.ts` - 保存和返回 edges 时包含 `sourceHandle`
-
-### 当前构建状态
-```
-Tasks:    7 successful, 7 total
-Route (app)                              Size     First Load JS
-├ ○ /                                    10.4 kB         120 kB      ← 营销首页
-├ ○ /dashboard                           102 kB          217 kB      ← Dashboard (需登录)
-├ ○ /knowledge                           4.94 kB         111 kB      ← 知识库 (需登录)
-├ ○ /projects                            3.68 kB         109 kB      ← 项目 (需登录)
-├ ○ /prompts                             4.93 kB         111 kB      ← 提示词 (需登录)
-├ ○ /reviews                             4.31 kB         110 kB      ← 审核 (需登录)
-├ ○ /runs                                3.65 kB         114 kB      ← 运行记录 (需登录)
-├ ○ /auth/login                          2.99 kB         113 kB
-├ ○ /auth/register                       3.18 kB         113 kB
-├ ƒ /runs/[id]                           4.12 kB         114 kB
-├ ○ /workflows                           4.17 kB         114 kB      ← 工作流 (需登录)
-└ ƒ /workflows/[id]                      60.1 kB         175 kB
-+ First Load JS shared by all            106 kB
-```
-
-### 启动检查清单
-- [x] Docker 服务运行中 (PostgreSQL, Redis, MinIO)
-- [x] 数据库迁移完成
-- [x] 数据库种子已填充（含演示数据）
-- [x] 构建通过
-- [x] 前端页面全部可访问（含登录/注册）
-- [x] ESLint 检查通过
-- [x] i18n 翻译文件完整（中英文）
-
----
-
-## 15. 前期修复记录
-
-### 条件节点路由修复
-修复了工作流引擎中条件节点的路由逻辑：
-- **问题**：条件节点执行后，引擎会跟随所有输出边，而不是只跟随与条件结果匹配的边
-- **修复**：
-  - `packages/workflow/src/engine.ts` - 添加条件节点路由逻辑，检查 `sourceHandle` 来决定走 yes 还是 no 分支
-  - `packages/db/src/schema.ts` - 添加 `sourceHandle` 字段到 `workflowEdges` 表
-  - `packages/shared/src/types.ts` - 添加 `sourceHandle` 到 `WorkflowEdge` 类型
-  - `apps/api/src/routes/workflows.ts` - 保存和返回 edges 时包含 `sourceHandle`
-  - `apps/web/components/workflow/editor-store.ts` - 连接边时保存 `sourceHandle`
-  - `apps/web/app/workflows/[id]/page.tsx` - 保存时传递 `sourceHandle`
-
-### 可访问性改进
-提升了 UI 组件的可访问性（Accessibility）：
-- **Navbar** (`apps/web/components/Navbar.tsx`)
-  - 添加 `aria-label` 到导航链接
-  - 添加 `aria-hidden` 到图标
-  - 添加 `role="status"` 和 `aria-live` 到状态提示
-- **EditorToolbar** (`apps/web/components/workflow/toolbar.tsx`)
-  - 添加 `role="toolbar"` 和 `aria-label`
-  - 添加 `aria-busy` 和 `aria-disabled` 属性
-  - 添加图标 `aria-hidden`
-- **NodeToolbar** - 添加 `aria-label` 和 `title`
-- **NodeConfigPanel** (`apps/web/components/workflow/node-config-panel.tsx`)
-  - 所有表单输入添加 `id` 和关联的 `htmlFor`
-  - 按钮添加 `aria-label`
-  - 帮助文本添加 `aria-describedby`
-
-### 错误处理与加载状态
-改进了页面的错误处理和加载状态：
-- **AuthCheck** (`apps/web/components/auth-check.tsx`)
-  - 使用旋转加载图标替代纯文本
-  - 添加 `role="status"` 和 `aria-label`
-- **RunsPage** (`apps/web/app/runs/page.tsx`)
-  - 添加错误状态显示和重试按钮
-  - 加载状态使用旋转图标
-  - 使用 `role="alert"` 展示错误信息
-- **ProjectsPage** (`apps/web/app/projects/page.tsx`)
-  - 同上错误处理改进
-
-### React 状态管理与边缘转换修复
-- **Reviews/Knowledge 页面 Set 状态问题**
-  - 问题：使用 `Set<string>` 作为 React state，React 无法检测其变化
-  - 修复：将 `Set<string>` 改为 `string[]`，使用 `.includes()` 替代 `.has()`
-  - 文件：`reviews/page.tsx`, `knowledge/page.tsx`
-- **Workflows 页面错误处理增强**
-  - 问题：静默失败，缺少错误反馈
-  - 修复：添加 error/runError 状态，移除 alert() 调用
-- **Workflow 编辑器边缘转换**
-  - 问题：targetHandle 在边缘转换中丢失
-  - 修复：在 convertApiToEditorEdges 和 handleSave 中添加 targetHandle 支持
-- **Editor Store 计数器**
-  - 问题：Math.max() 在空数组时返回 -Infinity
-  - 修复：改进初始化逻辑处理空数组情况
-- **Workflow 引擎 executeFrom**
-  - 问题：审核节点恢复执行时 ctx.outputs 未包含审核输出
-  - 修复：确保审核输出正确添加到 ctx.outputs

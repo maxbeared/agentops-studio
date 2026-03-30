@@ -30,12 +30,18 @@
     "builtForProduction": "Built for Production",
     "builtForProductionDesc": "Enterprise-grade features designed for reliability, scalability, and security.",
     "capabilities": {
-      "async": "Async workflow execution via BullMQ",
-      "websocket": "WebSocket real-time updates",
-      "versionControl": "Version control for workflows",
-      "conditional": "Conditional logic & branching",
-      "context": "Context injection between nodes",
-      "retry": "Failure recovery & retry"
+      "async": "Async Workflow Execution",
+      "asyncDesc": "Leverage BullMQ for robust, scalable background job processing with automatic retries and priority queues.",
+      "websocket": "Real-time WebSocket",
+      "websocketDesc": "Instant bidirectional communication for live workflow status updates and interactive dashboards.",
+      "versionControl": "Version Control",
+      "versionControlDesc": "Track every change, roll back to previous versions, and branch workflows for experimentation.",
+      "conditional": "Conditional Logic",
+      "conditionalDesc": "Build complex decision trees with if/else branches, loops, and dynamic routing based on data.",
+      "context": "Context Injection",
+      "contextDesc": "Pass data and state between nodes seamlessly, enabling sophisticated multi-step pipelines.",
+      "retry": "Smart Retry & Recovery",
+      "retryDesc": "Automatic failure detection with exponential backoff, ensuring workflows complete reliably."
     },
     "stats": {
       "uptime": "Uptime SLA",

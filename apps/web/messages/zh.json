@@ -30,12 +30,18 @@
     "builtForProduction": "面向生产环境",
     "builtForProductionDesc": "专为可靠性、可扩展性和安全性设计的企业级功能。",
     "capabilities": {
-      "async": "通过 BullMQ 实现异步工作流执行",
-      "websocket": "WebSocket 实时更新",
-      "versionControl": "工作流版本控制",
-      "conditional": "条件逻辑与分支",
-      "context": "节点间上下文注入",
-      "retry": "失败恢复与重试"
+      "async": "异步工作流执行",
+      "asyncDesc": "基于 BullMQ 实现强大的后台任务处理，支持自动重试和优先级队列。",
+      "websocket": "实时 WebSocket",
+      "websocketDesc": "即时双向通信，实时推送工作流状态更新和交互仪表盘。",
+      "versionControl": "版本控制",
+      "versionControlDesc": "追踪每次变更，随时回滚到历史版本，支持分支实验。",
+      "conditional": "条件逻辑",
+      "conditionalDesc": "构建复杂的决策树，支持 if/else 分支、循环和基于数据的动态路由。",
+      "context": "上下文注入",
+      "contextDesc": "在节点之间无缝传递数据和状态，实现复杂的多步骤处理管道。",
+      "retry": "智能重试与恢复",
+      "retryDesc": "自动故障检测配合指数退避策略，确保工作流可靠完成。"
     },
     "stats": {
       "uptime": "运行时间 SLA",
