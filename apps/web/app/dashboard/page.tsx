@@ -160,6 +160,7 @@ export default function DashboardPage() {
         <div className="mx-auto max-w-7xl flex flex-col gap-6">
           {/* Header */}
           <PageHeader
+            className="mb-0"
             title={t('dashboard.title')}
             subtitle={t('dashboard.subtitle')}
             gradient

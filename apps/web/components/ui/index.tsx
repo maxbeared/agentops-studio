@@ -70,13 +70,14 @@ interface PageHeaderProps {
   action?: ReactNode;
   gradient?: boolean;
   children?: ReactNode;
+  className?: string;
 }
 
-export function PageHeader({ title, subtitle, action, gradient = false, children }: PageHeaderProps) {
+export function PageHeader({ title, subtitle, action, gradient = false, children, className = '' }: PageHeaderProps) {
   return (
     <header
       className={`
-        rounded-2xl border border-zinc-800/50 p-6
+        rounded-2xl border border-zinc-800/50 p-6 mb-6 ${className}
         ${gradient ? 'bg-gradient-to-r from-zinc-900/90 via-zinc-900/70 to-zinc-900/90' : 'bg-zinc-900/50'}
       `}
       style={{
