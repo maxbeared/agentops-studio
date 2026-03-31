@@ -9,7 +9,7 @@ import { useTranslation, useLocale } from '../contexts/locale-context';
 import {
   Zap, GitBranch, Users,
   ArrowRight, Database, Cpu, Layers,
-  Workflow, Sparkles, Rocket, Lock, TrendingUp, Globe
+  Workflow, Sparkles, Rocket, Lock, TrendingUp, Globe, ZapOff
 } from 'lucide-react';
 
 const FEATURE_ICONS = [Zap, Cpu, Database, Users, TrendingUp, Lock];
@@ -67,7 +67,7 @@ function useInView(options = {}) {
   return { ref, isVisible };
 }
 
-function GlitchBars() {
+function GlitchBars({ disabled = false }: { disabled?: boolean }) {
   const [bars, setBars] = useState<Array<{
     id: number;
     left: number;
@@ -78,6 +78,15 @@ function GlitchBars() {
     duration: number;
   }>>([]);
   const [isHeroVisible, setIsHeroVisible] = useState(true);
+
+  // Fixed positions for disabled state - always visible
+  const fixedBars = [
+    { id: 1, left: 15, width: 25, top: 20, height: 12, color: 'rgba(0,229,255,0.15)' },
+    { id: 2, left: 60, width: 18, top: 35, height: 8, color: 'rgba(255,64,129,0.12)' },
+    { id: 3, left: 30, width: 35, top: 55, height: 10, color: 'rgba(234,128,252,0.12)' },
+    { id: 4, left: 70, width: 22, top: 75, height: 14, color: 'rgba(0,229,255,0.1)' },
+    { id: 5, left: 10, width: 15, top: 88, height: 9, color: 'rgba(255,202,40,0.1)' },
+  ];
 
   useEffect(() => {
     const handleScroll = () => {
@@ -90,6 +99,8 @@ function GlitchBars() {
   }, []);
 
   useEffect(() => {
+    if (disabled) return;
+
     const colors = [
       'rgba(255,255,255,0.25)',
       'rgba(0,229,255,0.3)',
@@ -120,34 +131,46 @@ function GlitchBars() {
 
     const interval = setInterval(() => {
       if (!isHeroVisible) {
-        // Much less frequent outside hero section
         if (Math.random() < 0.08) createBar();
       } else {
-        // Frequent in hero section
         if (Math.random() < 0.4) createBar();
         if (Math.random() < 0.25) createBar();
       }
-    }, 150);
+    }, 300);
 
     return () => clearInterval(interval);
-  }, [isHeroVisible]);
+  }, [isHeroVisible, disabled]);
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-40 overflow-hidden">
-      {bars.map(bar => (
-        <div
-          key={bar.id}
-          className="absolute"
-          style={{
-            left: `${bar.left}%`,
-            top: `${bar.top}%`,
-            width: `${bar.width}%`,
-            height: `${bar.height}px`,
-            backgroundColor: bar.color,
-            animation: `glitchBar ${bar.duration}ms ease-out forwards`,
-          }}
-        />
-      ))}
+    <div className={`${disabled ? 'absolute' : 'fixed'} inset-0 pointer-events-none z-40 overflow-hidden`}>
+      {disabled
+        ? fixedBars.map(bar => (
+          <div
+            key={bar.id}
+            className="absolute"
+            style={{
+              left: `${bar.left}%`,
+              top: `${bar.top}%`,
+              width: `${bar.width}%`,
+              height: `${bar.height}px`,
+              backgroundColor: bar.color,
+            }}
+          />
+        ))
+        : bars.map(bar => (
+          <div
+            key={bar.id}
+            className="absolute"
+            style={{
+              left: `${bar.left}%`,
+              top: `${bar.top}%`,
+              width: `${bar.width}%`,
+              height: `${bar.height}px`,
+              backgroundColor: bar.color,
+              animation: `glitchBar ${bar.duration}ms ease-out forwards`,
+            }}
+          />
+        ))}
       <style jsx>{`
         @keyframes glitchBar {
           0% { opacity: 0; transform: scaleX(0) translateX(-50%); }
@@ -162,36 +185,58 @@ function GlitchBars() {
   );
 }
 
-function GlitchText({ children, className = '' }: { children: string; className?: string }) {
+function GlitchText({ children, className = '', disabled = false }: { children: string; className?: string; disabled?: boolean }) {
   const [glitching, setGlitching] = useState(false);
   const [frame, setFrame] = useState(0);
 
   useEffect(() => {
+    if (disabled) return;
+
+    let intervalId: ReturnType<typeof setInterval>;
+    let timeoutId: ReturnType<typeof setTimeout>;
+    let scheduleTimeoutId: ReturnType<typeof setTimeout>;
+    let isActive = true;
+
     const triggerGlitch = () => {
+      if (!isActive) return;
       setGlitching(true);
-      setFrame(0);
-      let count = 0;
-      const interval = setInterval(() => {
+      setFrame(1);
+      let count = 1;
+
+      intervalId = setInterval(() => {
         count++;
-        setFrame(f => f + 1);
-        if (count > 8) {
-          clearInterval(interval);
-          setGlitching(false);
+        if (!isActive) return;
+        setFrame(count);
+        if (count >= 3) {
+          clearInterval(intervalId);
         }
-      }, 55);
+      }, 500);
+
+      timeoutId = setTimeout(() => {
+        if (!isActive) return;
+        setGlitching(false);
+      }, 500 * 3);
     };
 
     const scheduleNext = () => {
+      if (!isActive) return;
       const delay = 2500 + Math.random() * 2000;
-      setTimeout(() => {
+      scheduleTimeoutId = setTimeout(() => {
         triggerGlitch();
         scheduleNext();
       }, delay);
     };
 
+    triggerGlitch();
     scheduleNext();
-    return () => {};
-  }, []);
+
+    return () => {
+      isActive = false;
+      clearInterval(intervalId);
+      clearTimeout(timeoutId);
+      clearTimeout(scheduleTimeoutId);
+    };
+  }, [disabled]);
 
   const getRandomClip = () => {
     const clips = [
@@ -203,16 +248,37 @@ function GlitchText({ children, className = '' }: { children: string; className?
     return clips[Math.floor(Math.random() * clips.length)];
   };
 
+  // Fixed clips for disabled state with offset (in em for proportional scaling)
+  const fixedRedClip = 'polygon(0 28%, 100% 28%, 100% 48%, 0 48%)';
+  const fixedCyanClip = 'polygon(0 52%, 100% 52%, 100% 72%, 0 72%)';
+  const fixedRedOffset = '0.02em';
+  const fixedCyanOffset = '-0.02em';
+
   return (
     <span className={`relative inline-block ${className}`}>
       <span className="relative z-10">{children}</span>
-      {glitching && frame > 0 && frame < 8 && (
+      {disabled ? (
+        <>
+          <span
+            className="absolute inset-0 text-red-500 z-20 font-black"
+            style={{ clipPath: fixedRedClip, transform: `translateX(${fixedRedOffset})` }}
+          >
+            {children}
+          </span>
+          <span
+            className="absolute inset-0 text-cyan-400 z-20 font-black"
+            style={{ clipPath: fixedCyanClip, transform: `translateX(${fixedCyanOffset})` }}
+          >
+            {children}
+          </span>
+        </>
+      ) : glitching && frame > 0 && frame < 4 && (
         <>
           <span
             className="absolute inset-0 text-red-500 z-20 font-black"
             style={{
               clipPath: getRandomClip(),
-              transform: `translateX(${(Math.random() > 0.5 ? 1 : -1) * (4 + Math.random() * 6)}px)`,
+              transform: `translateX(${(Math.random() > 0.5 ? 1 : -1) * (0.01 + Math.random() * 0.02)}em)`,
             }}
           >
             {children}
@@ -221,7 +287,7 @@ function GlitchText({ children, className = '' }: { children: string; className?
             className="absolute inset-0 text-cyan-400 z-20 font-black"
             style={{
               clipPath: getRandomClip(),
-              transform: `translateX(${(Math.random() > 0.5 ? 1 : -1) * (4 + Math.random() * 6)}px)`,
+              transform: `translateX(${(Math.random() > 0.5 ? 1 : -1) * (0.01 + Math.random() * 0.02)}em)`,
             }}
           >
             {children}
@@ -290,7 +356,7 @@ function CrashCard({ feature, index, t }: { feature: typeof FEATURES[0]; index: 
   useEffect(() => {
     if (phase === 'landed') {
       setGlowIntensity(1);
-      const duration = 6000;
+      const duration = 1500;
       const startTime = Date.now();
       const startIntensity = 1;
       const endIntensity = 0;
@@ -368,11 +434,14 @@ function CrashCard({ feature, index, t }: { feature: typeof FEATURES[0]; index: 
       className={`relative ${color.bg} p-10 overflow-hidden`}
       style={{
         transform: getTransform(),
-        transition: `${getTransition()}, box-shadow ${phase === 'landed' ? '6000ms ease-out' : '200ms ease-out'}`,
+        transition: `${getTransition()}, box-shadow ${phase === 'landed' ? '1500ms ease-out' : '200ms ease-out'}, border-color 500ms ease`,
         boxShadow: getGlowStyle(),
         borderWidth: '3px',
         borderStyle: 'solid',
-        borderColor: `rgba(${parseInt(color.hex.slice(1,3),16)}, ${parseInt(color.hex.slice(3,5),16)}, ${parseInt(color.hex.slice(5,7),16)}, ${glowIntensity * 0.8})`,
+        borderTopColor: `rgba(${parseInt(color.hex.slice(1,3),16)}, ${parseInt(color.hex.slice(3,5),16)}, ${parseInt(color.hex.slice(5,7),16)}, ${isHovered ? 0.8 : (phase === 'landed' ? 0.3 + glowIntensity * 0.5 : glowIntensity * 0.8)})`,
+        borderRightColor: `rgba(${parseInt(color.hex.slice(1,3),16)}, ${parseInt(color.hex.slice(3,5),16)}, ${parseInt(color.hex.slice(5,7),16)}, ${glowIntensity * 0.8})`,
+        borderBottomColor: `rgba(${parseInt(color.hex.slice(1,3),16)}, ${parseInt(color.hex.slice(3,5),16)}, ${parseInt(color.hex.slice(5,7),16)}, ${glowIntensity * 0.8})`,
+        borderLeftColor: `rgba(${parseInt(color.hex.slice(1,3),16)}, ${parseInt(color.hex.slice(3,5),16)}, ${parseInt(color.hex.slice(5,7),16)}, ${glowIntensity * 0.8})`,
       }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -436,7 +505,7 @@ function TimelineItem({ capability, index, t }: { capability: typeof CAPABILITIE
         style={{
           left: '50%',
           top: '50%',
-          transform: `translateX(-50%) translateY(-50%) scale(${isHovered ? 1.25 : 1})`,
+          transform: `translateX(-50%) translateY(-50%) scale(1)`,
           filter: isHovered ? `drop-shadow(0 0 20px ${color.hex})` : `drop-shadow(0 0 8px ${color.hex}50)`,
         }}
       >
@@ -508,7 +577,12 @@ function FloatingStat({ value, suffix, label, index }: { value: string; suffix: 
         x: (Math.random() - 0.5) * 35,
         y: (Math.random() - 0.5) * 35,
       });
-      setRotation(prev => prev + (Math.random() - 0.5) * 8);
+      setRotation(prev => {
+        const newRotation = prev + (Math.random() - 0.5) * 8;
+        if (newRotation > 30) return newRotation - 60;
+        if (newRotation < -30) return newRotation + 60;
+        return newRotation;
+      });
     };
 
     const interval = setInterval(animate, 1500 + Math.random() * 1500);
@@ -573,6 +647,12 @@ export default function LandingPage() {
   const { t } = useTranslation();
   const { locale, setLocale } = useLocale();
   const isLoggedIn = !!user;
+  const [glitchDisabled, setGlitchDisabled] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('glitchDisabled') === 'true';
+    }
+    return false;
+  });
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -585,9 +665,17 @@ export default function LandingPage() {
     setLocale(locale === 'en' ? 'zh' : 'en');
   };
 
+  const toggleGlitch = () => {
+    setGlitchDisabled(prev => {
+      const newValue = !prev;
+      localStorage.setItem('glitchDisabled', String(newValue));
+      return newValue;
+    });
+  };
+
   return (
     <main className="bg-zinc-950 text-zinc-100 overflow-x-hidden">
-      <GlitchBars />
+      <GlitchBars disabled={glitchDisabled} />
 
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 flex justify-between items-center px-8 py-4 bg-zinc-950/90 backdrop-blur-xl border-b border-zinc-800/50">
@@ -601,6 +689,15 @@ export default function LandingPage() {
           AGENTOPS
         </h1>
         <div className="flex items-center gap-6">
+          <button
+            onClick={toggleGlitch}
+            className="flex items-center gap-2 text-base font-semibold hover:text-cyan-300 transition-colors"
+            title={glitchDisabled ? (locale === 'en' ? 'Enable glitch effects' : '启用动画效果') : (locale === 'en' ? 'Disable glitch effects' : '禁用动画效果')}
+          >
+            <ZapOff className={`h-5 w-5 transition-opacity ${glitchDisabled ? 'opacity-50' : 'opacity-100'}`} />
+            <span className="text-sm">{glitchDisabled ? (locale === 'en' ? 'ON' : '启用动画') : (locale === 'en' ? 'OFF' : '禁用动画')}</span>
+          </button>
+
           <button
             onClick={toggleLocale}
             className="flex items-center gap-2 text-base font-semibold hover:text-cyan-300 transition-colors"
@@ -646,7 +743,7 @@ export default function LandingPage() {
               textShadow: '0 0 50px rgba(0,229,255,0.35), 0 0 100px rgba(0,229,255,0.15)',
             }}
           >
-            <GlitchText>AGENT</GlitchText>
+            <GlitchText disabled={glitchDisabled}>AGENT</GlitchText>
           </h1>
           <h2
             className="text-[10vw] leading-none font-black -mt-4 md:-mt-6 mb-8"
@@ -763,7 +860,7 @@ export default function LandingPage() {
               className="text-[10vw] md:text-[8vw] leading-none font-black mb-8"
               style={{ color: '#fafafa', textShadow: '0 0 40px rgba(250,250,250,0.15)' }}
             >
-              <GlitchText>{t('landing.readyTitle')}</GlitchText>
+              <GlitchText disabled={glitchDisabled}>{t('landing.readyTitle')}</GlitchText>
             </h2>
           </RevealSection>
           <RevealSection delay={200}>
@@ -818,22 +915,13 @@ export default function LandingPage() {
           color: #fafafa;
         }
 
-        @keyframes rgbSplit {
-          0% { text-shadow: -2px 0 #ff0040, 2px 0 #00ffff; }
-          5% { text-shadow: 4px 0 #ff0040, -4px 0 #00ffff, 0 0 8px rgba(255,255,255,0.4); }
-          10% { text-shadow: -2px 0 #ff0040, 2px 0 #00ffff; }
-          15% { text-shadow: 6px 0 #ff0040, -6px 0 #00ffff, 0 0 15px rgba(255,255,255,0.25); }
-          20% { text-shadow: -2px 0 #ff0040, 2px 0 #00ffff; }
-          100% { text-shadow: -2px 0 #ff0040, 2px 0 #00ffff; }
-        }
-
-        @keyframes logoGlitch {
-          0% { text-shadow: -1px 0 #ff0040, 1px 0 #00ffff; opacity: 0; }
-          3% { text-shadow: 2px 0 #ff0040, -2px 0 #00ffff; opacity: 1; }
-          6% { text-shadow: -1px 0 #ff0040, 1px 0 #00ffff; opacity: 0.8; }
-          9% { text-shadow: 3px 0 #ff0040, -3px 0 #00ffff; opacity: 1; }
-          12% { text-shadow: -1px 0 #ff0040, 1px 0 #00ffff; opacity: 0; }
-          100% { text-shadow: -1px 0 #ff0040, 1px 0 #00ffff; opacity: 0; }
+        @keyframes logoGlow {
+          0%, 100% {
+            text-shadow: 0 0 8px rgba(0,229,255,0.3), 0 0 16px rgba(0,229,255,0.15), 4px 4px 12px rgba(0,0,0,0.8);
+          }
+          50% {
+            text-shadow: 0 0 12px rgba(0,229,255,0.9), 0 0 24px rgba(0,229,255,0.6), 6px 6px 20px rgba(0,0,0,0.6);
+          }
         }
 
         @keyframes spinGlow {
@@ -841,12 +929,8 @@ export default function LandingPage() {
           to { transform: rotate(360deg); }
         }
 
-        h1:first-of-type {
-          animation: rgbSplit 4s infinite;
-        }
-
         .logo-glitch {
-          animation: logoGlitch 5s infinite;
+          animation: logoGlow 3s ease-in-out infinite;
           animation-delay: 1.5s;
         }
       `}</style>
