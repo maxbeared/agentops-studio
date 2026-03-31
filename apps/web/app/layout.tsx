@@ -14,7 +14,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <Providers>
           <Navbar />
-          <div className="pt-14">
+          <div className="min-h-full">
             {children}
           </div>
         </Providers>

@@ -146,8 +146,8 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-zinc-950 px-6 py-10 text-white">
-        <div className="mx-auto max-w-7xl flex flex-col gap-8">
+      <main className="bg-zinc-950 px-6 py-6 text-white">
+        <div className="mx-auto max-w-7xl flex flex-col gap-6">
           <LoadingState message={t('common.loading')} />
         </div>
       </main>
@@ -156,8 +156,8 @@ export default function DashboardPage() {
 
   return (
     <AuthCheck>
-      <main className="min-h-screen bg-zinc-950 px-6 py-10 text-white">
-        <div className="mx-auto max-w-7xl flex flex-col gap-8">
+      <main className="bg-zinc-950 px-6 py-6 text-white">
+        <div className="mx-auto max-w-7xl flex flex-col gap-6">
           {/* Header */}
           <PageHeader
             title={t('dashboard.title')}

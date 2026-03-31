@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useAuth } from '../contexts/auth-context';
 import { LogOut, User as UserIcon, Menu, X } from 'lucide-react';
@@ -8,6 +8,25 @@ import { LanguageSwitcher } from './language-switcher';
 import { useTranslation } from '../contexts/locale-context';
 
 export default function Navbar() {
+  const navRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const nav = navRef.current;
+    if (!nav) return;
+
+    const updatePadding = () => {
+      document.documentElement.style.paddingTop = `${nav.offsetHeight - 4}px`;
+    };
+
+    updatePadding();
+    const ro = new ResizeObserver(updatePadding);
+    ro.observe(nav);
+    window.addEventListener('resize', updatePadding);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', updatePadding);
+    };
+  }, []);
   const { user, loading, logout } = useAuth();
   const { t } = useTranslation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -24,7 +43,7 @@ export default function Navbar() {
 
   if (loading) {
     return (
-      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-zinc-800/50 bg-zinc-950/90 backdrop-blur-xl">
+      <nav ref={navRef} className="fixed top-0 left-0 right-0 z-50 border-b border-zinc-800/50 bg-zinc-950/90 backdrop-blur-xl">
         <div className="mx-auto max-w-7xl px-6">
           <div className="flex items-center justify-between gap-4 py-3">
             <Link href="/" className="text-xl font-bold logo-glow shrink-0">
@@ -39,7 +58,7 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 border-b border-zinc-800/50 bg-zinc-950/90 backdrop-blur-xl" aria-label="Main navigation">
+    <nav ref={navRef} className="fixed top-0 left-0 right-0 z-50 border-b border-zinc-800/50 bg-zinc-950/90 backdrop-blur-xl" aria-label="Main navigation">
       <div className="mx-auto max-w-7xl px-6">
         <div className="flex items-center justify-between gap-4 py-3">
           <Link href="/" className="text-xl font-bold logo-glow shrink-0" aria-label="AgentOps Home">

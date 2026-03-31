@@ -32,7 +32,7 @@ export default function ProjectsPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-zinc-950 px-6 py-10 text-white">
+      <main className="bg-zinc-950 px-6 py-6 text-white">
         <div className="mx-auto max-w-7xl">
           <LoadingState message={t('common.loading')} />
         </div>
@@ -42,7 +42,7 @@ export default function ProjectsPage() {
 
   return (
     <AuthCheck>
-      <main className="min-h-screen bg-zinc-950 px-6 py-10 text-white">
+      <main className="bg-zinc-950 px-6 py-6 text-white">
         <div className="mx-auto max-w-7xl">
           <RevealSection>
             <PageHeader

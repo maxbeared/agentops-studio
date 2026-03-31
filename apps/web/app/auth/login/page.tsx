@@ -29,7 +29,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-950">
+    <div className="flex items-center justify-center bg-zinc-950">
       <div
         className="w-full max-w-md rounded-2xl border border-zinc-800/50 bg-zinc-900/80 p-8 shadow-xl"
         style={{ boxShadow: '0 0 60px rgba(0,229,255,0.05)' }}

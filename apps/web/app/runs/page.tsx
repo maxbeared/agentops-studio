@@ -57,7 +57,7 @@ export default function RunsPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-zinc-950 px-6 py-10 text-white">
+      <main className="bg-zinc-950 px-6 py-6 text-white">
         <div className="mx-auto max-w-7xl">
           <LoadingState message={t('runs.loading')} />
         </div>
@@ -67,7 +67,7 @@ export default function RunsPage() {
 
   return (
     <AuthCheck>
-      <main className="min-h-screen bg-zinc-950 px-6 py-10 text-white">
+      <main className="bg-zinc-950 px-6 py-6 text-white">
         <div className="mx-auto max-w-7xl">
           <RevealSection>
             <PageHeader
