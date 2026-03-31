@@ -125,26 +125,26 @@ export default function KnowledgePage() {
                 <h2 className="mb-4 text-lg font-medium text-zinc-100">{t('knowledge.uploadTitle')}</h2>
                 <form onSubmit={handleUpload} className="space-y-4">
                   <div>
-                    <label className="block text-sm text-zinc-400 mb-1">{t('knowledge.titleLabel')}</label>
+                    <label className="block text-base text-zinc-400 mb-1">{t('knowledge.titleLabel')}</label>
                     <input
                       type="text"
                       value={uploadTitle}
                       onChange={(e) => setUploadTitle(e.target.value)}
                       placeholder={t('knowledge.documentTitle')}
                       required
-                      className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white placeholder-zinc-500 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                      className="w-full rounded-lg border-2 border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white placeholder-zinc-500 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm text-zinc-400 mb-1">{t('knowledge.fileLabel')}</label>
+                    <label className="block text-base text-zinc-400 mb-1">{t('knowledge.fileLabel')}</label>
                     <input
                       type="file"
                       onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                      className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:bg-cyan-500 file:text-zinc-950 file:font-medium"
+                      className="w-full rounded-lg border-2 border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-base file:bg-cyan-500 file:text-zinc-950 file:font-medium"
                     />
                   </div>
                   {uploadError && (
-                    <p className="text-sm text-red-400">{uploadError}</p>
+                    <p className="text-base text-red-400">{uploadError}</p>
                   )}
                   <div className="flex gap-2">
                     <Button type="submit" variant="primary" loading={uploading}>
@@ -172,7 +172,7 @@ export default function KnowledgePage() {
                   {documents.map((doc) => (
                     <div
                       key={doc.id}
-                      className="flex items-center justify-between rounded-xl border border-zinc-800/50 bg-zinc-950/70 p-4 transition-all hover:border-zinc-700/50"
+                      className="flex items-center justify-between rounded-xl border-2 border-zinc-600/80 bg-zinc-950/70 p-4 transition-all hover:border-cyan-500/50"
                     >
                       <div className="flex items-center gap-4">
                         <div className="rounded-lg bg-zinc-800/50 p-2.5">
@@ -200,7 +200,7 @@ export default function KnowledgePage() {
                               <CheckCircle className="h-4 w-4 text-emerald-400" />
                             )}
                           </div>
-                          <div className="mt-1 flex gap-4 text-sm text-zinc-500">
+                          <div className="mt-1 flex gap-4 text-base text-zinc-500">
                             {doc.mimeType && <span>{doc.mimeType}</span>}
                             {doc.sourceUrl && (
                               <span className="truncate max-w-xs">{doc.sourceUrl}</span>
@@ -220,7 +220,7 @@ export default function KnowledgePage() {
                             {t('knowledge.process')}
                           </Button>
                         )}
-                        <span className="text-sm text-zinc-500">
+                        <span className="text-base text-zinc-500">
                           v{doc.version} · {new Date(doc.createdAt).toLocaleDateString()}
                         </span>
                       </div>

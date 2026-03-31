@@ -18,7 +18,7 @@ function StatusBadge({ status }: { status: string }) {
   };
 
   return (
-    <span className={`rounded-full border px-2 py-0.5 text-xs ${colors[status] || colors.pending}`}>
+    <span className={`rounded-full border px-2 py-0.5 text-base ${colors[status] || colors.pending}`}>
       {status}
     </span>
   );
@@ -35,7 +35,7 @@ function NodeStatusBadge({ status }: { status: string }) {
   };
 
   return (
-    <span className={`rounded-full border px-2 py-0.5 text-xs ${colors[status] || colors.pending}`}>
+    <span className={`rounded-full border px-2 py-0.5 text-base ${colors[status] || colors.pending}`}>
       {status}
     </span>
   );
@@ -133,7 +133,7 @@ export default function RunDetailPage() {
       <div className="mx-auto max-w-4xl">
         <header className="mb-8 flex items-center justify-between">
           <div>
-            <Link href="/runs" className="text-sm text-slate-400 hover:text-white mb-4 inline-block">
+            <Link href="/runs" className="text-base text-slate-400 hover:text-white mb-4 inline-block">
               ← {t('runs.runDetail.backToRuns')}
             </Link>
             <h1 className="text-3xl font-bold flex items-center gap-3">
@@ -145,7 +145,7 @@ export default function RunDetailPage() {
             type="button"
             onClick={() => { setRefreshing(true); loadRun(); }}
             disabled={refreshing}
-            className="flex items-center gap-2 rounded-lg bg-slate-800 px-3 py-2 text-sm text-slate-300 hover:bg-slate-700 disabled:opacity-50"
+            className="flex items-center gap-2 rounded-lg bg-slate-800 px-3 py-2 text-base text-slate-300 hover:bg-slate-700 disabled:opacity-50"
           >
             <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
             {t('runs.runDetail.refresh')}
@@ -153,40 +153,40 @@ export default function RunDetailPage() {
         </header>
 
         <div className="space-y-6">
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-lg">
+          <div className="rounded-2xl border-2 border-slate-800 bg-slate-900/80 p-6 shadow-lg">
             <div className="grid gap-4 md:grid-cols-2">
               <div>
-                <div className="text-sm text-slate-400">{t('runs.runId')}</div>
-                <div className="font-mono text-sm text-slate-300">{run.id}</div>
+                <div className="text-base text-slate-400">{t('runs.runId')}</div>
+                <div className="font-mono text-base text-slate-300">{run.id}</div>
               </div>
               <div>
-                <div className="text-sm text-slate-400">{t('runs.status')}</div>
+                <div className="text-base text-slate-400">{t('runs.status')}</div>
                 <div className="mt-1"><StatusBadge status={run.status} /></div>
               </div>
               <div>
-                <div className="text-sm text-slate-400">{t('runs.runDetail.triggerType')}</div>
+                <div className="text-base text-slate-400">{t('runs.runDetail.triggerType')}</div>
                 <div className="text-slate-300 capitalize">{run.triggerType}</div>
               </div>
               <div>
-                <div className="text-sm text-slate-400">{t('runs.duration')}</div>
+                <div className="text-base text-slate-400">{t('runs.duration')}</div>
                 <div className="text-slate-300">{duration !== null ? `${duration}s` : '-'}</div>
               </div>
               <div>
-                <div className="text-sm text-slate-400">{t('runs.started')}</div>
+                <div className="text-base text-slate-400">{t('runs.started')}</div>
                 <div className="text-slate-300">{startedAt ? startedAt.toLocaleString() : '-'}</div>
               </div>
               <div>
-                <div className="text-sm text-slate-400">{t('runs.runDetail.finished')}</div>
+                <div className="text-base text-slate-400">{t('runs.runDetail.finished')}</div>
                 <div className="text-slate-300">{finishedAt ? finishedAt.toLocaleString() : '-'}</div>
               </div>
               {(run.totalTokens > 0 || run.totalCost > 0) && (
                 <>
                   <div>
-                    <div className="text-sm text-slate-400">{t('runs.runDetail.totalTokens')}</div>
+                    <div className="text-base text-slate-400">{t('runs.runDetail.totalTokens')}</div>
                     <div className="text-slate-300">{run.totalTokens?.toLocaleString() || '-'}</div>
                   </div>
                   <div>
-                    <div className="text-sm text-slate-400">{t('runs.runDetail.totalCost')}</div>
+                    <div className="text-base text-slate-400">{t('runs.runDetail.totalCost')}</div>
                     <div className="text-slate-300">${run.totalCost?.toFixed(6) || '-'}</div>
                   </div>
                 </>
@@ -195,61 +195,61 @@ export default function RunDetailPage() {
           </div>
 
           {run.errorMessage && (
-            <div className="rounded-2xl border border-red-800/50 bg-red-900/20 p-6 shadow-lg">
+            <div className="rounded-2xl border-2 border-red-800/50 bg-red-900/20 p-6 shadow-lg">
               <h2 className="text-lg font-semibold text-red-400">{t('runs.runDetail.error')}</h2>
-              <p className="mt-2 text-sm text-red-300">{run.errorMessage}</p>
+              <p className="mt-2 text-base text-red-300">{run.errorMessage}</p>
             </div>
           )}
 
           {run.outputPayload && Object.keys(run.outputPayload).length > 0 && (
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-lg">
+            <div className="rounded-2xl border-2 border-slate-800 bg-slate-900/80 p-6 shadow-lg">
               <h2 className="text-lg font-semibold text-white">{t('runs.runDetail.output')}</h2>
-              <pre className="mt-3 overflow-x-auto text-xs text-slate-300">
+              <pre className="mt-3 overflow-x-auto text-base text-slate-300">
                 {JSON.stringify(run.outputPayload, null, 2)}
               </pre>
             </div>
           )}
 
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-lg">
+          <div className="rounded-2xl border-2 border-slate-800 bg-slate-900/80 p-6 shadow-lg">
             <h2 className="text-lg font-semibold text-white">{t('runs.runDetail.nodeExecutions')}</h2>
             <div className="mt-4 space-y-3">
               {nodeRuns.length === 0 ? (
-                <p className="text-sm text-slate-400">{t('runs.runDetail.noNodeExecutions')}</p>
+                <p className="text-base text-slate-400">{t('runs.runDetail.noNodeExecutions')}</p>
               ) : (
-                nodeRuns.map((node: any) => (
-                  <div key={node.id} className="rounded-xl border border-slate-700 bg-slate-950/50 p-4">
+                nodeRuns.map((node: any, index: number) => (
+                  <div key={node.id || `node-${index}`} className="rounded-xl border-2 border-slate-700 bg-slate-950/50 p-4">
                     <div className="flex items-center justify-between">
                       <div>
                         <span className="font-medium text-white">{node.nodeKey}</span>
-                        <span className="ml-2 text-xs text-slate-500">({node.nodeType})</span>
+                        <span className="ml-2 text-base text-slate-500">({node.nodeType})</span>
                       </div>
                       <NodeStatusBadge status={node.status} />
                     </div>
                     {node.durationMs && (
-                      <div className="mt-2 text-xs text-slate-500">
+                      <div className="mt-2 text-base text-slate-500">
                         {t('runs.runDetail.durationMs')}: {node.durationMs}ms
                       </div>
                     )}
                     {node.tokenUsageInput !== undefined && node.tokenUsageInput > 0 && (
-                      <div className="mt-1 text-xs text-slate-500">
+                      <div className="mt-1 text-base text-slate-500">
                         {t('runs.runDetail.tokensInOut')}: {node.tokenUsageInput} in / {node.tokenUsageOutput} out
                       </div>
                     )}
                     {node.cost > 0 && (
-                      <div className="mt-1 text-xs text-slate-500">
+                      <div className="mt-1 text-base text-slate-500">
                         {t('runs.runDetail.cost')}: ${node.cost}
                       </div>
                     )}
                     {node.outputPayload && (
                       <details className="mt-2">
-                        <summary className="cursor-pointer text-xs text-slate-500">{t('runs.runDetail.viewOutput')}</summary>
-                        <pre className="mt-2 overflow-x-auto text-xs text-slate-400 bg-slate-900/50 p-2 rounded">
+                        <summary className="cursor-pointer text-base text-slate-500">{t('runs.runDetail.viewOutput')}</summary>
+                        <pre className="mt-2 overflow-x-auto text-base text-slate-400 bg-slate-900/50 p-2 rounded">
                           {JSON.stringify(node.outputPayload, null, 2)}
                         </pre>
                       </details>
                     )}
                     {node.errorMessage && (
-                      <p className="mt-2 text-xs text-red-400">{node.errorMessage}</p>
+                      <p className="mt-2 text-base text-red-400">{node.errorMessage}</p>
                     )}
                   </div>
                 ))

@@ -79,7 +79,7 @@ export default function RunsPage() {
           {error && (
             <Card className="mb-6 p-4 flex items-center gap-3 border-red-500/30 bg-red-500/10" glow glowColor="#ff4081">
               <AlertCircle className="h-5 w-5 text-red-400 flex-shrink-0" aria-hidden="true" />
-              <span className="text-red-300 text-sm flex-1">{error}</span>
+              <span className="text-red-300 text-base flex-1">{error}</span>
               <Button variant="secondary" size="sm" icon={<RefreshCw className="h-4 w-4" />} onClick={loadRuns}>
                 {t('runs.retry')}
               </Button>
@@ -103,7 +103,7 @@ export default function RunsPage() {
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
-                      <tr className="border-b border-zinc-800 text-left text-sm text-zinc-400">
+                      <tr className="border-b border-zinc-800 text-left text-base text-zinc-400">
                         <th className="pb-3 font-medium">{t('runs.runId')}</th>
                         <th className="pb-3 font-medium">{t('runs.status')}</th>
                         <th className="pb-3 font-medium">{t('runs.trigger')}</th>
@@ -120,9 +120,9 @@ export default function RunsPage() {
                           : null;
 
                         return (
-                          <tr key={run.id} className="text-sm hover:bg-zinc-800/30 cursor-pointer">
+                          <tr key={run.id} className="text-base hover:bg-zinc-800/30 cursor-pointer">
                             <td className="py-3">
-                              <Link href={`/runs/${run.id}`} className="font-mono text-xs transition-colors hover:text-cyan-400" style={{ color: '#00e5ff' }}>
+                              <Link href={`/runs/${run.id}`} className="font-mono text-base transition-colors hover:text-cyan-400" style={{ color: '#00e5ff' }}>
                                 {run.id.slice(0, 8)}...
                               </Link>
                             </td>

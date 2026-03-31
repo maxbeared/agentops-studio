@@ -54,7 +54,7 @@ export default function ProjectsPage() {
           {error && (
             <Card className="mb-6 p-4 flex items-center gap-3 border-red-500/30 bg-red-500/10" glow glowColor="#ff4081">
               <AlertCircle className="h-5 w-5 text-red-400 flex-shrink-0" aria-hidden="true" />
-              <span className="text-red-300 text-sm flex-1">{error}</span>
+              <span className="text-red-300 text-base flex-1">{error}</span>
               <Button variant="secondary" size="sm" icon={<RefreshCw className="h-4 w-4" />} onClick={loadProjects}>
                 {t('common.retry')}
               </Button>
@@ -74,13 +74,13 @@ export default function ProjectsPage() {
                   {projects.map((project) => (
                     <div
                       key={project.id}
-                      className="flex items-center justify-between rounded-xl border border-zinc-800/50 bg-zinc-950/70 p-4 transition-all hover:border-zinc-700/50"
+                      className="flex items-center justify-between rounded-xl border-2 border-zinc-600/80 bg-zinc-950/70 p-4 transition-all hover:border-cyan-500/50"
                     >
                       <div>
                         <h3 className="font-medium text-zinc-100">{project.name}</h3>
-                        <p className="mt-1 text-sm text-zinc-400">{project.description || t('projects.noDescription')}</p>
+                        <p className="mt-1 text-base text-zinc-400">{project.description || t('projects.noDescription')}</p>
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-zinc-500">
+                      <div className="flex items-center gap-2 text-base text-zinc-500">
                         <Clock className="h-4 w-4" aria-hidden="true" />
                         {new Date(project.createdAt).toLocaleDateString()}
                       </div>

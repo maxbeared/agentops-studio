@@ -101,7 +101,7 @@ export default function ReviewsPage() {
                   {tasks.map((task) => (
                     <div
                       key={task.id}
-                      className="rounded-xl border border-zinc-800/50 bg-zinc-950/70 p-4 transition-all hover:border-zinc-700/50"
+                      className="rounded-xl border-2 border-zinc-600/80 bg-zinc-950/70 p-4 transition-all hover:border-cyan-500/50"
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
@@ -110,12 +110,12 @@ export default function ReviewsPage() {
                         </div>
                         <div className="flex items-center gap-4">
                           {task.assignee && (
-                            <div className="flex items-center gap-1.5 text-xs text-zinc-500">
+                            <div className="flex items-center gap-1.5 text-base text-zinc-500">
                               <User className="h-3 w-3" />
                               {task.assignee.name}
                             </div>
                           )}
-                          <span className="text-sm text-zinc-500">
+                          <span className="text-base text-zinc-500">
                             {new Date(task.createdAt).toLocaleString()}
                           </span>
                         </div>
@@ -123,11 +123,11 @@ export default function ReviewsPage() {
 
                       {task.nodeRun && (
                         <div className="mt-3 rounded-lg bg-zinc-900/50 p-3">
-                          <div className="text-xs text-zinc-500">
+                          <div className="text-base text-zinc-500">
                             {t('reviews.node')}: {task.nodeRun.nodeKey} ({task.nodeRun.nodeType})
                           </div>
                           {task.nodeRun.outputPayload && (
-                            <pre className="mt-2 overflow-x-auto text-xs text-zinc-400">
+                            <pre className="mt-2 overflow-x-auto text-base text-zinc-400">
                               {JSON.stringify(task.nodeRun.outputPayload, null, 2).slice(0, 500)}
                               {JSON.stringify(task.nodeRun.outputPayload).length > 500 ? '...' : ''}
                             </pre>
@@ -137,8 +137,8 @@ export default function ReviewsPage() {
 
                       {task.reviewComment && (
                         <div className="mt-3 rounded-lg bg-zinc-800/50 p-3">
-                          <div className="text-xs text-zinc-500 mb-1">{t('reviews.reviewComment')}</div>
-                          <p className="text-sm text-zinc-300">{task.reviewComment}</p>
+                          <div className="text-base text-zinc-500 mb-1">{t('reviews.reviewComment')}</div>
+                          <p className="text-base text-zinc-300">{task.reviewComment}</p>
                         </div>
                       )}
 
@@ -151,7 +151,7 @@ export default function ReviewsPage() {
                                 onChange={(e) => setComment(e.target.value)}
                                 placeholder={t('reviews.addComment')}
                                 rows={2}
-                                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white placeholder-zinc-500 resize-none focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                                className="w-full rounded-lg border-2 border-zinc-700 bg-zinc-800 px-3 py-2 text-base text-white placeholder-zinc-500 resize-none focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
                               />
                               <div className="flex gap-2">
                                 <Button

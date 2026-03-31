@@ -32,11 +32,11 @@ interface DashboardStats {
 function StatCard({ title, value, hint, icon: Icon, trend, color }: { title: string; value: string; hint: string; icon: React.ElementType; trend?: string; color: string }) {
   return (
     <div
-      className="rounded-xl border border-zinc-800/50 bg-zinc-900/50 p-5 transition-all hover:border-zinc-700/50"
+      className="rounded-xl border-2 border-zinc-600/80 bg-zinc-900/50 p-5"
       style={{ boxShadow: `0 0 30px ${color}08` }}
     >
       <div className="flex items-start justify-between">
-        <div className="text-sm text-zinc-400">{title}</div>
+        <div className="text-base text-zinc-400">{title}</div>
         <div
           className="rounded-lg p-2"
           style={{ background: `${color}15` }}
@@ -45,7 +45,7 @@ function StatCard({ title, value, hint, icon: Icon, trend, color }: { title: str
         </div>
       </div>
       <div className="mt-2 text-3xl font-semibold text-white">{value}</div>
-      <div className="mt-1 flex items-center gap-2 text-xs text-zinc-500">
+      <div className="mt-1 flex items-center gap-2 text-base text-zinc-400">
         {hint}
         {trend && (
           <span className="flex items-center gap-0.5 text-emerald-400">
@@ -60,16 +60,16 @@ function StatCard({ title, value, hint, icon: Icon, trend, color }: { title: str
 
 function SectionCard({ title, children, action }: { title: string; children: React.ReactNode; action?: { label: string; href: string } }) {
   return (
-    <Card className="p-6">
-      <div className="mb-4 flex items-center justify-between">
+    <Card className="p-6 h-full flex flex-col">
+      <div className="mb-4 flex items-center justify-between shrink-0">
         <h2 className="text-lg font-semibold text-zinc-100">{title}</h2>
         {action && (
-          <Link href={action.href} className="text-sm transition-colors hover:text-cyan-400" style={{ color: '#00e5ff' }}>
+          <Link href={action.href} className="text-base transition-colors hover:text-cyan-400" style={{ color: '#00e5ff' }}>
             {action.label} →
           </Link>
         )}
       </div>
-      <div>{children}</div>
+      <div className="flex-1 min-h-0">{children}</div>
     </Card>
   );
 }
@@ -78,13 +78,13 @@ function QuickAction({ label, href, icon: Icon, color }: { label: string; href: 
   return (
     <Link
       href={href}
-      className="flex items-center gap-3 rounded-xl border border-zinc-800/50 bg-zinc-950/70 p-4 transition-all hover:border-zinc-700/50"
+      className="flex items-center gap-3 rounded-xl border-2 border-zinc-600/80 bg-zinc-950/70 p-4 transition-all hover:border-cyan-500/50"
       style={{ boxShadow: `0 0 20px ${color}08` }}
     >
       <div className="rounded-lg p-2.5" style={{ background: `${color}15` }}>
         <Icon className="h-5 w-5" style={{ color }} aria-hidden="true" />
       </div>
-      <div className="text-sm font-medium text-zinc-300">{label}</div>
+      <div className="text-base font-medium text-zinc-300">{label}</div>
     </Link>
   );
 }
@@ -165,7 +165,7 @@ export default function DashboardPage() {
             gradient
           >
             <div className="flex items-center gap-3">
-              <span className="flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-400">
+              <span className="flex items-center gap-1.5 rounded-full border-2 border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-base text-emerald-400">
                 <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
                 {t('dashboard.systemOnline')}
               </span>
@@ -215,10 +215,10 @@ export default function DashboardPage() {
           </section>
 
           {/* Charts and Lists */}
-          <section className="grid gap-6 lg:grid-cols-[1fr_1fr]">
+          <section className="grid gap-6 lg:grid-cols-[1fr_1fr] items-stretch">
             <RevealSection>
               <SectionCard title={t('dashboard.executionTrend')} action={{ label: t('dashboard.viewAll'), href: '/runs' }}>
-                <div className="h-64">
+                <div className="h-full min-h-[200px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={stats.runsOverTime || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                       <defs>
@@ -285,7 +285,7 @@ export default function DashboardPage() {
                       <Link
                         key={run.id}
                         href={`/runs/${run.id}`}
-                        className="flex items-center justify-between rounded-lg border border-zinc-800/50 bg-zinc-950/50 p-3 transition-all hover:border-zinc-700/50 hover:bg-zinc-900/50"
+                        className="flex items-center justify-between rounded-lg border-2 border-zinc-600/80 bg-zinc-950/50 p-3 transition-all hover:border-cyan-500/50 hover:bg-zinc-900/50"
                       >
                         <div className="flex items-center gap-3">
                           <div className={`h-2 w-2 rounded-full ${
@@ -295,8 +295,8 @@ export default function DashboardPage() {
                             'bg-yellow-400'
                           }`} aria-hidden="true" />
                           <div>
-                            <div className="text-sm font-medium text-white">{run.workflowName}</div>
-                            <div className="text-xs text-zinc-500">
+                            <div className="text-base font-medium text-white">{run.workflowName}</div>
+                            <div className="text-base text-zinc-500">
                               {new Date(run.createdAt).toLocaleString()}
                             </div>
                           </div>
@@ -316,23 +316,24 @@ export default function DashboardPage() {
               <SectionCard title={t('dashboard.coreModules')}>
                 <div className="grid gap-4 md:grid-cols-2">
                   {[
-                    [t('dashboard.features.knowledgeBase.title'), t('dashboard.features.knowledgeBase.desc'), '#ea80fc'],
-                    [t('dashboard.features.workflow.title'), t('dashboard.features.workflow.desc'), '#00e5ff'],
-                    [t('dashboard.features.executionEngine.title'), t('dashboard.features.executionEngine.desc'), '#69f0ae'],
-                    [t('dashboard.features.humanReview.title'), t('dashboard.features.humanReview.desc'), '#ff4081'],
-                    [t('dashboard.features.deliveryIntegration.title'), t('dashboard.features.deliveryIntegration.desc'), '#40c4ff'],
-                    [t('dashboard.features.analytics.title'), t('dashboard.features.analytics.desc'), '#ffca28'],
-                  ].map(([title, desc, color]) => (
-                    <div
+                    [t('dashboard.features.knowledgeBase.title'), t('dashboard.features.knowledgeBase.desc'), '#ea80fc', '/knowledge'],
+                    [t('dashboard.features.workflow.title'), t('dashboard.features.workflow.desc'), '#00e5ff', '/workflows'],
+                    [t('dashboard.features.executionEngine.title'), t('dashboard.features.executionEngine.desc'), '#69f0ae', '/runs'],
+                    [t('dashboard.features.humanReview.title'), t('dashboard.features.humanReview.desc'), '#ff4081', '/reviews'],
+                    [t('dashboard.features.deliveryIntegration.title'), t('dashboard.features.deliveryIntegration.desc'), '#40c4ff', '/projects'],
+                    [t('dashboard.features.analytics.title'), t('dashboard.features.analytics.desc'), '#ffca28', '/dashboard'],
+                  ].map(([title, desc, color, href]) => (
+                    <Link
                       key={title as string}
-                      className="rounded-xl border border-zinc-800/50 bg-zinc-950/70 p-4 transition-all hover:border-zinc-700/50"
+                      href={href as string}
+                      className="rounded-xl border-2 border-zinc-600/80 bg-zinc-950/70 p-4 transition-all hover:border-cyan-500/50"
                       style={{ boxShadow: `0 0 20px ${color}08` }}
                     >
                       <div className="font-medium" style={{ color }}>
                         {title}
                       </div>
-                      <div className="mt-2 text-sm text-zinc-400">{desc}</div>
-                    </div>
+                      <div className="mt-2 text-base text-zinc-400">{desc}</div>
+                    </Link>
                   ))}
                 </div>
               </SectionCard>
@@ -342,7 +343,7 @@ export default function DashboardPage() {
               <SectionCard title={t('dashboard.pendingReviews')}>
                 {stats.pendingReviews > 0 ? (
                   <div
-                    className="flex items-center gap-4 rounded-xl border border-pink-500/30 bg-pink-500/10 p-4"
+                    className="flex items-center gap-4 rounded-xl border-2 border-pink-500/30 bg-pink-500/10 p-4"
                     style={{ boxShadow: '0 0 30px rgba(255,64,129,0.1)' }}
                   >
                     <div className="rounded-full bg-pink-500/20 p-3">
@@ -350,7 +351,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="flex-1">
                       <div className="text-2xl font-semibold text-white">{stats.pendingReviews}</div>
-                      <div className="text-sm text-zinc-400">{t('dashboard.tasksAwaitingReview')}</div>
+                      <div className="text-base text-zinc-400">{t('dashboard.tasksAwaitingReview')}</div>
                     </div>
                     <Link href="/reviews">
                       <Button variant="primary" size="sm">{t('dashboard.quickActions.humanReview')}</Button>

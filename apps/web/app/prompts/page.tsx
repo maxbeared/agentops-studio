@@ -135,37 +135,37 @@ export default function PromptsPage() {
                 </h2>
                 <form onSubmit={showEdit ? handleUpdate : handleCreate} className="space-y-4">
                   <div>
-                    <label className="block text-sm text-zinc-400 mb-1">{t('prompts.name')}</label>
+                    <label className="block text-base text-zinc-400 mb-1">{t('prompts.name')}</label>
                     <input
                       type="text"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       placeholder={t('prompts.namePlaceholder')}
                       required
-                      className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white placeholder-zinc-500 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                      className="w-full rounded-lg border-2 border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white placeholder-zinc-500 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm text-zinc-400 mb-1">{t('prompts.description')}</label>
+                    <label className="block text-base text-zinc-400 mb-1">{t('prompts.description')}</label>
                     <input
                       type="text"
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                       placeholder={t('prompts.descriptionPlaceholder')}
-                      className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white placeholder-zinc-500 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                      className="w-full rounded-lg border-2 border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white placeholder-zinc-500 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm text-zinc-400 mb-1">{t('prompts.template')}</label>
+                    <label className="block text-base text-zinc-400 mb-1">{t('prompts.template')}</label>
                     <textarea
                       value={formData.template}
                       onChange={(e) => setFormData({ ...formData, template: e.target.value })}
                       placeholder={t('prompts.templatePlaceholder')}
                       rows={8}
                       required
-                      className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white placeholder-zinc-500 font-mono text-sm resize-none focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                      className="w-full rounded-lg border-2 border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white placeholder-zinc-500 font-mono text-base resize-none focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
                     />
-                    <p className="mt-1 text-xs text-zinc-500">{t('prompts.templateVariables')}</p>
+                    <p className="mt-1 text-base text-zinc-500">{t('prompts.templateVariables')}</p>
                   </div>
                   <div className="flex gap-2">
                     <Button type="submit" variant="primary" loading={saving}>
@@ -201,19 +201,19 @@ export default function PromptsPage() {
                   {prompts.map((prompt) => (
                     <div
                       key={prompt.id}
-                      className="group rounded-xl border border-zinc-800/50 bg-zinc-950/70 p-4 transition-all hover:border-zinc-700/50"
+                      className="group rounded-xl border-2 border-zinc-600/80 bg-zinc-950/70 p-4 transition-all hover:border-cyan-500/50"
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <h3 className="font-medium text-zinc-100">{prompt.name}</h3>
-                            <span className="text-xs text-zinc-500">v{prompt.version}</span>
+                            <span className="text-base text-zinc-500">v{prompt.version}</span>
                           </div>
                           {prompt.description && (
-                            <p className="mt-1 text-sm text-zinc-400">{prompt.description}</p>
+                            <p className="mt-1 text-base text-zinc-400">{prompt.description}</p>
                           )}
                           <div className="mt-3 rounded bg-zinc-900/80 p-3">
-                            <pre className="text-xs text-zinc-400 whitespace-pre-wrap font-mono">
+                            <pre className="text-base text-zinc-400 whitespace-pre-wrap font-mono">
                               {prompt.template.slice(0, 200)}
                               {prompt.template.length > 200 ? '...' : ''}
                             </pre>

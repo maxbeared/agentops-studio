@@ -48,7 +48,7 @@ export function RevealSection({ children, className = '', delay = 0 }: RevealSec
   return (
     <div
       ref={ref}
-      className={`transition-all duration-700 ${className}`}
+      className={`transition-all duration-700 h-full ${className}`}
       style={{
         opacity: isVisible ? 1 : 0,
         transform: isVisible ? 'translateY(0)' : 'translateY(30px)',

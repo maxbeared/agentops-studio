@@ -111,7 +111,7 @@ export default function WorkflowsPage() {
 
           {(error || runError) && (
             <Card className="mb-6 p-4 border-red-500/30 bg-red-500/10" glow glowColor="#ff4081">
-              <span className="text-sm text-red-400">{error || runError}</span>
+              <span className="text-base text-red-400">{error || runError}</span>
             </Card>
           )}
 
@@ -121,24 +121,24 @@ export default function WorkflowsPage() {
                 <h2 className="mb-4 text-lg font-medium text-zinc-100">{t('workflows.createTitle')}</h2>
                 <form onSubmit={handleCreate} className="space-y-4">
                   <div>
-                    <label className="block text-sm text-zinc-400 mb-1">{t('workflows.name')}</label>
+                    <label className="block text-base text-zinc-400 mb-1">{t('workflows.name')}</label>
                     <input
                       type="text"
                       value={newName}
                       onChange={(e) => setNewName(e.target.value)}
                       placeholder="My Workflow"
-                      className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white placeholder-zinc-500 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                      className="w-full rounded-lg border-2 border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white placeholder-zinc-500 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-sm text-zinc-400 mb-1">{t('workflows.descriptionOptional')}</label>
+                    <label className="block text-base text-zinc-400 mb-1">{t('workflows.descriptionOptional')}</label>
                     <input
                       type="text"
                       value={newDesc}
                       onChange={(e) => setNewDesc(e.target.value)}
                       placeholder="What does this workflow do?"
-                      className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white placeholder-zinc-500 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                      className="w-full rounded-lg border-2 border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white placeholder-zinc-500 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
                     />
                   </div>
                   <div className="flex gap-2">
@@ -167,7 +167,7 @@ export default function WorkflowsPage() {
                   {workflows.map((workflow) => (
                     <div
                       key={workflow.id}
-                      className="group flex items-center justify-between rounded-xl border border-zinc-800/50 bg-zinc-950/70 p-4 transition-all hover:border-zinc-700/50"
+                      className="group flex items-center justify-between rounded-xl border-2 border-zinc-600/80 bg-zinc-950/70 p-4 transition-all hover:border-cyan-500/50"
                     >
                       <div className="flex-1">
                         <div className="flex items-center gap-3">
@@ -179,8 +179,8 @@ export default function WorkflowsPage() {
                             variant={workflow.status === 'published' ? 'success' : workflow.status === 'draft' ? 'default' : 'warning'}
                           />
                         </div>
-                        <p className="mt-1 text-sm text-zinc-400">{workflow.description || t('workflows.noDescription')}</p>
-                        <div className="mt-2 flex items-center gap-4 text-xs text-zinc-500">
+                        <p className="mt-1 text-base text-zinc-400">{workflow.description || t('workflows.noDescription')}</p>
+                        <div className="mt-2 flex items-center gap-4 text-base text-zinc-500">
                           <span className="flex items-center gap-1">
                             <Clock className="h-3 w-3" />
                             {new Date(workflow.createdAt).toLocaleDateString()}
@@ -193,7 +193,7 @@ export default function WorkflowsPage() {
                       <div className="flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
                         <Link
                           href={`/workflows/${workflow.id}`}
-                          className="flex items-center gap-1.5 rounded bg-cyan-500/10 px-3 py-1.5 text-xs text-cyan-400 transition-all hover:bg-cyan-500/20 border border-cyan-500/30"
+                          className="flex items-center gap-1.5 rounded bg-cyan-500/10 px-3 py-1.5 text-base text-cyan-400 transition-all hover:bg-cyan-500/20 border-2 border-cyan-500/30"
                         >
                           <Edit2 className="h-3 w-3" />
                           {t('workflows.edit')}
