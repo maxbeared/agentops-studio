@@ -170,10 +170,11 @@ agentops-studio/
 | `providers.tsx` | 组合 Provider（Locale + Auth） |
 | `auth-check.tsx` | 路由守卫（未登录重定向） |
 | `workflow/editor-store.ts` | Zustand 工作流编辑器状态（直接同步ReactFlow） |
-| `workflow/nodes.tsx` | React Flow 自定义节点（7种类型：start/llm/retrieval/condition/review/webhook/output） |
-| `workflow/node-config-panel.tsx` | 节点配置面板（中英文双语支持） |
-| `workflow/toolbar.tsx` | 节点添加工具栏（拖拽+点击添加） |
-| `workflow/workflow-editor.tsx` | ReactFlow画布组件（Store直接同步，无中间状态层） |
+| `workflow/nodes.tsx` | React Flow 自定义节点（15种类型：start/llm/retrieval/condition/review/webhook/output/input/text/loop/delay/transform/code/merge/errorHandler，横向连接） |
+| `workflow/node-config-panel.tsx` | 节点配置面板（右侧边栏，仅选中节点时显示，自动隐藏） |
+| `workflow/toolbar.tsx` | 节点添加工具栏（14种节点类型按钮直接展示，可换行） |
+| `workflow/workflow-editor.tsx` | ReactFlow画布组件（验证状态栏、边选中删除按钮） |
+| `workflow/validation.ts` | 工作流验证规则引擎（7条规则：唯一开始/可达性/条件分支等） |
 
 ### 布局系统 (关键修复)
 
@@ -305,13 +306,21 @@ body { height: 100%; overflow: hidden; }
 
 | 节点类型 | Executor | 功能 |
 |----------|----------|------|
-| `start` | StartNodeExecutor | 初始化输入 |
+| `start` | StartNodeExecutor | 初始化输入（不可删除，自动创建） |
 | `llm` | LLMNodeExecutor | AI 模型调用（自动选择 OpenAI/Anthropic） |
 | `retrieval` | RetrievalNodeExecutor | 知识检索 |
 | `condition` | ConditionNodeExecutor | 条件分支（支持动态条件） |
 | `review` | ReviewNodeExecutor | 人工审核（返回 waiting_review） |
 | `webhook` | WebhookNodeExecutor | HTTP 请求 |
 | `output` | OutputNodeExecutor | 输出结果 |
+| `input` | InputNodeExecutor | 输入节点（定义输入schema） |
+| `text` | TextNodeExecutor | 文本处理（trim/upper/lower/split/replace等） |
+| `loop` | LoopNodeExecutor | 循环节点（支持break/continue） |
+| `delay` | DelayNodeExecutor | 延时节点（支持毫秒/秒/分钟/小时） |
+| `transform` | TransformNodeExecutor | 数据转换（模板渲染） |
+| `code` | CodeNodeExecutor | 代码执行（沙箱JS，支持loop控制） |
+| `merge` | MergeNodeExecutor | 合并节点（all/first/last策略） |
+| `errorHandler` | ErrorHandlerNodeExecutor | 错误处理节点 |
 
 ### 执行流程
 1. 从 `start` 节点开始递归执行
@@ -505,6 +514,16 @@ Password: demo123456
 - [x] **节点配置面板中文化** - 所有节点类型配置项支持中英文双语显示
 - [x] **布局溢出修复** - Navbar改用CSS变量动态高度，全链路overflow:hidden解决滚动条问题
 - [x] **Projects页面CRUD** - 完善项目管理界面与功能
+- [x] **工作流编辑器大改版** - 布局重构，NodeConfigPanel右侧边栏，验证面板内嵌工具栏
+- [x] **工具栏节点按钮化** - 14种节点类型直接展示，无需下拉菜单，可换行
+- [x] **节点横向连接** - 所有节点改为Left输入/Right输出方向
+- [x] **边选中删除** - 选中边显示中点删除按钮，hover/选中高亮效果
+- [x] **工作流验证系统** - 7条验证规则（唯一开始/可达性/条件分支/孤立节点等）
+- [x] **8种新节点类型** - input/text/loop/delay/transform/code/merge/errorHandler + 对应Executor
+- [x] **Start节点保护** - 不可删除，标签随语言动态切换
+- [x] **Undo/Redo历史** - Ctrl+Z/Y 快捷键，50步历史记录
+- [x] **键盘Delete删除节点** - 选中节点时按Delete删除
+- [x] **中英文国际化完善** - 验证信息/节点配置全部中英双语
 
 ### ⚠️ 已知限制
 - `knowledge_chunks.embedding` 存储为 JSON 序列化的 float array（text 类型），非 pgvector

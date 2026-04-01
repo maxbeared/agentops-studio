@@ -8,6 +8,14 @@ import {
   ReviewNodeExecutor,
   WebhookNodeExecutor,
   ConditionNodeExecutor,
+  InputNodeExecutor,
+  TextNodeExecutor,
+  LoopNodeExecutor,
+  DelayNodeExecutor,
+  TransformNodeExecutor,
+  CodeNodeExecutor,
+  MergeNodeExecutor,
+  ErrorHandlerNodeExecutor,
 } from './executors';
 
 // Retrieval service interface for knowledge base queries
@@ -29,6 +37,14 @@ export class WorkflowEngine {
     this.executors.set('review', new ReviewNodeExecutor());
     this.executors.set('webhook', new WebhookNodeExecutor());
     this.executors.set('condition', new ConditionNodeExecutor());
+    this.executors.set('input', new InputNodeExecutor());
+    this.executors.set('text', new TextNodeExecutor());
+    this.executors.set('loop', new LoopNodeExecutor());
+    this.executors.set('delay', new DelayNodeExecutor());
+    this.executors.set('transform', new TransformNodeExecutor());
+    this.executors.set('code', new CodeNodeExecutor());
+    this.executors.set('merge', new MergeNodeExecutor());
+    this.executors.set('errorHandler', new ErrorHandlerNodeExecutor());
   }
 
   setNodeExecutionListener(listener: NodeExecutionListener | undefined) {

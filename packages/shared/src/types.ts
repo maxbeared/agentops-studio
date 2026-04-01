@@ -71,7 +71,7 @@ export type WorkflowDefinition = {
 
 export type WorkflowNode = {
   id: string;
-  type: 'start' | 'retrieval' | 'llm' | 'condition' | 'review' | 'webhook' | 'output';
+  type: 'start' | 'retrieval' | 'llm' | 'condition' | 'review' | 'webhook' | 'output' | 'input' | 'loop' | 'delay' | 'transform' | 'code' | 'merge' | 'errorHandler' | 'text';
   name: string;
   config: Record<string, any>;
   position: { x: number; y: number };

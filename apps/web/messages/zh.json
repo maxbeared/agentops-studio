@@ -372,7 +372,10 @@
       "reset": "重置",
       "zoomIn": "放大",
       "zoomOut": "缩小",
-      "fitView": "适应视图"
+      "fitView": "适应视图",
+      "addNode": "添加节点",
+      "searchNodes": "搜索节点...",
+      "noNodesFound": "未找到节点"
     },
     "nodes": {
       "start": "开始",
@@ -384,7 +387,15 @@
       "review": "审核",
       "humanReview": "人工审核",
       "webhook": "Webhook",
-      "output": "输出"
+      "output": "输出",
+      "input": "输入",
+      "text": "文本",
+      "loop": "循环",
+      "delay": "延时",
+      "transform": "转换",
+      "code": "代码",
+      "merge": "合并",
+      "errorHandler": "错误处理"
     },
     "nodeConfig": {
       "name": "节点名称",
@@ -412,7 +423,29 @@
       "varInput": "工作流输入",
       "varPrev": "上一节点输出",
       "varOutputs": "所有输出",
-      "varState": "当前状态"
+      "varState": "当前状态",
+      "inputFields": "输入字段",
+      "addField": "+ 添加字段",
+      "operation": "操作",
+      "value": "值",
+      "items": "循环项目",
+      "maxIterations": "最大循环次数",
+      "loopHint": "使用 {{loop.item}} 获取当前项，{{loop.index}} 获取索引",
+      "duration": "持续时间",
+      "unit": "单位",
+      "milliseconds": "毫秒",
+      "seconds": "秒",
+      "minutes": "分钟",
+      "hours": "小时",
+      "language": "语言",
+      "code": "代码",
+      "strategy": "合并策略",
+      "strategyAll": "全部（收集所有结果）",
+      "strategyFirst": "第一个（使用第一个结果）",
+      "strategyLast": "最后一个（使用最后结果）",
+      "mergeHint": "全部：返回所有输出数组，第一个/最后一个：使用特定结果",
+      "fallbackOutput": "兜底输出",
+      "captureError": "捕获错误信息"
     },
     "status": {
       "draft": "草稿",
@@ -429,7 +462,20 @@
       "publishFailed": "发布工作流失败",
       "runFailed": "运行工作流失败",
       "publishFirst": "请先发布工作流再运行",
-      "unsavedChanges": "未保存的更改"
+      "unsavedChanges": "未保存的更改",
+      "validationFailed": "请先修复验证错误后再保存"
+    },
+    "validation": {
+      "errors": "验证错误",
+      "warnings": "警告",
+      "noStart": "工作流必须有一个开始节点",
+      "multipleStarts": "工作流只能有一个开始节点",
+      "startNoOutgoing": "开始节点必须连接到其他节点",
+      "unreachableNode": "节点未连接到工作流",
+      "conditionIncomplete": "条件节点必须同时有是/否两条分支",
+      "orphanNode": "节点未连接到任何其他节点",
+      "mergeIncomplete": "合并节点需要至少2条输入连接",
+      "outputAfterStart": "输出节点紧接在开始节点后可能无法获取有意义的结果"
     }
   }
 }

@@ -354,7 +354,10 @@
       "reset": "Reset",
       "zoomIn": "Zoom In",
       "zoomOut": "Zoom Out",
-      "fitView": "Fit View"
+      "fitView": "Fit View",
+      "addNode": "Add Node",
+      "searchNodes": "Search nodes...",
+      "noNodesFound": "No nodes found"
     },
     "nodes": {
       "start": "Start",
@@ -366,7 +369,15 @@
       "review": "Review",
       "humanReview": "Human Review",
       "webhook": "Webhook",
-      "output": "Output"
+      "output": "Output",
+      "input": "Input",
+      "text": "Text",
+      "loop": "Loop",
+      "delay": "Delay",
+      "transform": "Transform",
+      "code": "Code",
+      "merge": "Merge",
+      "errorHandler": "Error Handler"
     },
     "nodeConfig": {
       "name": "Node Name",
@@ -394,7 +405,29 @@
       "varInput": "workflow input",
       "varPrev": "previous node output",
       "varOutputs": "all outputs",
-      "varState": "current state"
+      "varState": "current state",
+      "inputFields": "Input Fields",
+      "addField": "+ Add Field",
+      "operation": "Operation",
+      "value": "Value",
+      "items": "Loop Items",
+      "maxIterations": "Max Iterations",
+      "loopHint": "Use {{loop.item}} for current item, {{loop.index}} for index",
+      "duration": "Duration",
+      "unit": "Unit",
+      "milliseconds": "Milliseconds",
+      "seconds": "Seconds",
+      "minutes": "Minutes",
+      "hours": "Hours",
+      "language": "Language",
+      "code": "Code",
+      "strategy": "Merge Strategy",
+      "strategyAll": "All (collect all)",
+      "strategyFirst": "First (use first result)",
+      "strategyLast": "Last (use last result)",
+      "mergeHint": "all: returns array of all outputs, first/last: use specific result",
+      "fallbackOutput": "Fallback Output",
+      "captureError": "Capture error message"
     },
     "workflowEditor": {
       "loading": "Loading workflow...",
@@ -406,7 +439,20 @@
       "publishFailed": "Failed to publish workflow",
       "runFailed": "Failed to run workflow",
       "publishFirst": "Please publish the workflow before running",
-      "unsavedChanges": "Unsaved changes"
+      "unsavedChanges": "Unsaved changes",
+      "validationFailed": "Please fix validation errors before saving"
+    },
+    "validation": {
+      "errors": "Validation Errors",
+      "warnings": "Warnings",
+      "noStart": "Workflow must have a Start node",
+      "multipleStarts": "Workflow can only have one Start node",
+      "startNoOutgoing": "Start node must connect to another node",
+      "unreachableNode": "Node is not connected to the workflow",
+      "conditionIncomplete": "Condition must have both Yes and No branches",
+      "orphanNode": "Node is not connected to any other node",
+      "mergeIncomplete": "Merge node needs at least 2 incoming connections",
+      "outputAfterStart": "Output directly after Start may not capture meaningful results"
     },
     "status": {
       "draft": "draft",

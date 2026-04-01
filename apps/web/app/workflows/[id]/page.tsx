@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { ArrowLeft, AlertCircle } from 'lucide-react';
 import { api } from '../../../lib/api';
 import { useWorkflowEditorStore, EditorNode, EditorEdge } from '../../../components/workflow';
-import { WorkflowEditor, EditorToolbar, NodeConfigPanel } from '../../../components/workflow';
+import { WorkflowEditor, EditorToolbar } from '../../../components/workflow';
 import { useTranslation } from '../../../contexts/locale-context';
 import { AuthCheck } from '../../../components/auth-check';
 
@@ -30,7 +30,7 @@ function convertApiToEditorEdges(edges: any[]): EditorEdge[] {
     target: e.target,
     sourceHandle: e.sourceHandle,
     targetHandle: e.targetHandle,
-    type: 'default',
+    type: 'deletable',
   }));
 }
 
@@ -55,7 +55,7 @@ function WorkflowEditorContent() {
   const [isSaving, setIsSaving] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
 
-  const { nodes, edges, initWorkflow, isDirty, workflowName } = useWorkflowEditorStore();
+  const { nodes, edges, initWorkflow, isDirty, workflowName, validationResult } = useWorkflowEditorStore();
 
   // Store ref to track if we've loaded
   const hasLoadedRef = useRef(false);
@@ -81,7 +81,14 @@ function WorkflowEditorContent() {
   }, [workflowId, initWorkflow]);
 
   const handleSave = useCallback(async () => {
+    // Check validation before saving
+    if (validationResult && !validationResult.valid) {
+      setError(t('editor.workflowEditor.validationFailed'));
+      return;
+    }
+
     setIsSaving(true);
+    setError(null);
     try {
       const definition = {
         nodes: convertEditorToApiNodes(nodes),
@@ -94,11 +101,15 @@ function WorkflowEditorContent() {
     } finally {
       setIsSaving(false);
     }
-  }, [workflowId, nodes, edges, t]);
+  }, [workflowId, nodes, edges, t, validationResult]);
 
   const handleRun = useCallback(async () => {
     if (isDirty) {
       setError(t('editor.workflowEditor.publishFirst'));
+      return;
+    }
+    if (validationResult && !validationResult.valid) {
+      setError(t('editor.workflowEditor.validationFailed'));
       return;
     }
     setError(null);
@@ -119,7 +130,7 @@ function WorkflowEditorContent() {
     } finally {
       setIsRunning(false);
     }
-  }, [workflowId, isDirty, router, t]);
+  }, [workflowId, isDirty, router, t, validationResult]);
 
   if (loading) {
     return (
@@ -172,8 +183,6 @@ function WorkflowEditorContent() {
       <div className="flex-1 min-h-0 overflow-hidden">
         <WorkflowEditor />
       </div>
-
-      <NodeConfigPanel />
     </div>
   );
 }

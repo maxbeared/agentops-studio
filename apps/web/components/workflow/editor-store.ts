@@ -1,14 +1,20 @@
 import { create } from 'zustand';
 import type { Node, Edge, Connection } from '@xyflow/react';
+import { validateWorkflow, type ValidationResult } from './validation';
 
 export type WorkflowNodeData = {
   label: string;
-  type: 'start' | 'llm' | 'retrieval' | 'condition' | 'review' | 'webhook' | 'output';
+  type: 'start' | 'llm' | 'retrieval' | 'condition' | 'review' | 'webhook' | 'output' | 'input' | 'text' | 'loop' | 'delay' | 'transform' | 'code' | 'merge' | 'errorHandler';
   config: Record<string, any>;
 };
 
 export type EditorNode = Node<WorkflowNodeData>;
 export type EditorEdge = Edge;
+
+type HistoryEntry = {
+  nodes: EditorNode[];
+  edges: EditorEdge[];
+};
 
 type WorkflowEditorState = {
   nodes: EditorNode[];
@@ -18,13 +24,18 @@ type WorkflowEditorState = {
   workflowId: string | null;
   workflowName: string;
   lastSavedAt: number | null;
+  validationResult: ValidationResult | null;
+  history: HistoryEntry[];
+  historyIndex: number;
+  canUndo: boolean;
+  canRedo: boolean;
 
   setNodes: (nodes: EditorNode[]) => void;
   setEdges: (edges: EditorEdge[]) => void;
   onNodesChange: (changes: any[]) => void;
   onEdgesChange: (changes: any[]) => void;
   onConnect: (connection: Connection) => void;
-  addNode: (type: string, position: { x: number; y: number }) => void;
+  addNode: (type: string, position: { x: number; y: number }, label?: string) => void;
   updateNodeData: (nodeId: string, data: Partial<WorkflowNodeData>) => void;
   deleteNode: (nodeId: string) => void;
   selectNode: (node: EditorNode | null) => void;
@@ -33,7 +44,12 @@ type WorkflowEditorState = {
   markSaved: () => void;
   updateNodesFromRf: (nodes: EditorNode[]) => void;
   updateEdgesFromRf: (edges: EditorEdge[]) => void;
+  undo: () => void;
+  redo: () => void;
+  pushHistory: () => void;
 };
+
+const MAX_HISTORY_SIZE = 50;
 
 const nodeTypeDefaults: Record<string, Partial<WorkflowNodeData>> = {
   start: { label: 'Start', config: {} },
@@ -43,6 +59,14 @@ const nodeTypeDefaults: Record<string, Partial<WorkflowNodeData>> = {
   review: { label: 'Human Review', config: { assigneeEmail: '' } },
   webhook: { label: 'Webhook', config: { url: '', method: 'POST' } },
   output: { label: 'Output', config: { template: '' } },
+  input: { label: 'Input', config: { inputSchema: { fields: [] } } },
+  text: { label: 'Text', config: { operation: 'trim', value: '' } },
+  loop: { label: 'Loop', config: { items: [], maxIterations: 100 } },
+  delay: { label: 'Delay', config: { duration: 1, unit: 'seconds' } },
+  transform: { label: 'Transform', config: { template: '' } },
+  code: { label: 'Code', config: { language: 'javascript', code: '' } },
+  merge: { label: 'Merge', config: { strategy: 'all' } },
+  errorHandler: { label: 'Error Handler', config: { fallbackOutput: {}, captureError: true } },
 };
 
 let nodeIdCounter = 1;
@@ -55,6 +79,11 @@ const initialState = {
   workflowId: null as string | null,
   workflowName: 'Untitled Workflow',
   lastSavedAt: null as number | null,
+  validationResult: null as ValidationResult | null,
+  history: [] as HistoryEntry[],
+  historyIndex: -1,
+  canUndo: false,
+  canRedo: false,
 };
 
 const CACHE_KEY_PREFIX = 'workflow_editor_';
@@ -69,7 +98,9 @@ function loadFromCache(workflowId: string): { nodes: EditorNode[]; edges: Editor
     const cached = localStorage.getItem(getCacheKey(workflowId));
     if (cached) {
       const parsed = JSON.parse(cached);
-      return { nodes: parsed.nodes || [], edges: parsed.edges || [] };
+      // Ensure all edges have type 'deletable'
+      const edges = (parsed.edges || []).map((e: EditorEdge) => ({ ...e, type: 'deletable' as const }));
+      return { nodes: parsed.nodes || [], edges };
     }
   } catch {
     // ignore cache errors
@@ -95,22 +126,87 @@ function clearCache(workflowId: string) {
   }
 }
 
+function deepClone<T>(obj: T): T {
+  return JSON.parse(JSON.stringify(obj));
+}
+
+function runValidation(nodes: EditorNode[], edges: EditorEdge[]): ValidationResult {
+  return validateWorkflow(nodes, edges);
+}
+
 export const useWorkflowEditorStore = create<WorkflowEditorState>((set, get) => ({
   ...initialState,
 
-  setNodes: (nodes) => {
-    const { workflowId } = get();
-    set({ nodes, isDirty: true });
-    if (workflowId) saveToCache(workflowId, nodes, get().edges);
+  pushHistory: () => {
+    const { nodes, edges, history, historyIndex } = get();
+    const newEntry: HistoryEntry = { nodes: deepClone(nodes), edges: deepClone(edges) };
+
+    // Truncate history if we're not at the end
+    const newHistory = history.slice(0, historyIndex + 1);
+    newHistory.push(newEntry);
+
+    // Limit history size
+    if (newHistory.length > MAX_HISTORY_SIZE) {
+      newHistory.shift();
+    }
+
+    set({
+      history: newHistory,
+      historyIndex: newHistory.length - 1,
+      canUndo: newHistory.length > 1,
+      canRedo: false,
+    });
   },
+
+  undo: () => {
+    const { history, historyIndex } = get();
+    if (historyIndex <= 0) return;
+
+    const newIndex = historyIndex - 1;
+    const entry = history[newIndex];
+
+    set({
+      nodes: deepClone(entry.nodes),
+      edges: deepClone(entry.edges),
+      historyIndex: newIndex,
+      canUndo: newIndex > 0,
+      canRedo: true,
+      isDirty: true,
+    });
+  },
+
+  redo: () => {
+    const { history, historyIndex } = get();
+    if (historyIndex >= history.length - 1) return;
+
+    const newIndex = historyIndex + 1;
+    const entry = history[newIndex];
+
+    set({
+      nodes: deepClone(entry.nodes),
+      edges: deepClone(entry.edges),
+      historyIndex: newIndex,
+      canUndo: true,
+      canRedo: newIndex < history.length - 1,
+      isDirty: true,
+    });
+  },
+
+  setNodes: (nodes) => {
+    const { workflowId, edges } = get();
+    const validation = runValidation(nodes, edges);
+    set({ nodes, isDirty: true, validationResult: validation });
+    if (workflowId) saveToCache(workflowId, nodes, edges);
+  },
+
   setEdges: (edges) => {
     const { workflowId, nodes } = get();
-    set({ edges, isDirty: true });
+    const validation = runValidation(nodes, edges);
+    set({ edges, isDirty: true, validationResult: validation });
     if (workflowId) saveToCache(workflowId, nodes, edges);
   },
 
   onNodesChange: (changes) => {
-    const { nodes } = get();
     const positionChanges = changes.filter((c: any) => c.type === 'position' && c.position && c.dragging === false);
     const removeChanges = changes.filter((c: any) => c.type === 'remove');
 
@@ -120,10 +216,11 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>((set, get) => 
 
       set((state) => {
         const newNodes = state.nodes.filter((n) => !idsToRemove.has(n.id));
+        const newEdges = state.edges.filter((e) => !idsToRemove.has(e.source) && !idsToRemove.has(e.target));
         const selectedNode = currentSelectedId && idsToRemove.has(currentSelectedId) ? null : state.selectedNode;
-        const { workflowId } = state;
-        if (workflowId) saveToCache(workflowId, newNodes, state.edges);
-        return { nodes: newNodes, selectedNode, isDirty: true };
+        const validation = runValidation(newNodes, newEdges);
+        if (state.workflowId) saveToCache(state.workflowId, newNodes, newEdges);
+        return { nodes: newNodes, edges: newEdges, selectedNode, isDirty: true, validationResult: validation };
       });
     }
 
@@ -133,8 +230,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>((set, get) => 
           const change = positionChanges.find((c: any) => c.id === n.id);
           return change && change.position ? { ...n, position: change.position } : n;
         });
-        const { workflowId } = state;
-        if (workflowId) saveToCache(workflowId, newNodes, state.edges);
+        if (state.workflowId) saveToCache(state.workflowId, newNodes, state.edges);
         return { nodes: newNodes, isDirty: true };
       });
     }
@@ -147,9 +243,9 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>((set, get) => 
       const idsToRemove = new Set(removeChanges.map((c: any) => c.id));
       set((state) => {
         const newEdges = state.edges.filter((e) => !idsToRemove.has(e.id));
-        const { workflowId } = state;
-        if (workflowId) saveToCache(workflowId, state.nodes, newEdges);
-        return { edges: newEdges, isDirty: true };
+        const validation = runValidation(state.nodes, newEdges);
+        if (state.workflowId) saveToCache(state.workflowId, state.nodes, newEdges);
+        return { edges: newEdges, isDirty: true, validationResult: validation };
       });
     }
   },
@@ -161,16 +257,17 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>((set, get) => 
       target: connection.target!,
       sourceHandle: connection.sourceHandle,
       targetHandle: connection.targetHandle,
-      type: 'default',
+      type: 'deletable',
     };
     set((state) => {
       const newEdges = [...state.edges, newEdge];
+      const validation = runValidation(state.nodes, newEdges);
       if (state.workflowId) saveToCache(state.workflowId, state.nodes, newEdges);
-      return { edges: newEdges, isDirty: true };
+      return { edges: newEdges, isDirty: true, validationResult: validation };
     });
   },
 
-  addNode: (type, position) => {
+  addNode: (type, position, label) => {
     const id = `${type}_${nodeIdCounter++}`;
     const defaults = nodeTypeDefaults[type] || { label: type, config: {} };
     const newNode: EditorNode = {
@@ -180,12 +277,14 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>((set, get) => 
       data: {
         ...defaults,
         type,
+        label: label || defaults.label || type,
       } as WorkflowNodeData,
     };
     set((state) => {
       const newNodes = [...state.nodes, newNode];
+      const validation = runValidation(newNodes, state.edges);
       if (state.workflowId) saveToCache(state.workflowId, newNodes, state.edges);
-      return { nodes: newNodes, isDirty: true };
+      return { nodes: newNodes, isDirty: true, validationResult: validation };
     });
   },
 
@@ -197,18 +296,25 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>((set, get) => 
       const newSelectedNode = state.selectedNode?.id === nodeId
         ? { ...state.selectedNode, data: { ...state.selectedNode.data, ...data } }
         : state.selectedNode;
+      const validation = runValidation(newNodes, state.edges);
       if (state.workflowId) saveToCache(state.workflowId, newNodes, state.edges);
-      return { nodes: newNodes, selectedNode: newSelectedNode, isDirty: true };
+      return { nodes: newNodes, selectedNode: newSelectedNode, isDirty: true, validationResult: validation };
     });
   },
 
   deleteNode: (nodeId) => {
     set((state) => {
+      // Prevent deleting Start node
+      const nodeToDelete = state.nodes.find((n) => n.id === nodeId);
+      if (nodeToDelete?.type === 'start') {
+        return state; // No changes
+      }
       const newNodes = state.nodes.filter((n) => n.id !== nodeId);
       const newEdges = state.edges.filter((e) => e.source !== nodeId && e.target !== nodeId);
       const newSelectedNode = state.selectedNode?.id === nodeId ? null : state.selectedNode;
+      const validation = runValidation(newNodes, newEdges);
       if (state.workflowId) saveToCache(state.workflowId, newNodes, newEdges);
-      return { nodes: newNodes, edges: newEdges, selectedNode: newSelectedNode, isDirty: true };
+      return { nodes: newNodes, edges: newEdges, selectedNode: newSelectedNode, isDirty: true, validationResult: validation };
     });
   },
 
@@ -223,14 +329,37 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>((set, get) => 
       }
     });
 
+    // Ensure there's always a Start node
+    let workflowNodes = [...nodes];
+    let workflowEdges = [...edges];
+    const hasStartNode = workflowNodes.some((n) => n.type === 'start');
+
+    if (!hasStartNode) {
+      const startNode: EditorNode = {
+        id: 'start_1',
+        type: 'start',
+        position: { x: 250, y: 50 },
+        data: { label: 'Start', type: 'start', config: {} },
+      };
+      workflowNodes = [startNode, ...workflowNodes];
+      nodeIdCounter = 2;
+    }
+
+    const validation = runValidation(workflowNodes, workflowEdges);
+
     set({
       workflowId: id,
       workflowName: name,
-      nodes,
-      edges,
+      nodes: workflowNodes,
+      edges: workflowEdges,
       isDirty: false,
       selectedNode: null,
       lastSavedAt: null,
+      validationResult: validation,
+      history: [{ nodes: deepClone(workflowNodes), edges: deepClone(workflowEdges) }],
+      historyIndex: 0,
+      canUndo: false,
+      canRedo: false,
     });
   },
 
@@ -242,18 +371,28 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>((set, get) => 
   },
 
   markSaved: () => {
+    const { nodes, edges } = get();
     set({ isDirty: false, lastSavedAt: Date.now() });
+    // Update history to mark as saved
+    set((state) => ({
+      history: [{ nodes: deepClone(nodes), edges: deepClone(edges) }],
+      historyIndex: 0,
+      canUndo: false,
+      canRedo: false,
+    }));
   },
 
   updateNodesFromRf: (nodes: EditorNode[]) => {
-    set({ nodes, isDirty: true });
     const { workflowId, edges } = get();
+    const validation = runValidation(nodes, edges);
+    set({ nodes, isDirty: true, validationResult: validation });
     if (workflowId) saveToCache(workflowId, nodes, edges);
   },
 
   updateEdgesFromRf: (edges: EditorEdge[]) => {
-    set({ edges, isDirty: true });
     const { workflowId, nodes } = get();
+    const validation = runValidation(nodes, edges);
+    set({ edges, isDirty: true, validationResult: validation });
     if (workflowId) saveToCache(workflowId, nodes, edges);
   },
 }));
