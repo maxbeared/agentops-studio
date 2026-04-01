@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { api } from '../../lib/api';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Upload, FileText, Link as LinkIcon, RefreshCw, CheckCircle } from 'lucide-react';
 import { useTranslation } from '../../contexts/locale-context';
 import { AuthCheck } from '../../components/auth-check';
-import { PageHeader, Card, Button, StatusBadge, LoadingState, EmptyState, RevealSection } from '../../components/ui';
+import { PageHeader, Card, Button, StatusBadge, EmptyState, RevealSection } from '../../components/ui';
+import { api } from '../../lib/api';
 
 function getStatusVariant(status: string): 'success' | 'error' | 'warning' | 'info' | 'default' {
   const map: Record<string, 'success' | 'error' | 'warning' | 'info' | 'default'> = {
@@ -28,76 +29,75 @@ function getSourceTypeVariant(type: string): 'success' | 'error' | 'warning' | '
 
 export default function KnowledgePage() {
   const { t } = useTranslation();
-  const [documents, setDocuments] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+
+  const { data: documents = [], isLoading } = useQuery({
+    queryKey: ['knowledge'],
+    queryFn: () => api.knowledge.list(),
+  });
+
   const [showUpload, setShowUpload] = useState(false);
   const [uploadTitle, setUploadTitle] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
   const [processingIds, setProcessingIds] = useState<string[]>([]);
 
-  useEffect(() => {
-    loadDocuments();
-  }, []);
+  const uploadMutation = useMutation({
+    mutationFn: async ({ file, title, projectId }: { file: File; title: string; projectId: string }) => {
+      return api.knowledge.upload(file, projectId, title);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['knowledge'] });
+      setShowUpload(false);
+      setUploadTitle('');
+      setSelectedFile(null);
+    },
+  });
 
-  const loadDocuments = async () => {
-    try {
-      const docs = await api.knowledge.list();
-      setDocuments(docs);
-    } catch (err) {
-      console.error('Failed to fetch documents:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const processMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return api.knowledge.process(id);
+    },
+    onMutate: (id) => {
+      setProcessingIds((prev) => [...prev, id]);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['knowledge'] });
+    },
+    onSettled: (_, __, id) => {
+      setProcessingIds((prev) => prev.filter(pid => pid !== id));
+    },
+  });
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedFile || !uploadTitle.trim()) return;
 
-    setUploading(true);
     setUploadError('');
 
     try {
-      const projects = await api.projects.list();
+      const projects = await queryClient.fetchQuery({ queryKey: ['projects'], queryFn: () => api.projects.list() });
       const projectId = projects[0]?.id;
       if (!projectId) {
         setUploadError(t('knowledge.noProject'));
         return;
       }
 
-      const doc = await api.knowledge.upload(selectedFile, projectId, uploadTitle);
-      setDocuments((prev) => [doc, ...prev]);
-      setShowUpload(false);
-      setUploadTitle('');
-      setSelectedFile(null);
-
-      await processDocument(doc.id);
+      const doc = await uploadMutation.mutateAsync({ file: selectedFile, title: uploadTitle, projectId });
+      await processMutation.mutateAsync(doc.id);
     } catch (err) {
       setUploadError(t('knowledge.uploadFailed'));
-    } finally {
-      setUploading(false);
     }
   };
 
-  const processDocument = async (id: string) => {
-    setProcessingIds((prev) => [...prev, id]);
-    try {
-      await api.knowledge.process(id);
-      await loadDocuments();
-    } catch (err) {
-      console.error('Process failed:', err);
-    } finally {
-      setProcessingIds((prev) => prev.filter(pid => pid !== id));
-    }
-  };
-
-  if (loading) {
+  if (isLoading) {
     return (
       <main className="bg-zinc-950 px-6 py-6 text-white">
         <div className="mx-auto max-w-7xl">
-          <LoadingState message={t('common.loading')} />
+          <div className="flex items-center justify-center py-20">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-cyan-400 border-t-transparent" />
+            <span className="ml-3 text-zinc-400">{t('common.loading')}</span>
+          </div>
         </div>
       </main>
     );
@@ -147,8 +147,8 @@ export default function KnowledgePage() {
                     <p className="text-base text-red-400">{uploadError}</p>
                   )}
                   <div className="flex gap-2">
-                    <Button type="submit" variant="primary" loading={uploading}>
-                      {uploading ? t('knowledge.uploading') : t('knowledge.upload')}
+                    <Button type="submit" variant="primary" loading={uploadMutation.isPending}>
+                      {uploadMutation.isPending ? t('knowledge.uploading') : t('knowledge.upload')}
                     </Button>
                     <Button type="button" variant="secondary" onClick={() => setShowUpload(false)}>
                       {t('knowledge.cancel')}
@@ -215,7 +215,7 @@ export default function KnowledgePage() {
                             variant="secondary"
                             size="sm"
                             icon={<RefreshCw className="h-3 w-3" />}
-                            onClick={() => processDocument(doc.id)}
+                            onClick={() => processMutation.mutate(doc.id)}
                           >
                             {t('knowledge.process')}
                           </Button>

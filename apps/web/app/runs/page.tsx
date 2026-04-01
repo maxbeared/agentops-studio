@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { api } from '../../lib/api';
+import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
-import { Loader2, AlertCircle, RefreshCw, Clock, Play } from 'lucide-react';
+import { AlertCircle, RefreshCw, Clock, Play } from 'lucide-react';
 import { useTranslation } from '../../contexts/locale-context';
 import { AuthCheck } from '../../components/auth-check';
-import { PageHeader, Card, Button, StatusBadge, LoadingState, EmptyState, RevealSection } from '../../components/ui';
+import { PageHeader, Card, Button, StatusBadge, EmptyState, RevealSection } from '../../components/ui';
+import { api } from '../../lib/api';
 
 function getStatusLabel(t: (key: string) => string, status: string): string {
   const labels: Record<string, string> = {
@@ -34,32 +34,20 @@ function getStatusVariant(status: string): 'success' | 'error' | 'warning' | 'in
 
 export default function RunsPage() {
   const { t } = useTranslation();
-  const [runs, setRuns] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const loadRuns = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await api.runs.list();
-      setRuns(data);
-    } catch {
-      setError(t('runs.loadFailed'));
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: runs = [], isLoading, error, refetch } = useQuery({
+    queryKey: ['runs'],
+    queryFn: () => api.runs.list(),
+  });
 
-  useEffect(() => {
-    loadRuns();
-  }, []);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <main className="bg-zinc-950 px-6 py-6 text-white">
         <div className="mx-auto max-w-7xl">
-          <LoadingState message={t('runs.loading')} />
+          <div className="flex items-center justify-center py-20">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-cyan-400 border-t-transparent" />
+            <span className="ml-3 text-zinc-400">{t('runs.loading')}</span>
+          </div>
         </div>
       </main>
     );
@@ -79,8 +67,8 @@ export default function RunsPage() {
           {error && (
             <Card className="mb-6 p-4 flex items-center gap-3 border-red-500/30 bg-red-500/10" glow glowColor="#ff4081">
               <AlertCircle className="h-5 w-5 text-red-400 flex-shrink-0" aria-hidden="true" />
-              <span className="text-red-300 text-base flex-1">{error}</span>
-              <Button variant="secondary" size="sm" icon={<RefreshCw className="h-4 w-4" />} onClick={loadRuns}>
+              <span className="text-red-300 text-base flex-1">{(error as Error).message}</span>
+              <Button variant="secondary" size="sm" icon={<RefreshCw className="h-4 w-4" />} onClick={() => refetch()}>
                 {t('runs.retry')}
               </Button>
             </Card>

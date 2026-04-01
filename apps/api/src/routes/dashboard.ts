@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { db } from '@agentops/db';
 import { workflowRuns, workflows, workflowVersions, reviewTasks } from '@agentops/db/schema';
-import { eq, desc, sql } from 'drizzle-orm';
+import { eq, desc, sql, inArray } from 'drizzle-orm';
 
 export const dashboardRoutes = new Hono();
 
@@ -30,28 +30,42 @@ dashboardRoutes.get('/stats', async (c) => {
     .where(runsWhere);
   const totalCost = totalCostResult[0]?.sum ? parseFloat(totalCostResult[0].sum) : 0;
 
-  const pendingReviews = await db.query.reviewTasks.findMany({
-    where: eq(reviewTasks.status, 'pending'),
-  });
+  const pendingReviewsResult = await db
+    .select({ count: sql<number>`COUNT(*)` })
+    .from(reviewTasks)
+    .where(eq(reviewTasks.status, 'pending'));
+  const pendingReviewsCount = pendingReviewsResult[0]?.count || 0;
 
-  const recentRuns = await Promise.all(
-    allRuns.slice(0, 5).map(async (run) => {
-      const version = await db.query.workflowVersions.findFirst({
-        where: eq(workflowVersions.id, run.workflowVersionId),
+  // Batch fetch versions and workflows for recent runs
+  const recentRunVersionIds = allRuns.slice(0, 5).map((r) => r.workflowVersionId).filter(Boolean);
+  const versionsMap = new Map<string, typeof workflowVersions.$inferSelect>();
+  const workflowsMap = new Map<string, typeof workflows.$inferSelect>();
+
+  if (recentRunVersionIds.length > 0) {
+    const versions = await db.query.workflowVersions.findMany({
+      where: inArray(workflowVersions.id, recentRunVersionIds),
+    });
+    versions.forEach((v) => versionsMap.set(v.id, v));
+
+    const workflowIds = [...new Set(versions.map((v) => v.workflowId).filter(Boolean))];
+    if (workflowIds.length > 0) {
+      const workflowsResult = await db.query.workflows.findMany({
+        where: inArray(workflows.id, workflowIds),
       });
-      const workflow = version
-        ? await db.query.workflows.findFirst({
-            where: eq(workflows.id, version.workflowId),
-          })
-        : null;
-      return {
-        id: run.id,
-        workflowName: workflow?.name || 'Unknown Workflow',
-        status: run.status,
-        createdAt: run.createdAt,
-      };
-    })
-  );
+      workflowsResult.forEach((w) => workflowsMap.set(w.id, w));
+    }
+  }
+
+  const recentRuns = allRuns.slice(0, 5).map((run) => {
+    const version = versionsMap.get(run.workflowVersionId);
+    const workflow = version ? workflowsMap.get(version.workflowId) : null;
+    return {
+      id: run.id,
+      workflowName: workflow?.name || 'Unknown Workflow',
+      status: run.status,
+      createdAt: run.createdAt,
+    };
+  });
 
   return c.json({
     data: {
@@ -59,7 +73,7 @@ dashboardRoutes.get('/stats', async (c) => {
       successRate,
       totalTokens,
       totalCost: Math.round(totalCost * 100) / 100,
-      pendingReviews: pendingReviews.length,
+      pendingReviews: pendingReviewsCount,
       recentRuns,
     },
   });

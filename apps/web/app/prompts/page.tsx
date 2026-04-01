@@ -1,16 +1,22 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { api } from '../../lib/api';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Edit2, Trash2, FileText, Copy, CheckCircle } from 'lucide-react';
 import { useTranslation } from '../../contexts/locale-context';
 import { AuthCheck } from '../../components/auth-check';
-import { PageHeader, Card, Button, LoadingState, EmptyState, RevealSection } from '../../components/ui';
+import { PageHeader, Card, Button, EmptyState, RevealSection } from '../../components/ui';
+import { api } from '../../lib/api';
 
 export default function PromptsPage() {
   const { t } = useTranslation();
-  const [prompts, setPrompts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+
+  const { data: prompts = [], isLoading } = useQuery({
+    queryKey: ['prompts'],
+    queryFn: () => api.prompts.list(),
+  });
+
   const [showCreate, setShowCreate] = useState(false);
   const [showEdit, setShowEdit] = useState<any>(null);
   const [formData, setFormData] = useState({
@@ -18,69 +24,68 @@ export default function PromptsPage() {
     description: '',
     template: '',
   });
-  const [saving, setSaving] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadPrompts();
-  }, []);
+  const createMutation = useMutation({
+    mutationFn: async (data: { projectId: string; name: string; description?: string; template: string }) => {
+      return api.prompts.create(data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['prompts'] });
+      setShowCreate(false);
+      setFormData({ name: '', description: '', template: '' });
+    },
+  });
 
-  const loadPrompts = async () => {
-    try {
-      const data = await api.prompts.list();
-      setPrompts(data);
-    } catch (err) {
-      console.error('Failed to fetch prompts:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<{ name: string; description: string; template: string }> }) => {
+      return api.prompts.update(id, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['prompts'] });
+      setShowEdit(null);
+      setFormData({ name: '', description: '', template: '' });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return api.prompts.delete(id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['prompts'] });
+    },
+  });
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaving(true);
     try {
-      const projects = await api.projects.list();
+      const projects = await queryClient.fetchQuery({ queryKey: ['projects'], queryFn: () => api.projects.list() });
       const projectId = projects[0]?.id;
       if (!projectId) {
         console.error('No project found');
         return;
       }
-      const prompt = await api.prompts.create({
-        projectId,
-        ...formData,
-      });
-      setPrompts([prompt, ...prompts]);
-      setShowCreate(false);
-      setFormData({ name: '', description: '', template: '' });
+      await createMutation.mutateAsync({ projectId, ...formData });
     } catch (err) {
       console.error('Create failed:', err);
-    } finally {
-      setSaving(false);
     }
   };
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!showEdit) return;
-    setSaving(true);
     try {
-      const prompt = await api.prompts.update(showEdit.id, formData);
-      setPrompts(prompts.map((p) => (p.id === showEdit.id ? prompt : p)));
-      setShowEdit(null);
-      setFormData({ name: '', description: '', template: '' });
+      await updateMutation.mutateAsync({ id: showEdit.id, data: formData });
     } catch (err) {
       console.error('Update failed:', err);
-    } finally {
-      setSaving(false);
     }
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm(t('prompts.deleteConfirm'))) return;
     try {
-      await api.prompts.delete(id);
-      setPrompts(prompts.filter((p) => p.id !== id));
+      await deleteMutation.mutateAsync(id);
     } catch (err) {
       console.error('Delete failed:', err);
     }
@@ -101,11 +106,14 @@ export default function PromptsPage() {
     });
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <main className="bg-zinc-950 px-6 py-6 text-white">
         <div className="mx-auto max-w-7xl">
-          <LoadingState message={t('common.loading')} />
+          <div className="flex items-center justify-center py-20">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-cyan-400 border-t-transparent" />
+            <span className="ml-3 text-zinc-400">{t('common.loading')}</span>
+          </div>
         </div>
       </main>
     );
@@ -168,8 +176,8 @@ export default function PromptsPage() {
                     <p className="mt-1 text-base text-zinc-500">{t('prompts.templateVariables')}</p>
                   </div>
                   <div className="flex gap-2">
-                    <Button type="submit" variant="primary" loading={saving}>
-                      {saving ? t('prompts.saving') : showEdit ? t('prompts.update') : t('prompts.create')}
+                    <Button type="submit" variant="primary" loading={createMutation.isPending || updateMutation.isPending}>
+                      {createMutation.isPending ? t('prompts.saving') : showEdit ? t('prompts.update') : t('prompts.create')}
                     </Button>
                     <Button
                       type="button"

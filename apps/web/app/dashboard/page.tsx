@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { api } from '../../lib/api';
+import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
-import { Activity, CheckCircle, Clock, DollarSign, FileText, GitBranch, Play, User, Zap, TrendingUp, Loader2 } from 'lucide-react';
+import { Activity, CheckCircle, Clock, DollarSign, FileText, GitBranch, Play, User, Zap, TrendingUp } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useTranslation } from '../../contexts/locale-context';
 import { AuthCheck } from '../../components/auth-check';
-import { PageHeader, Card, Button, StatusBadge, LoadingState, EmptyState, RevealSection } from '../../components/ui';
+import { PageHeader, Card, Button, StatusBadge, EmptyState, RevealSection } from '../../components/ui';
+import { api } from '../../lib/api';
 
 interface DashboardStats {
   totalRuns: number;
@@ -115,40 +115,55 @@ function getStatusVariant(status: string): 'success' | 'error' | 'warning' | 'in
 
 export default function DashboardPage() {
   const { t } = useTranslation();
-  const [stats, setStats] = useState<DashboardStats>({
+
+  const { data: statsData, isLoading, error } = useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: () => api.dashboard.stats(),
+  });
+
+  const defaultRunsOverTime = [
+    { date: 'Mon', success: 12, failed: 2, total: 14 },
+    { date: 'Tue', success: 19, failed: 1, total: 20 },
+    { date: 'Wed', success: 15, failed: 3, total: 18 },
+    { date: 'Thu', success: 22, failed: 0, total: 22 },
+    { date: 'Fri', success: 18, failed: 2, total: 20 },
+    { date: 'Sat', success: 8, failed: 1, total: 9 },
+    { date: 'Sun', success: 6, failed: 0, total: 6 },
+  ];
+
+  const stats: DashboardStats = statsData ? {
+    ...statsData,
+    runsOverTime: statsData.runsOverTime || defaultRunsOverTime,
+  } : {
     totalRuns: 0,
     successRate: 0,
     totalTokens: 0,
     totalCost: 0,
     pendingReviews: 0,
     recentRuns: [],
-    runsOverTime: [],
-  });
-  const [loading, setLoading] = useState(true);
+    runsOverTime: defaultRunsOverTime,
+  };
 
-  useEffect(() => {
-    api.dashboard.stats()
-      .then((data) => {
-        const runsOverTime = [
-          { date: 'Mon', success: 12, failed: 2, total: 14 },
-          { date: 'Tue', success: 19, failed: 1, total: 20 },
-          { date: 'Wed', success: 15, failed: 3, total: 18 },
-          { date: 'Thu', success: 22, failed: 0, total: 22 },
-          { date: 'Fri', success: 18, failed: 2, total: 20 },
-          { date: 'Sat', success: 8, failed: 1, total: 9 },
-          { date: 'Sun', success: 6, failed: 0, total: 6 },
-        ];
-        setStats({ ...data, runsOverTime });
-      })
-      .catch((e) => console.error('Failed to fetch dashboard stats:', e))
-      .finally(() => setLoading(false));
-  }, []);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <main className="bg-zinc-950 px-6 py-6 text-white">
         <div className="mx-auto max-w-7xl flex flex-col gap-6">
-          <LoadingState message={t('common.loading')} />
+          <div className="flex items-center justify-center py-20">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-cyan-400 border-t-transparent" />
+            <span className="ml-3 text-zinc-400">{t('common.loading')}</span>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main className="bg-zinc-950 px-6 py-6 text-white">
+        <div className="mx-auto max-w-7xl flex flex-col gap-6">
+          <Card className="p-4 border-red-500/30 bg-red-500/10">
+            <span className="text-base text-red-400">{(error as Error).message}</span>
+          </Card>
         </div>
       </main>
     );
@@ -232,7 +247,7 @@ export default function DashboardPage() {
                           <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
                       <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} />
                       <YAxis stroke="#94a3b8" fontSize={12} />
                       <Tooltip

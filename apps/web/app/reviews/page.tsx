@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { api } from '../../lib/api';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { CheckCircle, XCircle, Clock, User } from 'lucide-react';
 import { useTranslation } from '../../contexts/locale-context';
 import { AuthCheck } from '../../components/auth-check';
-import { PageHeader, Card, Button, StatusBadge, LoadingState, EmptyState, RevealSection } from '../../components/ui';
+import { PageHeader, Card, Button, StatusBadge, EmptyState, RevealSection } from '../../components/ui';
+import { api } from '../../lib/api';
 
 function getStatusVariant(status: string): 'success' | 'error' | 'warning' | 'info' | 'default' {
   const map: Record<string, 'success' | 'error' | 'warning' | 'info' | 'default'> = {
@@ -18,60 +19,62 @@ function getStatusVariant(status: string): 'success' | 'error' | 'warning' | 'in
 
 export default function ReviewsPage() {
   const { t } = useTranslation();
-  const [tasks, setTasks] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [processingIds, setProcessingIds] = useState<string[]>([]);
+  const queryClient = useQueryClient();
+
+  const { data: tasks = [], isLoading } = useQuery({
+    queryKey: ['reviews'],
+    queryFn: () => api.reviews.list(),
+  });
+
   const [selectedTask, setSelectedTask] = useState<string | null>(null);
   const [comment, setComment] = useState('');
 
-  useEffect(() => {
-    loadTasks();
-  }, []);
-
-  const loadTasks = async () => {
-    try {
-      const data = await api.reviews.list();
-      setTasks(data);
-    } catch (err) {
-      console.error('Failed to fetch tasks:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleApprove = async (taskId: string) => {
-    setProcessingIds((prev) => [...prev, taskId]);
-    try {
-      await api.reviews.approve(taskId, comment || undefined);
-      await loadTasks();
+  const approveMutation = useMutation({
+    mutationFn: async ({ taskId, comment }: { taskId: string; comment?: string }) => {
+      return api.reviews.approve(taskId, comment);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reviews'] });
       setSelectedTask(null);
       setComment('');
+    },
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: async ({ taskId, comment }: { taskId: string; comment?: string }) => {
+      return api.reviews.reject(taskId, comment);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reviews'] });
+      setSelectedTask(null);
+      setComment('');
+    },
+  });
+
+  const handleApprove = async (taskId: string) => {
+    try {
+      await approveMutation.mutateAsync({ taskId, comment: comment || undefined });
     } catch (err) {
       console.error('Approve failed:', err);
-    } finally {
-      setProcessingIds((prev) => prev.filter(id => id !== taskId));
     }
   };
 
   const handleReject = async (taskId: string) => {
-    setProcessingIds((prev) => [...prev, taskId]);
     try {
-      await api.reviews.reject(taskId, comment || undefined);
-      await loadTasks();
-      setSelectedTask(null);
-      setComment('');
+      await rejectMutation.mutateAsync({ taskId, comment: comment || undefined });
     } catch (err) {
       console.error('Reject failed:', err);
-    } finally {
-      setProcessingIds((prev) => prev.filter(id => id !== taskId));
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <main className="bg-zinc-950 px-6 py-6 text-white">
         <div className="mx-auto max-w-7xl">
-          <LoadingState message={t('common.loading')} />
+          <div className="flex items-center justify-center py-20">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-cyan-400 border-t-transparent" />
+            <span className="ml-3 text-zinc-400">{t('common.loading')}</span>
+          </div>
         </div>
       </main>
     );
@@ -159,7 +162,7 @@ export default function ReviewsPage() {
                                   variant="primary"
                                   icon={<CheckCircle className="h-4 w-4" />}
                                   onClick={() => handleApprove(task.id)}
-                                  loading={processingIds.includes(task.id)}
+                                  loading={approveMutation.isPending}
                                 >
                                   {t('reviews.approve')}
                                 </Button>
@@ -168,7 +171,7 @@ export default function ReviewsPage() {
                                   variant="danger"
                                   icon={<XCircle className="h-4 w-4" />}
                                   onClick={() => handleReject(task.id)}
-                                  disabled={processingIds.includes(task.id)}
+                                  disabled={approveMutation.isPending}
                                 >
                                   {t('reviews.reject')}
                                 </Button>

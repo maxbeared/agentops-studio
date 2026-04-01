@@ -1,40 +1,28 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { api } from '../../lib/api';
+import { useQuery } from '@tanstack/react-query';
 import { Folder, RefreshCw, AlertCircle, Clock } from 'lucide-react';
 import { useTranslation } from '../../contexts/locale-context';
 import { AuthCheck } from '../../components/auth-check';
-import { PageHeader, Card, Button, LoadingState, EmptyState, RevealSection } from '../../components/ui';
+import { PageHeader, Card, Button, EmptyState, RevealSection } from '../../components/ui';
+import { api } from '../../lib/api';
 
 export default function ProjectsPage() {
   const { t } = useTranslation();
-  const [projects, setProjects] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const loadProjects = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await api.projects.list();
-      setProjects(data);
-    } catch {
-      setError(t('projects.loadFailed'));
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: projects = [], isLoading, error, refetch } = useQuery({
+    queryKey: ['projects'],
+    queryFn: () => api.projects.list(),
+  });
 
-  useEffect(() => {
-    loadProjects();
-  }, []);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <main className="bg-zinc-950 px-6 py-6 text-white">
         <div className="mx-auto max-w-7xl">
-          <LoadingState message={t('common.loading')} />
+          <div className="flex items-center justify-center py-20">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-cyan-400 border-t-transparent" />
+            <span className="ml-3 text-zinc-400">{t('common.loading')}</span>
+          </div>
         </div>
       </main>
     );
@@ -54,8 +42,8 @@ export default function ProjectsPage() {
           {error && (
             <Card className="mb-6 p-4 flex items-center gap-3 border-red-500/30 bg-red-500/10" glow glowColor="#ff4081">
               <AlertCircle className="h-5 w-5 text-red-400 flex-shrink-0" aria-hidden="true" />
-              <span className="text-red-300 text-base flex-1">{error}</span>
-              <Button variant="secondary" size="sm" icon={<RefreshCw className="h-4 w-4" />} onClick={loadProjects}>
+              <span className="text-red-300 text-base flex-1">{(error as Error).message}</span>
+              <Button variant="secondary" size="sm" icon={<RefreshCw className="h-4 w-4" />} onClick={() => refetch()}>
                 {t('common.retry')}
               </Button>
             </Card>

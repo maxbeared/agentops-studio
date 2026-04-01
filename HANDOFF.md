@@ -483,6 +483,7 @@ Password: demo123456
 - [x] **Dashboard 页面改为 Client Component（避免 hydration 问题）**
 - [x] **国际化 (i18n) 支持** - 中英文切换，语言偏好 localStorage 持久化
 - [x] **落地页全面重构** - 赛博朋克风格，故障效果，卡片碰撞动画，时间线，统计数据圆形悬浮
+- [x] **React Query 数据层优化** - 引入 TanStack Query，统一数据获取，1分钟staleTime缓存，Dashboard API N+1查询优化
 
 ### ⚠️ 已知限制
 - `knowledge_chunks.embedding` 存储为 JSON 序列化的 float array（text 类型），非 pgvector

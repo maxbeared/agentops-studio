@@ -1,63 +1,61 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { api } from '../../lib/api';
 import { Plus, Edit2, Play, Clock, Loader2, GitBranch } from 'lucide-react';
 import { useTranslation } from '../../contexts/locale-context';
 import { AuthCheck } from '../../components/auth-check';
-import { PageHeader, Card, Button, StatusBadge, LoadingState, EmptyState, RevealSection } from '../../components/ui';
+import { PageHeader, Card, Button, StatusBadge, EmptyState, RevealSection } from '../../components/ui';
 
 export default function WorkflowsPage() {
   const { t } = useTranslation();
   const router = useRouter();
-  const [workflows, setWorkflows] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+
+  const { data: workflows = [], isLoading, error } = useQuery({
+    queryKey: ['workflows'],
+    queryFn: () => api.workflows.list(),
+  });
+
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState('');
   const [newDesc, setNewDesc] = useState('');
-  const [creating, setCreating] = useState(false);
   const [runningId, setRunningId] = useState<string | null>(null);
   const [runError, setRunError] = useState<string | null>(null);
 
-  useEffect(() => {
-    api.workflows.list().then((data) => {
-      setWorkflows(data);
-      setLoading(false);
-    }).catch((err) => {
-      console.error('Failed to load workflows:', err);
-      setError(t('workflows.loadFailed'));
-      setLoading(false);
-    });
-  }, []);
+  const createMutation = useMutation({
+    mutationFn: async (data: { projectId: string; name: string; description?: string }) => {
+      return api.workflows.create(data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['workflows'] });
+      setShowCreate(false);
+      setNewName('');
+      setNewDesc('');
+    },
+  });
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newName.trim()) return;
-    setCreating(true);
-    setError(null);
     try {
-      const project = await api.projects.list().then(p => p[0]);
+      const projects = await queryClient.fetchQuery({ queryKey: ['projects'], queryFn: () => api.projects.list() });
+      const project = projects[0];
       if (!project) {
-        setError(t('workflows.createProjectFirst'));
+        setRunError(t('workflows.createProjectFirst'));
         return;
       }
-      const workflow = await api.workflows.create({
+      await createMutation.mutateAsync({
         projectId: project.id,
         name: newName,
         description: newDesc,
       });
-      setWorkflows((prev) => [...prev, workflow]);
-      setShowCreate(false);
-      setNewName('');
-      setNewDesc('');
     } catch (err) {
       console.error('Failed to create workflow:', err);
-      setError(t('workflows.createFailed'));
-    } finally {
-      setCreating(false);
+      setRunError(t('workflows.createFailed'));
     }
   };
 
@@ -83,11 +81,14 @@ export default function WorkflowsPage() {
     }
   }, [router]);
 
-  if (loading) {
+  if (isLoading) {
     return (
       <main className="bg-zinc-950 px-6 py-6 text-white">
         <div className="mx-auto max-w-7xl">
-          <LoadingState message={t('common.loading')} />
+          <div className="flex items-center justify-center py-20">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-cyan-400 border-t-transparent" />
+            <span className="ml-3 text-zinc-400">{t('common.loading')}</span>
+          </div>
         </div>
       </main>
     );
@@ -111,7 +112,7 @@ export default function WorkflowsPage() {
 
           {(error || runError) && (
             <Card className="mb-6 p-4 border-red-500/30 bg-red-500/10" glow glowColor="#ff4081">
-              <span className="text-base text-red-400">{error || runError}</span>
+              <span className="text-base text-red-400">{(error as Error)?.message || runError}</span>
             </Card>
           )}
 
@@ -142,8 +143,8 @@ export default function WorkflowsPage() {
                     />
                   </div>
                   <div className="flex gap-2">
-                    <Button type="submit" variant="primary" loading={creating}>
-                      {creating ? t('workflows.creating') : t('workflows.create')}
+                    <Button type="submit" variant="primary" loading={createMutation.isPending}>
+                      {createMutation.isPending ? t('workflows.creating') : t('workflows.create')}
                     </Button>
                     <Button type="button" variant="secondary" onClick={() => setShowCreate(false)}>
                       {t('workflows.cancel')}

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { api } from '../../../lib/api';
@@ -62,42 +63,36 @@ export default function RunDetailPage() {
   const params = useParams();
   const runId = params.id as string;
 
-  const [run, setRun] = useState<any>(null);
-  const [nodeRuns, setNodeRuns] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const loadRun = useCallback(async () => {
-    try {
-      const [runData, nodeData] = await Promise.all([
+  const { data: runData, isLoading, refetch } = useQuery({
+    queryKey: ['run', runId],
+    queryFn: async () => {
+      const [run, nodes] = await Promise.all([
         api.runs.get(runId),
         api.runs.getNodes(runId),
       ]);
-      setRun(runData);
-      setNodeRuns(nodeData?.nodes || []);
-    } catch (err) {
-      console.error('Failed to load run:', err);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [runId]);
+      return { run, nodes: nodes?.nodes || [] };
+    },
+    refetchInterval: (query) => {
+      const status = query.state.data?.run?.status;
+      if (status === 'running' || status === 'pending' || status === 'waiting_review') {
+        return 3000;
+      }
+      return false;
+    },
+  });
 
-  useEffect(() => {
-    loadRun();
-  }, [loadRun]);
+  const run = runData?.run;
+  const nodeRuns = runData?.nodes || [];
 
-  useEffect(() => {
-    if (run?.status === 'running' || run?.status === 'pending' || run?.status === 'waiting_review') {
-      const interval = setInterval(() => {
-        setRefreshing(true);
-        loadRun();
-      }, 3000);
-      return () => clearInterval(interval);
-    }
-  }, [run?.status, loadRun]);
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <main className="bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-6 py-6 text-white">
         <div className="mx-auto max-w-4xl">
@@ -143,7 +138,7 @@ export default function RunDetailPage() {
           </div>
           <button
             type="button"
-            onClick={() => { setRefreshing(true); loadRun(); }}
+            onClick={handleRefresh}
             disabled={refreshing}
             className="flex items-center gap-2 rounded-lg bg-slate-800 px-3 py-2 text-base text-slate-300 hover:bg-slate-700 disabled:opacity-50"
           >
