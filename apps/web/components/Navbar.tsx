@@ -14,17 +14,17 @@ export default function Navbar() {
     const nav = navRef.current;
     if (!nav) return;
 
-    const updatePadding = () => {
-      document.documentElement.style.paddingTop = `${nav.offsetHeight - 4}px`;
+    const updateHeight = () => {
+      document.documentElement.style.setProperty('--navbar-height', `${nav.offsetHeight}px`);
     };
 
-    updatePadding();
-    const ro = new ResizeObserver(updatePadding);
+    updateHeight();
+    const ro = new ResizeObserver(updateHeight);
     ro.observe(nav);
-    window.addEventListener('resize', updatePadding);
+    window.addEventListener('resize', updateHeight);
     return () => {
       ro.disconnect();
-      window.removeEventListener('resize', updatePadding);
+      window.removeEventListener('resize', updateHeight);
     };
   }, []);
   const { user, loading, logout } = useAuth();

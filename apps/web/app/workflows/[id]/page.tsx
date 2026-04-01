@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, AlertCircle } from 'lucide-react';
@@ -8,6 +8,7 @@ import { api } from '../../../lib/api';
 import { useWorkflowEditorStore, EditorNode, EditorEdge } from '../../../components/workflow';
 import { WorkflowEditor, EditorToolbar, NodeConfigPanel } from '../../../components/workflow';
 import { useTranslation } from '../../../contexts/locale-context';
+import { AuthCheck } from '../../../components/auth-check';
 
 function convertApiToEditorNodes(nodes: any[]): EditorNode[] {
   return nodes.map((n) => ({
@@ -43,7 +44,7 @@ function convertEditorToApiNodes(nodes: EditorNode[]): any[] {
   }));
 }
 
-export default function WorkflowEditorPage() {
+function WorkflowEditorContent() {
   const { t } = useTranslation();
   const params = useParams();
   const router = useRouter();
@@ -56,21 +57,28 @@ export default function WorkflowEditorPage() {
 
   const { nodes, edges, initWorkflow, isDirty, workflowName } = useWorkflowEditorStore();
 
+  // Store ref to track if we've loaded
+  const hasLoadedRef = useRef(false);
+
+  // Load workflow only once when workflowId changes
   useEffect(() => {
+    if (hasLoadedRef.current) return;
+    hasLoadedRef.current = true;
+
     async function loadWorkflow() {
       try {
         const workflow = await api.workflows.get(workflowId);
         const editorNodes = convertApiToEditorNodes(workflow.definition?.nodes || []);
         const editorEdges = convertApiToEditorEdges(workflow.definition?.edges || []);
         initWorkflow(workflowId, workflow.name, editorNodes, editorEdges);
-        setLoading(false);
-      } catch (err) {
-        setError(t('editor.workflowEditor.loadFailed'));
+      } catch {
+        setError('Failed to load workflow');
+      } finally {
         setLoading(false);
       }
     }
     loadWorkflow();
-  }, [workflowId, initWorkflow, t]);
+  }, [workflowId, initWorkflow]);
 
   const handleSave = useCallback(async () => {
     setIsSaving(true);
@@ -80,8 +88,8 @@ export default function WorkflowEditorPage() {
         edges: edges.map((e) => ({ id: e.id, source: e.source, target: e.target, sourceHandle: e.sourceHandle || undefined, targetHandle: e.targetHandle || undefined })),
       };
       await api.workflows.publish(workflowId, definition);
-      useWorkflowEditorStore.setState({ isDirty: false });
-    } catch (err) {
+      useWorkflowEditorStore.getState().markSaved();
+    } catch {
       setError(t('editor.workflowEditor.saveFailed'));
     } finally {
       setIsSaving(false);
@@ -106,7 +114,7 @@ export default function WorkflowEditorPage() {
         inputPayload: {},
       });
       router.push(`/runs/${run.id}`);
-    } catch (err) {
+    } catch {
       setError(t('editor.workflowEditor.runFailed'));
     } finally {
       setIsRunning(false);
@@ -115,19 +123,20 @@ export default function WorkflowEditorPage() {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-slate-950">
-        <div className="text-slate-400">{t('editor.workflowEditor.loading')}</div>
+      <div className="flex h-screen items-center justify-center bg-zinc-950">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-cyan-400 border-t-transparent" />
+        <span className="ml-3 text-zinc-400">{t('editor.workflowEditor.loading')}</span>
       </div>
     );
   }
 
   if (error && !loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-slate-950">
+      <div className="flex h-screen items-center justify-center bg-zinc-950">
         <div className="text-center">
           <AlertCircle className="mx-auto h-12 w-12 text-red-400" />
           <h2 className="mt-4 text-lg font-medium text-white">{error}</h2>
-          <Link href="/workflows" className="mt-4 text-blue-400 hover:underline">
+          <Link href="/workflows" className="mt-4 inline-block text-cyan-400 hover:underline">
             {t('editor.workflowEditor.backToWorkflows')}
           </Link>
         </div>
@@ -136,19 +145,19 @@ export default function WorkflowEditorPage() {
   }
 
   return (
-    <div className="relative h-screen flex-col bg-slate-950">
-      <header className="flex items-center justify-between border-b border-slate-800 bg-slate-900/80 px-4 py-3">
+    <div className="relative flex flex-col bg-zinc-950" style={{ height: 'calc(100vh - var(--navbar-height, 0px))' }}>
+      <header className="flex items-center justify-between border-b border-zinc-800 bg-zinc-900/80 px-4 py-3 shrink-0">
         <div className="flex items-center gap-4">
           <Link
             href="/workflows"
-            className="flex items-center gap-1 text-sm text-slate-400 hover:text-white"
+            className="flex items-center gap-1 text-sm text-zinc-400 hover:text-white"
           >
             <ArrowLeft className="h-4 w-4" />
             {t('editor.workflowEditor.back')}
           </Link>
           <div>
             <h1 className="font-semibold text-white">{workflowName}</h1>
-            <p className="text-xs text-slate-500">{t('editor.workflowEditor.title')}</p>
+            <p className="text-xs text-zinc-500">{t('editor.workflowEditor.title')}</p>
           </div>
         </div>
         <EditorToolbar onSave={handleSave} onRun={handleRun} isSaving={isSaving} canRun={!isDirty && !isRunning} />
@@ -160,11 +169,19 @@ export default function WorkflowEditorPage() {
         </div>
       )}
 
-      <div className="flex-1">
+      <div className="flex-1 min-h-0 overflow-hidden">
         <WorkflowEditor />
       </div>
 
       <NodeConfigPanel />
     </div>
+  );
+}
+
+export default function WorkflowEditorPage() {
+  return (
+    <AuthCheck>
+      <WorkflowEditorContent />
+    </AuthCheck>
   );
 }

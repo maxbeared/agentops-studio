@@ -10,11 +10,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" style={{ paddingTop: 'var(--navbar-height, 0px)' }}>
       <body>
         <Providers>
           <Navbar />
-          <div className="min-h-full">
+          <div className="h-full overflow-hidden">
             {children}
           </div>
         </Providers>

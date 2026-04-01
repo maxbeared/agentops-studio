@@ -17,7 +17,7 @@ interface AuthToken {
 
 async function fetchApi<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
-  
+
   const res = await fetch(`${API_BASE}${endpoint}`, {
     ...options,
     headers: {
@@ -27,11 +27,13 @@ async function fetchApi<T>(endpoint: string, options?: RequestInit): Promise<T> 
     },
   });
 
+  const json = await res.json().catch(() => ({}));
+
   if (!res.ok) {
-    throw new Error(`API error: ${res.status}`);
+    const errorMessage = json?.error?.formErrors?.[0] || json?.error?.message || `API error: ${res.status}`;
+    throw new Error(errorMessage);
   }
 
-  const json = await res.json();
   return json.data as T;
 }
 
@@ -66,8 +68,10 @@ export const api = {
   projects: {
     list: () => fetchApi<any[]>('/projects'),
     get: (id: string) => fetchApi<any>(`/projects/${id}`),
-    create: (data: { name: string; description?: string; organizationId: string }) =>
+    create: (data: { name: string; description?: string; organizationId?: string }) =>
       fetchApi<any>('/projects', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: { name?: string; description?: string | null }) =>
+      fetchApi<any>(`/projects/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: string) =>
       fetchApi<any>(`/projects/${id}`, { method: 'DELETE' }),
   },

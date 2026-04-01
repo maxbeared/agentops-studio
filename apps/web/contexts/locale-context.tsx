@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode, useMemo } from 'react';
 
 type Locale = 'en' | 'zh';
 
@@ -41,17 +41,22 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     }
   }, [locale, isInitialized]);
 
-  const setLocale = (newLocale: Locale) => {
+  const setLocale = useCallback((newLocale: Locale) => {
     setLocaleState(newLocale);
     localStorage.setItem('preferred_locale', newLocale);
-  };
+  }, []);
+
+  const contextValue = useMemo(
+    () => ({ locale, setLocale, translations }),
+    [locale, setLocale, translations]
+  );
 
   if (!isInitialized) {
     return null;
   }
 
   return (
-    <LocaleContext.Provider value={{ locale, setLocale, translations }}>
+    <LocaleContext.Provider value={contextValue}>
       {children}
     </LocaleContext.Provider>
   );
@@ -69,7 +74,7 @@ export function useLocale() {
 export function useTranslation(namespace?: string) {
   const { translations, locale } = useLocale();
 
-  const t = (key: string): string => {
+  const t = useCallback((key: string): string => {
     const keys = key.split('.');
     let value: any = translations;
 
@@ -83,7 +88,7 @@ export function useTranslation(namespace?: string) {
     }
 
     return typeof value === 'string' ? value : key;
-  };
+  }, [translations]);
 
   return { t, locale };
 }

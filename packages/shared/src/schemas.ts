@@ -6,6 +6,11 @@ export const createProjectSchema = z.object({
   organizationId: z.string().uuid(),
 });
 
+export const updateProjectSchema = z.object({
+  name: z.string().min(1).max(120).optional(),
+  description: z.string().max(1000).optional().nullable(),
+});
+
 export const createKnowledgeDocumentSchema = z.object({
   projectId: z.string().uuid(),
   title: z.string().min(1).max(200),

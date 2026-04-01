@@ -164,16 +164,33 @@ agentops-studio/
 ### 前端组件 (`apps/web/components/`)
 | 文件 | 功能 |
 |------|------|
-| `Navbar.tsx` | 全局导航栏（赛博朋克青色 Logo + 暗色主题） |
+| `Navbar.tsx` | 全局导航栏（fixed定位，使用CSS变量--navbar-height动态高度） |
 | `language-switcher.tsx` | 语言切换下拉选择器 |
-| `ui/index.tsx` | 共享 UI 组件库 |
+| `ui/index.tsx` | 共享 UI 组件库（Button children改为可选） |
 | `providers.tsx` | 组合 Provider（Locale + Auth） |
 | `auth-check.tsx` | 路由守卫（未登录重定向） |
-| `workflow/editor-store.ts` | Zustand 工作流编辑器状态 |
-| `workflow/nodes.tsx` | React Flow 自定义节点 |
-| `workflow/node-config-panel.tsx` | 节点配置面板 |
-| `workflow/toolbar.tsx` | 工具栏 |
-| `workflow/workflow-editor.tsx` | 主编辑器组件 |
+| `workflow/editor-store.ts` | Zustand 工作流编辑器状态（直接同步ReactFlow） |
+| `workflow/nodes.tsx` | React Flow 自定义节点（7种类型：start/llm/retrieval/condition/review/webhook/output） |
+| `workflow/node-config-panel.tsx` | 节点配置面板（中英文双语支持） |
+| `workflow/toolbar.tsx` | 节点添加工具栏（拖拽+点击添加） |
+| `workflow/workflow-editor.tsx` | ReactFlow画布组件（Store直接同步，无中间状态层） |
+
+### 布局系统 (关键修复)
+
+**溢出问题根因**：Navbar使用fixed定位+JS设置html paddingTop，但页面使用height:100vh固定高度，导致总高度=Navbar高度+100vh超出视口。
+
+**修复方案**：
+- Navbar通过ResizeObserver更新CSS变量`--navbar-height`
+- html使用`paddingTop: var(--navbar-height, 0px)`
+- 页面使用`height: calc(100vh - var(--navbar-height, 0px))`
+- 全链路overflow:hidden禁止滚动
+
+**CSS层级**：
+```css
+html { height: 100%; overflow: hidden; paddingTop: var(--navbar-height, 0px); }
+body { height: 100%; overflow: hidden; }
+#layout div { height: 100%; overflow: hidden; }
+```
 
 ### 上下文 (`apps/web/contexts/`)
 | 文件 | 功能 |
@@ -484,6 +501,10 @@ Password: demo123456
 - [x] **国际化 (i18n) 支持** - 中英文切换，语言偏好 localStorage 持久化
 - [x] **落地页全面重构** - 赛博朋克风格，故障效果，卡片碰撞动画，时间线，统计数据圆形悬浮
 - [x] **React Query 数据层优化** - 引入 TanStack Query，统一数据获取，1分钟staleTime缓存，Dashboard API N+1查询优化
+- [x] **工作流编辑器重构** - ReactFlow直接同步Zustand Store，移除中间状态层，修复画布高度计算
+- [x] **节点配置面板中文化** - 所有节点类型配置项支持中英文双语显示
+- [x] **布局溢出修复** - Navbar改用CSS变量动态高度，全链路overflow:hidden解决滚动条问题
+- [x] **Projects页面CRUD** - 完善项目管理界面与功能
 
 ### ⚠️ 已知限制
 - `knowledge_chunks.embedding` 存储为 JSON 序列化的 float array（text 类型），非 pgvector

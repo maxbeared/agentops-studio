@@ -1,9 +1,10 @@
 'use client';
 
-import { useCallback, useRef } from 'react';
+import { useCallback } from 'react';
 import { useWorkflowEditorStore } from './editor-store';
-import { Play, Save, Plus, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
+import { Play, Save, Plus } from 'lucide-react';
 import { useTranslation } from '../../contexts/locale-context';
+import { Button } from '../ui';
 
 const nodeTypes = [
   { type: 'start', label: 'Start', color: 'bg-emerald-500/20 border-emerald-500 text-emerald-400' },
@@ -12,13 +13,12 @@ const nodeTypes = [
   { type: 'condition', label: 'Condition', color: 'bg-amber-500/20 border-amber-500 text-amber-400' },
   { type: 'review', label: 'Review', color: 'bg-pink-500/20 border-pink-500 text-pink-400' },
   { type: 'webhook', label: 'Webhook', color: 'bg-cyan-500/20 border-cyan-500 text-cyan-400' },
-  { type: 'output', label: 'Output', color: 'bg-slate-500/20 border-slate-500 text-slate-400' },
+  { type: 'output', label: 'Output', color: 'bg-zinc-500/20 border-zinc-500 text-zinc-400' },
 ];
 
 export function NodeToolbar() {
   const { t } = useTranslation();
-  const { addNode, nodes } = useWorkflowEditorStore();
-  const counterRef = useRef(0);
+  const addNode = useWorkflowEditorStore((state) => state.addNode);
 
   const handleDragStart = useCallback((e: React.DragEvent, nodeType: string) => {
     e.dataTransfer.setData('application/reactflow', nodeType);
@@ -26,11 +26,13 @@ export function NodeToolbar() {
   }, []);
 
   const handleAddNode = useCallback((type: string) => {
-    counterRef.current += 1;
-    const x = 250 + (counterRef.current % 10) * 10;
-    const y = 100 + nodes.length * 100;
+    // Get fresh state each time to avoid stale closures
+    const state = useWorkflowEditorStore.getState();
+    const count = state.nodes.length;
+    const x = 250 + (count % 5) * 40;
+    const y = 150 + count * 80;
     addNode(type, { x, y });
-  }, [addNode, nodes.length]);
+  }, [addNode]);
 
   const getNodeLabel = (type: string) => {
     const labels: Record<string, string> = {
@@ -77,48 +79,49 @@ export function EditorToolbar({ onSave, onRun, isSaving, canRun }: EditorToolbar
   const { workflowName, isDirty, resetEditor } = useWorkflowEditorStore();
 
   return (
-    <div className="flex items-center justify-between border-b border-slate-700 bg-slate-900/80 px-4 py-3" role="toolbar" aria-label="Workflow editor toolbar">
-      <div className="flex items-center gap-4">
-        <h1 className="text-lg font-semibold text-white" aria-label={`Workflow: ${workflowName}`}>{workflowName}</h1>
-        {isDirty && (
-          <span className="rounded bg-amber-500/20 px-2 py-0.5 text-xs text-amber-400" role="status" aria-live="polite">
-            {t('editor.workflowEditor.unsavedChanges')}
-          </span>
-        )}
-      </div>
+    <div className="flex items-center gap-3">
+      <h1 className="text-lg font-semibold text-white" aria-label={`Workflow: ${workflowName}`}>{workflowName}</h1>
+      {isDirty && (
+        <span className="rounded bg-amber-500/20 px-2 py-0.5 text-xs text-amber-400" role="status" aria-live="polite">
+          {t('editor.workflowEditor.unsavedChanges')}
+        </span>
+      )}
       <div className="flex items-center gap-2">
-        <button
+        <Button
           type="button"
+          variant="secondary"
+          size="sm"
           onClick={resetEditor}
-          className="flex items-center gap-1.5 rounded bg-slate-800 px-3 py-1.5 text-sm text-slate-300 hover:bg-slate-700"
           aria-label="Reset workflow editor"
         >
-          <RotateCcw className="h-4 w-4" aria-hidden="true" />
           {t('editor.toolbar.reset')}
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="secondary"
+          size="sm"
           onClick={onSave}
           disabled={isSaving || !isDirty}
-          className="flex items-center gap-1.5 rounded bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
+          loading={isSaving}
+          icon={<Save className="h-4 w-4" />}
           aria-label={isSaving ? 'Saving workflow' : 'Save workflow'}
           aria-busy={isSaving}
         >
-          <Save className="h-4 w-4" aria-hidden="true" />
-          {isSaving ? t('common.saving') : t('editor.toolbar.save')}
-        </button>
+          {t('editor.toolbar.save')}
+        </Button>
         {onRun && (
-          <button
+          <Button
             type="button"
+            variant="primary"
+            size="sm"
             onClick={onRun}
             disabled={!canRun}
-            className="flex items-center gap-1.5 rounded bg-emerald-600 px-3 py-1.5 text-sm text-white hover:bg-emerald-700 disabled:opacity-50"
+            icon={<Play className="h-4 w-4" />}
             aria-label="Run workflow"
             aria-disabled={!canRun}
           >
-            <Play className="h-4 w-4" aria-hidden="true" />
             {t('workflows.run')}
-          </button>
+          </Button>
         )}
       </div>
     </div>

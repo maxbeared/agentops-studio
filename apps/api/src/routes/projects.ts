@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { createProjectSchema } from '@agentops/shared';
+import { createProjectSchema, updateProjectSchema } from '@agentops/shared';
 import { db } from '@agentops/db';
 import { projects, organizations } from '@agentops/db/schema';
 import { eq } from 'drizzle-orm';
@@ -116,6 +116,51 @@ projectRoutes.get('/:id', async (c) => {
       },
       createdAt: project.createdAt,
       updatedAt: project.updatedAt,
+    },
+  });
+});
+
+projectRoutes.put('/:id', async (c) => {
+  const id = c.req.param('id');
+  const authUser = await getAuthUser(c);
+
+  if (!authUser) {
+    return c.json({ error: { formErrors: ['Unauthorized'] } }, 401);
+  }
+
+  const project = await db.query.projects.findFirst({
+    where: eq(projects.id, id),
+  });
+
+  if (!project) {
+    return c.json({ error: { formErrors: ['Project not found'] } }, 404);
+  }
+
+  const body = await c.req.json();
+  const parsed = updateProjectSchema.safeParse(body);
+
+  if (!parsed.success) {
+    return c.json({ error: parsed.error.flatten() }, 400);
+  }
+
+  const [updated] = await db
+    .update(projects)
+    .set({
+      ...(parsed.data.name !== undefined && { name: parsed.data.name }),
+      ...(parsed.data.description !== undefined && { description: parsed.data.description }),
+      updatedAt: new Date(),
+    })
+    .where(eq(projects.id, id))
+    .returning();
+
+  return c.json({
+    data: {
+      id: updated.id,
+      name: updated.name,
+      description: updated.description,
+      organizationId: updated.organizationId,
+      createdAt: updated.createdAt,
+      updatedAt: updated.updatedAt,
     },
   });
 });
