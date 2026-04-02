@@ -63,6 +63,41 @@ export const api = {
       }),
     me: () => fetchApi<AuthToken>('/auth/me'),
     logout: () => clearAuthToken(),
+    updateProfile: (data: { name?: string; avatarUrl?: string | null }) =>
+      fetchApi<{ user: { id: string; name: string; email: string; avatarUrl?: string } }>('/auth/profile', {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+    updatePassword: (data: { currentPassword: string; newPassword: string }) =>
+      fetchApi<{ success: boolean }>('/auth/password', { method: 'PUT', body: JSON.stringify(data) }),
+    uploadAvatar: (data: { avatar: string }) =>
+      fetchApi<{ user: { id: string; name: string; email: string; avatarUrl?: string } }>('/auth/avatar', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+  },
+
+  aiModels: {
+    list: () => fetchApi<any[]>('/ai/model-configs'),
+    get: (id: string) => fetchApi<any>(`/ai/model-configs/${id}`),
+    create: (data: {
+      name: string;
+      provider: 'openai' | 'anthropic' | 'custom';
+      apiEndpoint?: string;
+      apiKey?: string;
+      defaultModel: string;
+      isDefault?: boolean;
+    }) => fetchApi<any>('/ai/model-configs', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: Partial<{
+      name: string;
+      provider: 'openai' | 'anthropic' | 'custom';
+      apiEndpoint?: string;
+      apiKey?: string;
+      defaultModel: string;
+      isDefault?: boolean;
+    }>) => fetchApi<any>(`/ai/model-configs/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: string) => fetchApi<any>(`/ai/model-configs/${id}`, { method: 'DELETE' }),
+    getDefault: () => fetchApi<any>('/ai/model-configs/default'),
   },
 
   projects: {

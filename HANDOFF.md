@@ -82,7 +82,7 @@ agentops-studio/
 | `auth.ts` | JWT 用户认证解析（getAuthUser） |
 | `jwt.ts` | JWT 签名/验证 |
 | `password.ts` | bcryptjs 密码哈希 |
-| `minio.ts` | MinIO 客户端封装 |
+| `minio.ts` | MinIO 客户端封装 + uploadAvatar 头像上传 |
 | `websocket.ts` | WebSocket 服务端 + 广播函数 |
 
 ### WebSocket (`apps/api/src/`)
@@ -106,6 +106,7 @@ agentops-studio/
 | `/reviews` | 审核任务列表 + approve/reject（需登录） |
 | `/auth/login` | 登录页 |
 | `/auth/register` | 注册页 |
+| `/settings` | 设置页面（Profile/AIModels Tab）+ 头像上传裁剪 |
 
 ### 落地页设计规范 (`apps/web/app/page.tsx`)
 
@@ -190,6 +191,7 @@ agentops-studio/
 | `ui/index.tsx` | 共享 UI 组件库（Button children改为可选） |
 | `providers.tsx` | 组合 Provider（Locale + Auth） |
 | `auth-check.tsx` | 路由守卫（未登录重定向） |
+| `avatar-upload.tsx` | Canvas 头像裁剪上传（缩放/拖拽/S3存储） |
 | `workflow/editor-store.ts` | Zustand 工作流编辑器状态（直接同步ReactFlow） |
 | `workflow/nodes.tsx` | React Flow 自定义节点（15种类型，仅显示图标+标签，横向连接） |
 | `workflow/node-config-panel.tsx` | 节点配置面板（右侧边栏，仅选中节点时显示，自动隐藏） |
@@ -266,6 +268,9 @@ agentops-studio/
 | `/register` | 注册 + 创建组织 + 返回 JWT |
 | `/login` | 登录验证 + 返回 JWT |
 | `/me` | 获取当前用户信息 |
+| `/profile` PUT | 更新用户资料（name/avatarUrl） |
+| `/password` PUT | 修改密码 |
+| `/avatar` POST | 上传头像到 S3，返回 S3 URL |
 
 ### 项目 `GET|POST /projects/`
 | 端点 | 功能 |
@@ -444,6 +449,7 @@ S3_ENDPOINT=http://localhost:9000
 S3_ACCESS_KEY=minio
 S3_SECRET_KEY=minio123
 S3_BUCKET=agentops
+S3_PUBLIC_URL=http://localhost:9000/agentops
 OPENAI_API_KEY=sk-...
 ANTHROPIC_API_KEY=sk-ant-...
 ```
@@ -536,6 +542,11 @@ Password: demo123456
 - [x] **AI 模型配置 API** - CRUD 端点管理 AI 模型配置
 - [x] **首页 AI 工作流创建** - AICreatorInput 单行输入，回车存储 localStorage 跳转登录
 - [x] **首页响应式字体** - 使用 clamp() 限制最大字号，避免在小屏幕上过大
+- [x] **设置页面** - Profile/AIModels Tab，含个人信息修改、AI模型配置
+- [x] **头像上传裁剪** - Canvas 缩放/裁剪，拖拽调整，S3 存储
+- [x] **修改密码** - PUT /auth/password，验证原密码
+- [x] **头像 S3 存储** - base64 转存到 MinIO，avatarUrl 改为 text 类型
+- [x] **AI 模型配置管理** - AI Models Tab，CRUD 配置 OpenAI/Anthropic/Custom 模型
 
 ### ⚠️ 已知限制
 - `knowledge_chunks.embedding` 存储为 JSON 序列化的 float array（text 类型），非 pgvector

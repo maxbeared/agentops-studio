@@ -39,6 +39,7 @@ export default function Navbar() {
     { href: '/knowledge', label: t('nav.knowledge') },
     { href: '/prompts', label: t('nav.prompts') },
     { href: '/reviews', label: t('nav.reviews') },
+    { href: '/settings', label: t('nav.settings') },
   ];
 
   if (loading) {
