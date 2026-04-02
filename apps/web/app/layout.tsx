@@ -14,9 +14,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <Providers>
           <Navbar />
-          <div className="h-full overflow-hidden">
-            {children}
-          </div>
+          {children}
         </Providers>
       </body>
     </html>

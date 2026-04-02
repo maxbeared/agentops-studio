@@ -105,6 +105,10 @@ export const workflowVersions = pgTable('workflow_versions', {
   workflowId: uuid('workflow_id').notNull().references(() => workflows.id),
   version: integer('version').notNull(),
   definition: jsonb('definition').$type<Record<string, unknown>>().notNull(),
+  source: varchar('source', { length: 20 }).notNull().default('manual'),
+  aiPrompt: text('ai_prompt'),
+  aiResponse: jsonb('ai_response').$type<Record<string, unknown>>(),
+  parentVersionId: uuid('parent_version_id'),
   publishedAt: timestamp('published_at', { withTimezone: true }),
   createdBy: uuid('created_by').notNull().references(() => users.id),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
@@ -141,6 +145,8 @@ export const workflowRuns = pgTable('workflow_runs', {
   status: varchar('status', { length: 30 }).notNull().default('pending'),
   inputPayload: jsonb('input_payload').$type<Record<string, unknown>>(),
   outputPayload: jsonb('output_payload').$type<Record<string, unknown>>(),
+  interpretationPrompt: text('interpretation_prompt'),
+  executionPlan: jsonb('execution_plan').$type<Record<string, unknown>>(),
   startedAt: timestamp('started_at', { withTimezone: true }),
   finishedAt: timestamp('finished_at', { withTimezone: true }),
   errorMessage: text('error_message'),
@@ -199,6 +205,32 @@ export const modelProviders = pgTable('model_providers', {
   apiBase: text('api_base'),
   isEnabled: boolean('is_enabled').notNull().default(true),
   config: jsonb('config').$type<Record<string, unknown>>(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// AI Model Configurations (organization-level)
+export const aiModelConfigs = pgTable('ai_model_configs', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  orgId: uuid('org_id').notNull().references(() => organizations.id),
+  name: varchar('name', { length: 50 }).notNull(),
+  provider: varchar('provider', { length: 20 }).notNull(),
+  apiEndpoint: text('api_endpoint'),
+  apiKey: text('api_key'),
+  defaultModel: varchar('default_model', { length: 50 }).notNull(),
+  isDefault: boolean('is_default').notNull().default(false),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// AI Workflow Modifications record
+export const workflowModifications = pgTable('workflow_modifications', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  workflowVersionId: uuid('workflow_version_id').notNull().references(() => workflowVersions.id),
+  parentVersionId: uuid('parent_version_id'),
+  source: varchar('source', { length: 20 }).notNull(),
+  prompt: text('prompt').notNull(),
+  response: jsonb('response').$type<Record<string, unknown>>(),
+  changes: jsonb('changes').$type<Record<string, unknown>>(),
+  createdBy: uuid('created_by').notNull().references(() => users.id),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 

@@ -53,7 +53,7 @@ agentops-studio/
 │   ├── shared/       # 共享 types 和 zod schema
 │   ├── db/           # Drizzle schema / db client
 │   ├── ai/           # AI provider (OpenAI, Anthropic, Mock)
-│   └── workflow/     # Workflow engine / executors
+│   └── workflow/     # Workflow interpreter / plan executor
 ├── docker-compose.yml
 └── package.json
 ```
@@ -73,6 +73,8 @@ agentops-studio/
 | `reviews.ts` | 审核任务 + approve/reject |
 | `prompts.ts` | Prompt 模板 CRUD |
 | `dashboard.ts` | 统计数据聚合 |
+| `ai.ts` | AI 工作流生成/修改/解读（流式 SSE） |
+| `ai-model-config.ts` | AI 模型配置 CRUD |
 
 ### API 库 (`apps/api/src/lib/`)
 | 文件 | 功能 |
@@ -92,15 +94,11 @@ agentops-studio/
 
 | 路径 | 功能 |
 |------|------|
-| `/` | 营销首页（炫酷展示页面，详见下方落地页设计规范） |
-| `/dashboard` | Dashboard 仪表盘（需登录） |
-| 路径 | 功能 |
-|------|------|
-| `/` | 营销首页（炫酷展示页面） |
+| `/` | 营销首页（AI 工作流创建输入 + 炫酷展示页面） |
 | `/dashboard` | Dashboard 仪表盘（需登录） |
 | `/projects` | 项目列表（需登录） |
 | `/workflows` | 工作流列表（需登录） |
-| `/workflows/[id]` | Workflow Builder 可视化编辑器（需登录） |
+| `/workflows/[id]` | Workflow Builder 可视化编辑器 + AI Chat Panel（需登录） |
 | `/runs` | 执行记录列表（需登录） |
 | `/runs/[id]` | Run 详情 + 自动轮询（需登录） |
 | `/knowledge` | 知识库 + 文件上传（需登录） |
@@ -111,7 +109,30 @@ agentops-studio/
 
 ### 落地页设计规范 (`apps/web/app/page.tsx`)
 
-**视觉风格**：深色赛博朋克 + 霓虹发光效果
+**视觉风格**：深色赛博朋克 + 霓虹发光效果 + AI 工作流创建
+
+#### AI 工作流创建区域
+
+| 组件 | 功能 |
+|------|------|
+| `AICreatorInput` | 单行输入框，border-bottom 样式，回车跳转登录/创建 |
+
+**布局结构**：
+- Hero 区域：标题 + 副标题（左对齐）+ AI 输入框 + 两个按钮
+- Ready 区域：标题 + 副标题（左对齐）+ AI 输入框 + 两个按钮
+- 按钮：开始使用（填充色）+ 仪表盘/查看案例（边框样式）
+
+**按钮逻辑**：
+- 登录后：开始使用（跳转 /projects）+ 仪表盘（跳转 /dashboard）
+- 未登录：开始使用（跳转 /auth/login）+ 查看案例（跳转 /workflows）
+
+**输入框逻辑**：
+- 回车时将描述存入 localStorage（24小时过期）
+- 未登录时跳转登录页，登录后恢复描述
+
+**响应式字体**：
+- 标题使用 `clamp()` 限制最大字号（320px）
+- 小屏幕用更大的 vw 值确保可读性
 
 #### 核心组件
 
@@ -170,28 +191,29 @@ agentops-studio/
 | `providers.tsx` | 组合 Provider（Locale + Auth） |
 | `auth-check.tsx` | 路由守卫（未登录重定向） |
 | `workflow/editor-store.ts` | Zustand 工作流编辑器状态（直接同步ReactFlow） |
-| `workflow/nodes.tsx` | React Flow 自定义节点（15种类型：start/llm/retrieval/condition/review/webhook/output/input/text/loop/delay/transform/code/merge/errorHandler，横向连接） |
+| `workflow/nodes.tsx` | React Flow 自定义节点（15种类型，仅显示图标+标签，横向连接） |
 | `workflow/node-config-panel.tsx` | 节点配置面板（右侧边栏，仅选中节点时显示，自动隐藏） |
 | `workflow/toolbar.tsx` | 节点添加工具栏（14种节点类型按钮直接展示，可换行） |
-| `workflow/workflow-editor.tsx` | ReactFlow画布组件（验证状态栏、边选中删除按钮） |
+| `workflow/workflow-editor.tsx` | ReactFlow画布组件（验证状态栏、边选中删除按钮、横向贝塞尔曲线） |
+| `workflow/ai-chat-panel.tsx` | AI Chat Panel（自然语言创建/修改工作流） |
+| `workflow/version-history-panel.tsx` | 版本历史面板（显示 AI/手动版本，支持恢复） |
 | `workflow/validation.ts` | 工作流验证规则引擎（7条规则：唯一开始/可达性/条件分支等） |
 
-### 布局系统 (关键修复)
+### 工作流系统架构（重大重构）
 
-**溢出问题根因**：Navbar使用fixed定位+JS设置html paddingTop，但页面使用height:100vh固定高度，导致总高度=Navbar高度+100vh超出视口。
+**核心理念转变**：工作流从"执行蓝图"变为"需求文档/流程图"
 
-**修复方案**：
-- Navbar通过ResizeObserver更新CSS变量`--navbar-height`
-- html使用`paddingTop: var(--navbar-height, 0px)`
-- 页面使用`height: calc(100vh - var(--navbar-height, 0px))`
-- 全链路overflow:hidden禁止滚动
+| 组件 | 功能 |
+|------|------|
+| `WorkflowInterpreter` | 解读工作流定义，生成自然语言描述，调用 LLM 生成执行计划 |
+| `PlanExecutor` | 根据执行计划执行步骤，支持 pause/resume，Actions: llm/retrieval/webhook/code/output/ai_review |
 
-**CSS层级**：
-```css
-html { height: 100%; overflow: hidden; paddingTop: var(--navbar-height, 0px); }
-body { height: 100%; overflow: hidden; }
-#layout div { height: 100%; overflow: hidden; }
-```
+**BullMQ 队列**：
+| 队列名 | 功能 |
+|--------|------|
+| `workflow-interpret` | 解读工作流生成执行计划 |
+| `workflow-execution` | 执行工作流（基于计划） |
+| `workflow-continue` | 审核批准后继续执行 |
 
 ### 上下文 (`apps/web/contexts/`)
 | 文件 | 功能 |
@@ -212,7 +234,7 @@ body { height: 100%; overflow: hidden; }
 
 ---
 
-## 5. 数据模型（17 张表）
+## 5. 数据模型（19 张表）
 
 - `users` - 用户
 - `organizations` - 组织
@@ -222,14 +244,16 @@ body { height: 100%; overflow: hidden; }
 - `knowledge_chunks` - 知识块（embedding 占位 text）
 - `prompt_templates` - Prompt 模板
 - `workflows` - 工作流定义
-- `workflow_versions` - 工作流版本
+- `workflow_versions` - 工作流版本（含 source: manual/ai_generated/ai_modified）
 - `workflow_nodes` - 工作流节点
 - `workflow_edges` - 工作流边
-- `workflow_runs` - 工作流运行记录
+- `workflow_runs` - 工作流运行记录（含 interpretationPrompt/executionPlan）
 - `workflow_node_runs` - 节点执行记录
 - `review_tasks` - 审核任务
 - `delivery_jobs` - 投递任务
 - `model_providers` - 模型提供商配置
+- `ai_model_configs` - AI 模型配置（provider/endpoint/apiKey/defaultModel）
+- `workflow_modifications` - AI 修改记录
 - `audit_logs` - 审计日志
 
 ---
@@ -247,7 +271,7 @@ body { height: 100%; overflow: hidden; }
 | 端点 | 功能 |
 |------|------|
 | `GET /` | 列表（需 JWT） |
-| `POST /` | 创建（需 JWT） |
+| `POST /` | 创建（需 JWT，organizationId 可选） |
 | `GET /:id` | 详情 |
 | `DELETE /:id` | 删除 |
 
@@ -267,6 +291,21 @@ body { height: 100%; overflow: hidden; }
 | `POST /` | 创建（需 JWT） |
 | `GET /:id` | 详情 + 版本定义 |
 | `POST /:id/publish` | 发布新版本（需 JWT） |
+
+### AI 工作流 `POST /ai/`
+| 端点 | 功能 |
+|------|------|
+| `/workflows/generate` | AI 生成工作流（流式 SSE） |
+| `/workflows/modify` | AI 修改工作流（流式 SSE） |
+| `/runs/interpret` | 解读工作流生成执行计划 |
+
+### AI 模型配置 `GET|POST|PUT|DELETE /ai/model-configs`
+| 端点 | 功能 |
+|------|------|
+| `GET /` | 列表（需 JWT） |
+| `POST /` | 创建配置 |
+| `PUT /:id` | 更新配置 |
+| `DELETE /:id` | 删除配置 |
 
 ### 执行记录 `GET|POST /runs/`
 | 端点 | 功能 |
@@ -300,89 +339,56 @@ body { height: 100%; overflow: hidden; }
 
 ---
 
-## 7. Workflow 引擎
+## 7. Workflow 系统（重构后）
 
-### 节点类型 (`packages/workflow/src/executors.ts`)
+### 节点类型
 
-| 节点类型 | Executor | 功能 |
-|----------|----------|------|
-| `start` | StartNodeExecutor | 初始化输入（不可删除，自动创建） |
-| `llm` | LLMNodeExecutor | AI 模型调用（自动选择 OpenAI/Anthropic） |
-| `retrieval` | RetrievalNodeExecutor | 知识检索 |
-| `condition` | ConditionNodeExecutor | 条件分支（支持动态条件） |
-| `review` | ReviewNodeExecutor | 人工审核（返回 waiting_review） |
-| `webhook` | WebhookNodeExecutor | HTTP 请求 |
-| `output` | OutputNodeExecutor | 输出结果 |
-| `input` | InputNodeExecutor | 输入节点（定义输入schema） |
-| `text` | TextNodeExecutor | 文本处理（trim/upper/lower/split/replace等） |
-| `loop` | LoopNodeExecutor | 循环节点（支持break/continue） |
-| `delay` | DelayNodeExecutor | 延时节点（支持毫秒/秒/分钟/小时） |
-| `transform` | TransformNodeExecutor | 数据转换（模板渲染） |
-| `code` | CodeNodeExecutor | 代码执行（沙箱JS，支持loop控制） |
-| `merge` | MergeNodeExecutor | 合并节点（all/first/last策略） |
-| `errorHandler` | ErrorHandlerNodeExecutor | 错误处理节点 |
+| 节点类型 | 功能 | 说明 |
+|----------|------|------|
+| `start` | 开始节点 | 初始化输入（不可删除） |
+| `llm` | AI 模型调用 | 自动选择 OpenAI/Anthropic |
+| `retrieval` | 知识检索 |  |
+| `condition` | 条件分支 | 支持动态条件 |
+| `review` | 人工/AI 审核 | 支持 human_review/ai_review 配置 |
+| `webhook` | HTTP 请求 |  |
+| `output` | 输出结果 |  |
+| `input` | 输入节点 | 定义输入 schema |
+| `text` | 文本处理 | trim/upper/lower/split/replace |
+| `loop` | 循环节点 | 支持 break/continue |
+| `delay` | 延时节点 | 毫秒/秒/分钟/小时 |
+| `transform` | 数据转换 | 模板渲染 |
+| `code` | 代码执行 | 沙箱 JS |
+| `merge` | 合并节点 | all/first/last 策略 |
+| `errorHandler` | 错误处理 |  |
+
+### WorkflowInterpreter
+```typescript
+// packages/workflow/src/interpreter.ts
+class WorkflowInterpreter {
+  async interpret(definition: WorkflowDefinition, input: Record<string, any>): Promise<InterpretationResult>
+}
+```
+
+### PlanExecutor
+```typescript
+// packages/workflow/src/plan-executor.ts
+class PlanExecutor {
+  async execute(plan: ExecutionPlan, input: Record<string, any>, callbacks?: PlanCallbacks): Promise<ExecutionResult>
+}
+```
 
 ### 执行流程
-1. 从 `start` 节点开始递归执行
-2. 根据边连接到下一个节点
-3. `review` 节点暂停等待人工审核
-4. 节点输出存入 `ctx.outputs`（独立于 `ctx.state`）
-5. 通过 NodeExecutionListener 回调记录每个节点执行到数据库
-6. 最终结果从 `ctx.outputs` 返回，避免循环引用
-
-### 审核后继续执行
-当审核被批准后，工作流可以从下一个节点继续执行：
-1. Worker 创建 `workflow-continue` 队列任务
-2. API 审核 approve 端点触发继续执行
-3. WorkflowEngine.executeFrom() 从下一个节点恢复执行
+1. API 调用 `/ai/runs/interpret` 解读工作流生成执行计划
+2. PlanExecutor 按计划执行步骤
+3. Review 节点暂停，等待审核
+4. 审核批准后，workflow-continue 队列继续执行
 
 ### BullMQ 队列
 | 队列名 | 功能 |
 |--------|------|
-| `workflow-execution` | 工作流初始执行 |
+| `workflow-interpret` | 解读工作流 |
+| `workflow-execution` | 执行工作流（基于计划） |
 | `workflow-continue` | 审核批准后继续执行 |
-| `document-processing` | 文档处理（待实现） |
-
-### ExecutionContext 结构
-```typescript
-type ExecutionContext = {
-  input: Record<string, any>;      // 原始输入
-  state: Record<string, any>;     // 保留用于动态条件计算
-  outputs: Record<string, any>;    // 节点执行输出（解决循环引用）
-  prevOutputs: Record<string, any>; // 前序节点输出（用于上下文注入）
-};
-```
-
-### RetrievalService 接口
-```typescript
-type RetrievalService = {
-  retrieve(projectId: string, query: string, topK: number): Promise<Array<{
-    content: string;
-    score: number;
-    metadata?: Record<string, unknown>;
-  }>>;
-};
-```
-
-### AI Provider 自动选择
-```typescript
-if (model.startsWith('claude-')) return AnthropicProvider;
-if (model.startsWith('gpt-') || model.startsWith('o1')) return OpenAIProvider;
-return MockLLMProvider;
-```
-
-### ConditionNodeExecutor 条件评估
-```typescript
-// 支持 ctx.input, ctx.state, ctx.prev（前序输出）, ctx.outputs
-const evalContext = { ...ctx.state, input: ctx.input, prev: ctx.prevOutputs, outputs: ctx.outputs };
-result = this.evaluateCondition(condition, evalContext);
-// 支持表达式: input.score > 0.5, prev.LLM.content.includes('error'), etc.
-```
-
-**安全表达式解析器**：不使用 `new Function()`，实现安全的表达式解析：
-- 支持操作符：`===`, `!==`, `==`, `!=`, `>`, `<`, `>=`, `<=`, `&&`, `||`, `!`
-- 支持三元运算符：`condition ? trueVal : falseVal`
-- 支持属性访问：`input.foo`, `prev.bar`, `outputs.baz`, `state.qux`
 
 ---
 
@@ -481,7 +487,7 @@ Password: demo123456
 ## 11. 已完成功能清单
 
 ### ✅ 核心功能
-- [x] 数据库 schema（17 张表）+ 迁移 + 种子
+- [x] 数据库 schema（19 张表）+ 迁移 + 种子
 - [x] JWT Auth（注册/登录/用户状态）
 - [x] 项目/工作流/执行记录 CRUD（全部使用 JWT 认证）
 - [x] Workflow Builder（React Flow 可视化编辑器）
@@ -512,7 +518,7 @@ Password: demo123456
 - [x] **React Query 数据层优化** - 引入 TanStack Query，统一数据获取，1分钟staleTime缓存，Dashboard API N+1查询优化
 - [x] **工作流编辑器重构** - ReactFlow直接同步Zustand Store，移除中间状态层，修复画布高度计算
 - [x] **节点配置面板中文化** - 所有节点类型配置项支持中英文双语显示
-- [x] **布局溢出修复** - Navbar改用CSS变量动态高度，全链路overflow:hidden解决滚动条问题
+- [x] **布局溢出修复** - 移除 body/layout overflow:hidden，恢复页面滚动
 - [x] **Projects页面CRUD** - 完善项目管理界面与功能
 - [x] **工作流编辑器大改版** - 布局重构，NodeConfigPanel右侧边栏，验证面板内嵌工具栏
 - [x] **工具栏节点按钮化** - 14种节点类型直接展示，无需下拉菜单，可换行
@@ -524,6 +530,12 @@ Password: demo123456
 - [x] **Undo/Redo历史** - Ctrl+Z/Y 快捷键，50步历史记录
 - [x] **键盘Delete删除节点** - 选中节点时按Delete删除
 - [x] **中英文国际化完善** - 验证信息/节点配置全部中英双语
+- [x] **工作流系统重构** - 从执行引擎转为需求文档/流程图
+- [x] **AI Chat Panel** - 自然语言创建/修改工作流
+- [x] **Version History Panel** - 显示 AI/手动版本，支持恢复
+- [x] **AI 模型配置 API** - CRUD 端点管理 AI 模型配置
+- [x] **首页 AI 工作流创建** - AICreatorInput 单行输入，回车存储 localStorage 跳转登录
+- [x] **首页响应式字体** - 使用 clamp() 限制最大字号，避免在小屏幕上过大
 
 ### ⚠️ 已知限制
 - `knowledge_chunks.embedding` 存储为 JSON 序列化的 float array（text 类型），非 pgvector
@@ -555,128 +567,30 @@ export async function getAuthUser(c: Context): Promise<AuthUser | null> {
 }
 ```
 
-### Worker 节点执行记录 + WebSocket 广播 + Review 任务创建
+### WorkflowInterpreter 解读流程
 ```typescript
-// apps/worker/src/index.ts
-workflowEngine.setNodeExecutionListener(async (nodeKey, nodeType, status, result?: NodeExecutionResult) => {
-  // Find this node's definition to get config
-  const nodeDef = definition.nodes.find((n: any) => n.id === nodeKey);
-  const nodeConfig = nodeDef?.config || {};
-  let nodeRunId: string | null = null;
-
-  // 按 nodeKey + workflowRunId 查找或插入
-  const existing = await db.query.workflowNodeRuns.findFirst({
-    where: and(eq(workflowNodeRuns.workflowRunId, runId), eq(workflowNodeRuns.nodeKey, nodeKey)),
-  });
-
-  if (existing) {
-    await db.update(workflowNodeRuns).set({ status, outputPayload: ..., finishedAt: new Date() })
-      .where(eq(workflowNodeRuns.id, existing.id));
-    nodeRunId = existing.id;
-  } else {
-    const [inserted] = await db.insert(workflowNodeRuns).values({ workflowRunId, nodeKey, nodeType, status, ... });
-    nodeRunId = inserted.id;
-  }
-
-  // Review 节点暂停时创建审核任务
-  if (nodeType === 'review' && status === 'waiting_review' && nodeRunId) {
-    await db.insert(reviewTasks).values({
-      workflowRunId: runId,
-      workflowNodeRunId: nodeRunId,
-      assigneeUserId: nodeConfig.assigneeUserId || null,
-      status: 'pending',
-      reviewedOutput: result?.output ? safeJsonSerialize(result.output) : undefined,
-    });
-  }
-
-  broadcastRunUpdate(runId, { nodeKey, nodeType, status, result: ... });
-});
-```
-
-### WorkflowEngine.executeFrom() 恢复执行
-```typescript
-// packages/workflow/src/engine.ts
-async executeFrom(definition, nodeId, ctx): Promise<WorkflowExecutionResult> {
-  const resumeNode = definition.nodes.find((n) => n.id === nodeId);
-  if (!resumeNode) return { status: 'failed', outputs: { error: `Node ${nodeId} not found` } };
-
-  try {
-    const nextEdges = definition.edges.filter((e) => e.source === nodeId);
-    for (const edge of nextEdges) {
-      const nextNode = definition.nodes.find((n) => n.id === edge.target);
-      if (nextNode) {
-        await this.executeNode(ctx, nextNode, definition);
-      }
-    }
-    return { status: 'success', outputs: ctx.outputs };
-  } catch (error) {
-    return { status: 'failed', outputs: { ...ctx.outputs, error: error.message } };
-  }
+// packages/workflow/src/interpreter.ts
+async interpret(definition: WorkflowDefinition, input: Record<string, any>): Promise<InterpretationResult> {
+  // 1. 将工作流定义为自然语言
+  const description = this.describeWorkflow(definition);
+  // 2. 调用 LLM 生成执行计划
+  const plan = await this.llm.generateExecutionPlan(description, input);
+  return { description, plan };
 }
 ```
 
-### Worker 向量检索服务
+### PlanExecutor 执行流程
 ```typescript
-// apps/worker/src/index.ts
-const retrievalService: RetrievalService = {
-  async retrieve(projectId: string, query: string, topK: number) {
-    const provider = createLLMProvider('openai', process.env.OPENAI_API_KEY);
-    const queryEmbedding = await provider.embed!({ text: query });
-    const chunks = await db.query.knowledgeChunks.findMany({
-      where: eq(knowledgeChunks.projectId, projectId),
-      limit: 100,
-    });
-    // 余弦相似度计算 + 排序返回 topK
-  },
-};
-```
-
-### Worker 安全序列化
-```typescript
-function safeJsonSerialize(obj: any): any {
-  const seen = new WeakSet();
-  return JSON.parse(JSON.stringify(obj, (key, value) => {
-    if (typeof value === 'object' && value !== null) {
-      if (seen.has(value)) return '[Circular]';
-      seen.add(value);
+// packages/workflow/src/plan-executor.ts
+async execute(plan: ExecutionPlan, input: Record<string, any>, callbacks?: PlanCallbacks): Promise<ExecutionResult> {
+  for (const step of plan.steps) {
+    await this.executeStep(step, ctx, callbacks);
+    if (step.action === 'ai_review') {
+      // 暂停等待审核
+      return { status: 'paused', pausedAt: step.id };
     }
-    return value;
-  }));
-}
-```
-
-### Workflow 引擎输出处理
-```typescript
-// packages/workflow/src/executors.ts
-export class OutputNodeExecutor implements NodeExecutor {
-  async execute(ctx: ExecutionContext, node: WorkflowNode): Promise<NodeExecutionResult> {
-    return {
-      status: 'success',
-      output: JSON.parse(JSON.stringify(ctx.outputs)), // 深拷贝避免循环引用
-    };
   }
-}
-```
-
-### LLM 节点前序上下文注入
-```typescript
-// packages/workflow/src/executors.ts
-export class LLMNodeExecutor implements NodeExecutor {
-  async execute(ctx: ExecutionContext, node: WorkflowNode): Promise<NodeExecutionResult> {
-    let prompt = node.config.prompt || 'Default prompt';
-
-    // 注入前序节点输出作为上下文
-    const prevOutputsEntries = Object.entries(ctx.prevOutputs);
-    if (prevOutputsEntries.length > 0) {
-      const contextParts = prevOutputsEntries.map(([name, output]) =>
-        `[${name}]: ${typeof output === 'object' ? JSON.stringify(output) : output}`
-      );
-      prompt = `Context from previous steps:\n${contextParts.join('\n')}\n\n---\n\nUser request:\n${prompt}`;
-    }
-
-    const result = await provider.generate({ prompt, model, ... });
-    return { status: 'success', output: { content: result.content, usage: result.usage, latencyMs: result.latencyMs } };
-  }
+  return { status: 'completed', outputs: ctx.outputs };
 }
 ```
 
@@ -698,8 +612,23 @@ function getWebSocketClient(): WebSocket {
 }
 ```
 
+### AICreatorInput 输入处理
+```typescript
+// apps/web/app/page.tsx
+const handleKeyDown = (e: React.KeyboardEvent) => {
+  if (e.key === 'Enter') {
+    localStorage.setItem('pending_workflow_desc', JSON.stringify({
+      description: description.trim(),
+      createdAt: Date.now(),
+      expiresAt: Date.now() + 24 * 60 * 60 * 1000, // 24小时
+    }));
+    router.push('/auth/login');
+  }
+};
+```
+
 ---
 
 ## 13. 项目一句话总结
 
-AgentOps Studio 是一个功能完整的 AI 自动化运营中台，具备 Workflow Builder 可视化编排、真实 AI Provider 集成、MinIO 文件存储、JWT 认证、节点执行追踪、审核流程和 WebSocket 实时推送等能力，用于展示全栈开发与 AI 应用集成的综合实力。
+AgentOps Studio 是一个功能完整的 AI 自动化运营中台，具备 AI 工作流智能创建/解读、Workflow Builder 可视化编排、真实 AI Provider 集成、MinIO 文件存储、JWT 认证、节点执行追踪、审核流程和 WebSocket 实时推送等能力，用于展示全栈开发与 AI 应用集成的综合实力。

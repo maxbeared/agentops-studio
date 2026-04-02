@@ -35,3 +35,11 @@ export type NodeExecutionListener = (
   status: 'pending' | 'running' | 'success' | 'failed' | 'waiting_review',
   result?: NodeExecutionResult
 ) => Promise<void>;
+
+export type RetrievalService = {
+  retrieve(projectId: string, query: string, topK: number): Promise<Array<{
+    content: string;
+    score: number;
+    metadata?: Record<string, unknown>;
+  }>>;
+};

@@ -16,7 +16,7 @@
     "tagline": "AI Automation Platform for Modern Teams",
     "heroTitle": "Orchestrate AI Workflows",
     "heroTitleAccent": "with Confidence",
-    "heroSubtitle": "Build, deploy, and monitor complex AI automations. Visual workflow builder, multi-model support, human review, and real-time analytics.",
+    "heroSubtitle": "Build AI workflows with drag-and-drop editor, multi-model switching, human review nodes, and real-time monitoring.",
     "getStarted": "Start Building Free",
     "viewDemo": "View Demo",
     "openDashboard": "Open Dashboard",
@@ -51,8 +51,14 @@
       "integrations": "Integrations"
     },
     "readyTitle": "Ready to Build?",
-    "readySubtitle": "Start building AI workflows in minutes. No complex setup, no infrastructure management.",
+    "readySubtitle": "No complex setup required. Deploy your first workflow in minutes.",
     "createFree": "Create Free Account",
+    "createPlaceholder": "Describe your requirements",
+    "createExample1": "Customer service bot",
+    "createExample2": "Data analysis pipeline",
+    "createExample3": "Content moderation flow",
+    "startCreate": "Start Creating",
+    "creating": "Creating...",
     "footer": {
       "documentation": "Documentation",
       "signIn": "Sign In",
@@ -164,7 +170,17 @@
     "createProjectFirst": "No project found. Please create a project first.",
     "createFailed": "Failed to create workflow",
     "runFailed": "Failed to run workflow",
-    "loadFailed": "Failed to load workflows"
+    "loadFailed": "Failed to load workflows",
+    "version": {
+      "title": "Version History",
+      "versions": "versions",
+      "current": "Current version",
+      "aiGenerated": "AI Generated",
+      "aiModified": "AI Modified",
+      "manual": "Manual",
+      "view": "View",
+      "restore": "Restore"
+    }
   },
   "runs": {
     "title": "Workflow Runs",

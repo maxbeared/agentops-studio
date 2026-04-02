@@ -129,7 +129,7 @@ function ValidationStatusBar() {
   );
 }
 
-// Custom edge component with inline delete button
+// Custom edge component with inline delete button - bezier with horizontal flow
 function DeletableEdge({
   id,
   sourceX,
@@ -139,12 +139,17 @@ function DeletableEdge({
   selected,
   data,
 }: EdgeProps) {
-  const [edgePath, labelX, labelY] = getBezierPath({
-    sourceX,
-    sourceY,
-    targetX,
-    targetY,
-  });
+  // Calculate midpoint for label position
+  const midX = (sourceX + targetX) / 2;
+  const midY = (sourceY + targetY) / 2;
+
+  // Calculate horizontal distance for smooth bezier curve
+  // For horizontal flow, control points should extend horizontally
+  const dx = targetX - sourceX;
+  const controlOffset = Math.min(Math.abs(dx) * 0.5, 100);
+
+  // Create bezier path with horizontal tangent at source and target
+  const path = `M${sourceX},${sourceY} C${sourceX + controlOffset},${sourceY} ${targetX - controlOffset},${targetY} ${targetX},${targetY}`;
 
   const deleteEdge = useCallback(() => {
     const { setEdges, pushHistory } = useWorkflowEditorStore.getState();
@@ -156,7 +161,7 @@ function DeletableEdge({
     <>
       <BaseEdge
         id={id}
-        path={edgePath}
+        path={path}
         style={{
           stroke: selected ? '#22d3ee' : '#52525b',
           strokeWidth: selected ? 3 : 2,
@@ -167,7 +172,7 @@ function DeletableEdge({
           <div
             style={{
               position: 'absolute',
-              transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
+              transform: `translate(-50%, -50%) translate(${midX}px,${midY}px)`,
               pointerEvents: 'all',
             }}
             className="nodrag nopan"

@@ -10,6 +10,8 @@ import { runRoutes } from './routes/runs';
 import { reviewRoutes } from './routes/reviews';
 import { dashboardRoutes } from './routes/dashboard';
 import { promptRoutes } from './routes/prompts';
+import { aiModelConfigRoutes } from './routes/ai-model-config';
+import { aiRoutes } from './routes/ai';
 
 config({ path: '../../.env' });
 
@@ -30,6 +32,8 @@ app.route('/runs', runRoutes);
 app.route('/reviews', reviewRoutes);
 app.route('/dashboard', dashboardRoutes);
 app.route('/prompts', promptRoutes);
+app.route('/ai/model-configs', aiModelConfigRoutes);
+app.route('/ai', aiRoutes);
 
 const port = Number(process.env.API_PORT || 3001);
 

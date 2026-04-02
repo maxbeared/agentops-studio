@@ -1,10 +1,9 @@
 import { config } from 'dotenv';
 import { Worker } from 'bullmq';
-import { WorkflowEngine, type RetrievalService } from '@agentops/workflow';
-import type { NodeExecutionResult } from '@agentops/workflow';
+import { WorkflowInterpreter, PlanExecutor, type RetrievalService } from '@agentops/workflow';
 import { db } from '@agentops/db';
-import { workflowRuns, workflowNodeRuns, knowledgeChunks, reviewTasks } from '@agentops/db/schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { workflowRuns, knowledgeChunks, reviewTasks } from '@agentops/db/schema';
+import { eq, desc } from 'drizzle-orm';
 import WebSocket from 'ws';
 import { createLLMProvider } from '@agentops/ai';
 
@@ -107,145 +106,60 @@ function safeJsonSerialize(obj: any): any {
   }));
 }
 
-const workflowWorker = new Worker(
-  'workflow-execution',
+// Worker for AI workflow interpretation
+const workflowInterpretWorker = new Worker(
+  'workflow-interpret',
   async (job) => {
-    console.log('Processing workflow job', job.id, job.data);
+    console.log('Processing workflow interpret job', job.id, job.data);
 
     const { runId, workflowVersionId, definition, input } = job.data;
 
+    // Update status to interpreting
     await db
       .update(workflowRuns)
-      .set({ status: 'running', startedAt: new Date() })
+      .set({ status: 'interpreting', startedAt: new Date() })
       .where(eq(workflowRuns.id, runId));
 
-    broadcastRunUpdate(runId, { status: 'running', startedAt: new Date().toISOString() });
-
-    const workflowEngine = new WorkflowEngine();
-    workflowEngine.setRetrievalService(retrievalService);
-
-    workflowEngine.setNodeExecutionListener(async (nodeKey, nodeType, status, result?: NodeExecutionResult) => {
-      try {
-        // Find this node's definition to get config
-        const nodeDef = definition.nodes.find((n: any) => n.id === nodeKey);
-        const nodeConfig = nodeDef?.config || {};
-
-        let nodeRunId: string | null = null;
-
-        const existing = await db.query.workflowNodeRuns.findFirst({
-          where: and(
-            eq(workflowNodeRuns.workflowRunId, runId),
-            eq(workflowNodeRuns.nodeKey, nodeKey)
-          ),
-        });
-
-        if (existing) {
-          await db
-            .update(workflowNodeRuns)
-            .set({
-              status,
-              outputPayload: result?.output ? safeJsonSerialize(result.output) : undefined,
-              errorMessage: result?.errorMessage,
-              finishedAt: new Date(),
-              durationMs: result?.latencyMs,
-              tokenUsageInput: result?.usage?.inputTokens,
-              tokenUsageOutput: result?.usage?.outputTokens,
-              cost: result?.usage?.cost?.toString(),
-            })
-            .where(eq(workflowNodeRuns.id, existing.id));
-          nodeRunId = existing.id;
-        } else {
-          const [inserted] = await db.insert(workflowNodeRuns).values({
-            workflowRunId: runId,
-            nodeKey,
-            nodeType,
-            status,
-            inputPayload: safeJsonSerialize(input || {}),
-            outputPayload: result?.output ? safeJsonSerialize(result.output) : undefined,
-            errorMessage: result?.errorMessage,
-            startedAt: new Date(),
-            finishedAt: new Date(),
-            durationMs: result?.latencyMs,
-            tokenUsageInput: result?.usage?.inputTokens || 0,
-            tokenUsageOutput: result?.usage?.outputTokens || 0,
-            cost: result?.usage?.cost?.toString() || '0',
-          }).returning();
-          nodeRunId = inserted.id;
-        }
-
-        // Create review task when review node pauses for approval
-        if (nodeType === 'review' && status === 'waiting_review' && nodeRunId) {
-          await db.insert(reviewTasks).values({
-            workflowRunId: runId,
-            workflowNodeRunId: nodeRunId,
-            assigneeUserId: nodeConfig.assigneeUserId || null,
-            status: 'pending',
-            reviewedOutput: result?.output ? safeJsonSerialize(result.output) : undefined,
-          });
-
-          broadcastRunUpdate(runId, {
-            nodeKey,
-            nodeType,
-            status,
-            reviewTaskCreated: true,
-            result: result ? {
-              output: result.output,
-              errorMessage: result.errorMessage,
-              latencyMs: result.latencyMs,
-            } : undefined,
-          });
-        } else {
-          broadcastRunUpdate(runId, {
-            nodeKey,
-            nodeType,
-            status,
-            result: result ? {
-              output: result.output,
-              errorMessage: result.errorMessage,
-              latencyMs: result.latencyMs,
-            } : undefined,
-          });
-        }
-      } catch (err) {
-        console.error('Failed to record node run:', err);
-      }
-    });
+    broadcastRunUpdate(runId, { status: 'interpreting' });
 
     try {
-      const safeInput = safeJsonSerialize(input || {});
-      const result = await workflowEngine.execute(definition, safeInput);
+      // Create interpreter and generate execution plan
+      const interpreter = new WorkflowInterpreter('anthropic', process.env.ANTHROPIC_API_KEY);
+      const interpretationResult = await interpreter.interpret(definition, input || {});
 
+      // Update run with interpretation
       await db
         .update(workflowRuns)
         .set({
-          status: result.status,
-          outputPayload: safeJsonSerialize(result.outputs || {}),
-          finishedAt: new Date(),
+          status: 'planning',
+          interpretationPrompt: interpretationResult.prompt,
+          executionPlan: safeJsonSerialize(interpretationResult.executionPlan),
         })
         .where(eq(workflowRuns.id, runId));
 
       broadcastRunUpdate(runId, {
-        status: result.status,
-        output: result.outputs,
-        finishedAt: new Date().toISOString(),
+        status: 'planning',
+        interpretation: {
+          description: interpretationResult.naturalLanguageDescription,
+          plan: interpretationResult.executionPlan,
+        },
       });
 
-      console.log('Workflow result', result);
-      return result;
+      console.log('Workflow interpretation complete', interpretationResult.executionPlan);
+      return { status: 'interpreted', interpretation: interpretationResult };
     } catch (error) {
       await db
         .update(workflowRuns)
         .set({
           status: 'failed',
-          errorMessage: error instanceof Error ? error.message : 'Unknown error',
+          errorMessage: error instanceof Error ? error.message : 'Interpretation failed',
           finishedAt: new Date(),
         })
         .where(eq(workflowRuns.id, runId));
 
       broadcastRunUpdate(runId, {
         status: 'failed',
-        errorMessage: error instanceof Error ? error.message : 'Unknown error',
-        finishedAt: new Date().toISOString(),
+        errorMessage: error instanceof Error ? error.message : 'Interpretation failed',
       });
 
       throw error;
@@ -254,6 +168,176 @@ const workflowWorker = new Worker(
   { connection }
 );
 
+// Worker for AI-guided workflow execution
+const workflowExecutionWorker = new Worker(
+  'workflow-execution',
+  async (job) => {
+    console.log('Processing workflow execution job', job.id, job.data);
+
+    const { runId, executionPlan, input, resumeFromStepId, approvedOutput } = job.data;
+
+    // Update status to executing
+    await db
+      .update(workflowRuns)
+      .set({ status: 'executing' })
+      .where(eq(workflowRuns.id, runId));
+
+    broadcastRunUpdate(runId, { status: 'executing' });
+
+    try {
+      // Create executor
+      const executor = new PlanExecutor('anthropic', process.env.ANTHROPIC_API_KEY);
+      executor.setRetrievalService({
+        retrieve: async (projectId: string, query: string, topK: number) => {
+          return retrievalService.retrieve(projectId, query, topK);
+        },
+      });
+
+      // Handle resume from a paused step
+      const context = input || {};
+      if (resumeFromStepId && approvedOutput) {
+        context[resumeFromStepId] = approvedOutput;
+      }
+
+      // Execute the plan
+      const result = await executor.execute(
+        executionPlan,
+        context,
+        {
+          onStepStart: (stepId, step) => {
+            console.log(`Starting step: ${stepId} - ${step.nodeName}`);
+            broadcastRunUpdate(runId, { type: 'step_start', stepId, step });
+          },
+          onStepComplete: (stepId, step, output) => {
+            console.log(`Completed step: ${stepId} - ${step.nodeName}`);
+            broadcastRunUpdate(runId, { type: 'step_complete', stepId, output });
+          },
+          onPause: async (stepId, reason, ctx) => {
+            console.log(`Paused at step: ${stepId} - ${reason}`);
+            broadcastRunUpdate(runId, { type: 'pause', stepId, reason });
+
+            // Create review task for manual review
+            await db.insert(reviewTasks).values({
+              workflowRunId: runId,
+              workflowNodeRunId: stepId, // Using stepId as placeholder
+              status: 'pending',
+              reviewedOutput: safeJsonSerialize(ctx),
+            });
+          },
+        }
+      );
+
+      // Update final status
+      await db
+        .update(workflowRuns)
+        .set({
+          status: result.status,
+          outputPayload: safeJsonSerialize(result.output),
+          finishedAt: new Date(),
+          totalTokens: result.totalTokens,
+          totalCost: result.totalCost.toString(),
+        })
+        .where(eq(workflowRuns.id, runId));
+
+      broadcastRunUpdate(runId, {
+        status: result.status,
+        output: result.output,
+        finishedAt: new Date().toISOString(),
+      });
+
+      console.log('Workflow execution complete', result.status);
+      return result;
+    } catch (error) {
+      await db
+        .update(workflowRuns)
+        .set({
+          status: 'failed',
+          errorMessage: error instanceof Error ? error.message : 'Execution failed',
+          finishedAt: new Date(),
+        })
+        .where(eq(workflowRuns.id, runId));
+
+      broadcastRunUpdate(runId, {
+        status: 'failed',
+        errorMessage: error instanceof Error ? error.message : 'Execution failed',
+      });
+
+      throw error;
+    }
+  },
+  { connection }
+);
+
+// Worker for continuing workflow after review approval
+const workflowContinueWorker = new Worker(
+  'workflow-continue',
+  async (job) => {
+    console.log('Processing workflow continue job', job.id, job.data);
+
+    const { runId, executionPlan, context, resumeFromStepId, approvedOutput } = job.data;
+
+    await db
+      .update(workflowRuns)
+      .set({ status: 'executing' })
+      .where(eq(workflowRuns.id, runId));
+
+    broadcastRunUpdate(runId, { status: 'executing' });
+
+    try {
+      const executor = new PlanExecutor('anthropic', process.env.ANTHROPIC_API_KEY);
+      executor.setRetrievalService({
+        retrieve: async (projectId: string, query: string, topK: number) => {
+          return retrievalService.retrieve(projectId, query, topK);
+        },
+      });
+
+      // Apply approved output
+      if (resumeFromStepId && approvedOutput) {
+        context[resumeFromStepId] = approvedOutput;
+      }
+
+      const result = await executor.execute(executionPlan, context);
+
+      await db
+        .update(workflowRuns)
+        .set({
+          status: result.status,
+          outputPayload: safeJsonSerialize(result.output),
+          finishedAt: new Date(),
+          totalTokens: result.totalTokens,
+          totalCost: result.totalCost.toString(),
+        })
+        .where(eq(workflowRuns.id, runId));
+
+      broadcastRunUpdate(runId, {
+        status: result.status,
+        output: result.output,
+        finishedAt: new Date().toISOString(),
+      });
+
+      return result;
+    } catch (error) {
+      await db
+        .update(workflowRuns)
+        .set({
+          status: 'failed',
+          errorMessage: error instanceof Error ? error.message : 'Execution failed',
+          finishedAt: new Date(),
+        })
+        .where(eq(workflowRuns.id, runId));
+
+      broadcastRunUpdate(runId, {
+        status: 'failed',
+        errorMessage: error instanceof Error ? error.message : 'Execution failed',
+      });
+
+      throw error;
+    }
+  },
+  { connection }
+);
+
+// Worker for document processing
 const documentWorker = new Worker(
   'document-processing',
   async (job) => {
@@ -267,149 +351,29 @@ const documentWorker = new Worker(
   { connection }
 );
 
-// Worker for continuing workflow execution after review approval
-const workflowContinueWorker = new Worker(
-  'workflow-continue',
-  async (job) => {
-    console.log('Processing workflow continue job', job.id, job.data);
-
-    const { runId, workflowVersionId, definition, context, resumeFromNodeId, approvedOutput } = job.data;
-
-    await db
-      .update(workflowRuns)
-      .set({ status: 'running' })
-      .where(eq(workflowRuns.id, runId));
-
-    broadcastRunUpdate(runId, { status: 'running' });
-
-    const workflowEngine = new WorkflowEngine();
-    workflowEngine.setRetrievalService(retrievalService);
-
-    // Set up the same listener for node execution tracking
-    workflowEngine.setNodeExecutionListener(async (nodeKey, nodeType, status, result?: NodeExecutionResult) => {
-      try {
-        const nodeDef = definition.nodes.find((n: any) => n.id === nodeKey);
-        const nodeConfig = nodeDef?.config || {};
-
-        let nodeRunId: string | null = null;
-
-        const existing = await db.query.workflowNodeRuns.findFirst({
-          where: and(
-            eq(workflowNodeRuns.workflowRunId, runId),
-            eq(workflowNodeRuns.nodeKey, nodeKey)
-          ),
-        });
-
-        if (existing) {
-          await db
-            .update(workflowNodeRuns)
-            .set({
-              status,
-              outputPayload: result?.output ? safeJsonSerialize(result.output) : undefined,
-              errorMessage: result?.errorMessage,
-              finishedAt: new Date(),
-              durationMs: result?.latencyMs,
-              tokenUsageInput: result?.usage?.inputTokens,
-              tokenUsageOutput: result?.usage?.outputTokens,
-              cost: result?.usage?.cost?.toString(),
-            })
-            .where(eq(workflowNodeRuns.id, existing.id));
-          nodeRunId = existing.id;
-        } else {
-          const [inserted] = await db.insert(workflowNodeRuns).values({
-            workflowRunId: runId,
-            nodeKey,
-            nodeType,
-            status,
-            outputPayload: result?.output ? safeJsonSerialize(result.output) : undefined,
-            errorMessage: result?.errorMessage,
-            startedAt: new Date(),
-            finishedAt: new Date(),
-            durationMs: result?.latencyMs,
-            tokenUsageInput: result?.usage?.inputTokens || 0,
-            tokenUsageOutput: result?.usage?.outputTokens || 0,
-            cost: result?.usage?.cost?.toString() || '0',
-          }).returning();
-          nodeRunId = inserted.id;
-        }
-
-        broadcastRunUpdate(runId, {
-          nodeKey,
-          nodeType,
-          status,
-          result: result ? {
-            output: result.output,
-            errorMessage: result.errorMessage,
-            latencyMs: result.latencyMs,
-          } : undefined,
-        });
-      } catch (err) {
-        console.error('Failed to record node run:', err);
-      }
-    });
-
-    try {
-      // The context is already a plain object from the job data (JSON serialized/deserialized by BullMQ)
-      // Apply approved output to the review node's output
-      if (approvedOutput && context.outputs) {
-        context.outputs[resumeFromNodeId] = approvedOutput;
-      }
-
-      const result = await workflowEngine.executeFrom(definition, resumeFromNodeId, context);
-
-      await db
-        .update(workflowRuns)
-        .set({
-          status: result.status,
-          outputPayload: safeJsonSerialize(result.outputs || {}),
-          finishedAt: new Date(),
-        })
-        .where(eq(workflowRuns.id, runId));
-
-      broadcastRunUpdate(runId, {
-        status: result.status,
-        output: result.outputs,
-        finishedAt: new Date().toISOString(),
-      });
-
-      console.log('Workflow continue result', result);
-      return result;
-    } catch (error) {
-      await db
-        .update(workflowRuns)
-        .set({
-          status: 'failed',
-          errorMessage: error instanceof Error ? error.message : 'Unknown error',
-          finishedAt: new Date(),
-        })
-        .where(eq(workflowRuns.id, runId));
-
-      broadcastRunUpdate(runId, {
-        status: 'failed',
-        errorMessage: error instanceof Error ? error.message : 'Unknown error',
-        finishedAt: new Date().toISOString(),
-      });
-
-      throw error;
-    }
-  },
-  { connection }
-);
-
-workflowWorker.on('completed', (job) => {
-  console.log(`Workflow job ${job.id} completed`);
+// Event handlers
+workflowInterpretWorker.on('completed', (job) => {
+  console.log(`Interpret job ${job.id} completed`);
 });
 
-workflowWorker.on('failed', (job, err) => {
-  console.error(`Workflow job ${job?.id} failed`, err);
+workflowInterpretWorker.on('failed', (job, err) => {
+  console.error(`Interpret job ${job?.id} failed`, err);
+});
+
+workflowExecutionWorker.on('completed', (job) => {
+  console.log(`Execution job ${job.id} completed`);
+});
+
+workflowExecutionWorker.on('failed', (job, err) => {
+  console.error(`Execution job ${job?.id} failed`, err);
 });
 
 workflowContinueWorker.on('completed', (job) => {
-  console.log(`Workflow continue job ${job.id} completed`);
+  console.log(`Continue job ${job.id} completed`);
 });
 
 workflowContinueWorker.on('failed', (job, err) => {
-  console.error(`Workflow continue job ${job?.id} failed`, err);
+  console.error(`Continue job ${job?.id} failed`, err);
 });
 
 documentWorker.on('completed', (job) => {

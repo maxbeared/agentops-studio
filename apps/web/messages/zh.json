@@ -16,7 +16,7 @@
     "tagline": "面向现代团队的 AI 自动化平台",
     "heroTitle": "编排 AI 工作流",
     "heroTitleAccent": "轻松自如",
-    "heroSubtitle": "构建、部署和监控复杂的 AI 自动化流程。可视化工作流编辑器、多模型支持、人工审核和实时分析。",
+    "heroSubtitle": "通过可视化编辑器构建 AI 工作流，支持多模型切换、人工审核节点和实时运行监控，几分钟即可部署上线",
     "getStarted": "免费开始构建",
     "viewDemo": "查看演示",
     "openDashboard": "打开仪表盘",
@@ -51,8 +51,14 @@
       "integrations": "集成数量"
     },
     "readyTitle": "准备开始了吗？",
-    "readySubtitle": "几分钟内开始构建 AI 工作流。无需复杂配置，无需基础设施管理。",
+    "readySubtitle": "无需复杂配置，几分钟内部署你的第一个工作流",
     "createFree": "免费创建账号",
+    "createPlaceholder": "描述你的需求",
+    "createExample1": "客服机器人",
+    "createExample2": "数据分析流程",
+    "createExample3": "内容审核流程",
+    "startCreate": "开始创建",
+    "creating": "创建中...",
     "footer": {
       "documentation": "文档",
       "signIn": "登录",
@@ -164,7 +170,17 @@
     "createProjectFirst": "未找到项目，请先创建项目。",
     "createFailed": "创建工作流失败",
     "runFailed": "运行工作流失败",
-    "loadFailed": "加载工作流失败"
+    "loadFailed": "加载工作流失败",
+    "version": {
+      "title": "版本历史",
+      "versions": "个版本",
+      "current": "当前版本",
+      "aiGenerated": "AI 生成",
+      "aiModified": "AI 修改",
+      "manual": "手动",
+      "view": "查看",
+      "restore": "恢复"
+    }
   },
   "runs": {
     "title": "工作流运行",

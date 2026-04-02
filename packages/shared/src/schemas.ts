@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const createProjectSchema = z.object({
   name: z.string().min(1).max(120),
   description: z.string().max(1000).optional(),
-  organizationId: z.string().uuid(),
+  organizationId: z.string().uuid().optional(),
 });
 
 export const updateProjectSchema = z.object({

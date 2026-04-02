@@ -4,6 +4,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '../contexts/auth-context';
 import { useTranslation, useLocale } from '../contexts/locale-context';
 import {
@@ -14,6 +15,43 @@ import {
 
 const FEATURE_ICONS = [Zap, Cpu, Database, Users, TrendingUp, Lock];
 const CAPABILITY_ICONS = [Workflow, Zap, GitBranch, Layers, Sparkles, Rocket];
+
+// AI Workflow Creator Input Component
+function AICreatorInput({ t, size = 'default' }: { t: (key: string) => string; isLoggedIn: boolean; size?: 'default' | 'large' }) {
+  const router = useRouter();
+  const [description, setDescription] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      // Store in localStorage and redirect to login
+      if (!description.trim()) return;
+      localStorage.setItem('pending_workflow_desc', JSON.stringify({
+        description: description.trim(),
+        createdAt: Date.now(),
+        expiresAt: Date.now() + 24 * 60 * 60 * 1000,
+      }));
+      router.push('/auth/login');
+    }
+  };
+
+  const inputClass = size === 'large'
+    ? 'text-xl py-3'
+    : 'text-lg py-2.5';
+
+  return (
+    <input
+      ref={inputRef}
+      type="text"
+      value={description}
+      onChange={(e) => setDescription(e.target.value)}
+      onKeyDown={handleKeyDown}
+      placeholder={t('landing.createPlaceholder')}
+      className={`w-full bg-transparent text-zinc-100 placeholder-zinc-500 ${inputClass} focus:outline-none border-b-2 border-zinc-700 focus:border-cyan-500 transition-colors`}
+    />
+  );
+}
 
 const FEATURES = [
   { title: 'landing.features.workflow.title', desc: 'landing.features.workflow.desc' },
@@ -653,13 +691,38 @@ export default function LandingPage() {
     }
     return false;
   });
+  const [pendingDesc, setPendingDesc] = useState<string | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     window.scrollTo(0, 0);
     if ('scrollRestoration' in history) {
       history.scrollRestoration = 'manual';
     }
-  }, []);
+
+    // Check for pending workflow description from localStorage
+    if (typeof window !== 'undefined') {
+      const pending = localStorage.getItem('pending_workflow_desc');
+      if (pending) {
+        try {
+          const parsed = JSON.parse(pending);
+          if (parsed.expiresAt > Date.now()) {
+            setPendingDesc(parsed.description);
+            // Clear the pending item
+            localStorage.removeItem('pending_workflow_desc');
+            // Redirect to login if not logged in
+            if (!isLoggedIn) {
+              router.push('/auth/login');
+            }
+          } else {
+            localStorage.removeItem('pending_workflow_desc');
+          }
+        } catch {
+          localStorage.removeItem('pending_workflow_desc');
+        }
+      }
+    }
+  }, [isLoggedIn]);
 
   const toggleLocale = () => {
     setLocale(locale === 'en' ? 'zh' : 'en');
@@ -737,7 +800,7 @@ export default function LandingPage() {
 
         <div className="text-center relative z-10">
           <h1
-            className="text-[16vw] leading-none font-black tracking-tighter mb-0 relative"
+            className="text-[clamp(120px,25vw,320px)] md:text-[clamp(120px,20vw,280px)] leading-none font-black tracking-tighter mb-0 relative"
             style={{
               color: '#fafafa',
               textShadow: '0 0 50px rgba(0,229,255,0.35), 0 0 100px rgba(0,229,255,0.15)',
@@ -746,58 +809,74 @@ export default function LandingPage() {
             <GlitchText disabled={glitchDisabled}>AGENT</GlitchText>
           </h1>
           <h2
-            className="text-[10vw] leading-none font-black -mt-4 md:-mt-6 mb-8"
+            className="text-[clamp(80px,18vw,200px)] md:text-[clamp(80px,14vw,160px)] leading-none font-black -mt-2 md:-mt-4 mb-8"
             style={{ color: '#00e5ff', textShadow: '0 0 40px rgba(0,229,255,0.5)' }}
           >
             OPS
           </h2>
 
-          <p className="text-lg md:text-2xl max-w-2xl mx-auto mb-10 leading-relaxed text-zinc-400">
-            {t('landing.heroSubtitle')}
-          </p>
+          {/* Content wrapper with consistent width */}
+          <div className="w-full max-w-3xl mx-auto">
+            <p className="text-xl md:text-2xl mb-8 leading-relaxed text-zinc-400 text-left">
+              {t('landing.heroSubtitle')}
+            </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            {isLoggedIn ? (
-              <Link
-                href="/dashboard"
-                className="text-xl font-semibold px-10 py-4 transition-all hover:scale-105 inline-flex items-center gap-3"
-                style={{ backgroundColor: '#00e5ff', color: '#0a0a0a', boxShadow: '0 0 35px rgba(0,229,255,0.4)' }}
-              >
-                {t('landing.openDashboard')} <ArrowRight className="h-5 w-5" />
-              </Link>
-            ) : (
-              <>
-                <Link
-                  href="/auth/register"
-                  className="text-xl font-semibold px-10 py-4 transition-all hover:scale-105 inline-flex items-center gap-3"
-                  style={{ backgroundColor: '#00e5ff', color: '#0a0a0a', boxShadow: '0 0 35px rgba(0,229,255,0.4)' }}
-                >
-                  {t('landing.getStarted')} <ArrowRight className="h-5 w-5" />
-                </Link>
-                <Link
-                  href="/auth/login"
-                  className="text-xl font-semibold px-10 py-4 border-2 border-zinc-700 hover:border-zinc-500 transition-all inline-flex items-center gap-3"
-                >
-                  {t('landing.viewDemo')}
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
+            {/* AI Workflow Creator - Primary */}
+            <AICreatorInput t={t} isLoggedIn={isLoggedIn} size="large" />
 
-        <div className="absolute bottom-12 left-1/2 -translate-x-1/2">
-          <div className="w-6 h-10 border-2 border-zinc-700 rounded-full flex justify-center pt-2">
-            <div className="w-1.5 h-3 bg-zinc-500 rounded-full animate-bounce" />
+            {/* Primary Actions */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
+              {isLoggedIn ? (
+                <>
+                  <Link
+                    href="/projects"
+                    className="flex-1 text-lg md:text-xl font-semibold px-8 md:px-10 py-3 md:py-4 transition-all hover:scale-105 inline-flex items-center justify-center gap-3"
+                    style={{ backgroundColor: '#00e5ff', color: '#0a0a0a', boxShadow: '0 0 35px rgba(0,229,255,0.4)' }}
+                  >
+                    {t('landing.getStarted')} <ArrowRight className="h-5 w-5" />
+                  </Link>
+                  <Link
+                    href="/dashboard"
+                    className="flex-1 text-lg md:text-xl font-semibold px-8 md:px-10 py-3 md:py-4 border-2 border-zinc-700 hover:border-cyan-500 transition-all inline-flex items-center justify-center gap-3"
+                  >
+                    {t('landing.openDashboard')}
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/auth/login"
+                    className="flex-1 text-lg md:text-xl font-semibold px-8 md:px-10 py-3 md:py-4 transition-all hover:scale-105 inline-flex items-center justify-center gap-3"
+                    style={{ backgroundColor: '#00e5ff', color: '#0a0a0a', boxShadow: '0 0 35px rgba(0,229,255,0.4)' }}
+                  >
+                    {t('landing.getStarted')} <ArrowRight className="h-5 w-5" />
+                  </Link>
+                  <Link
+                    href="/workflows"
+                    className="flex-1 text-lg md:text-xl font-semibold px-8 md:px-10 py-3 md:py-4 border-2 border-zinc-700 hover:border-cyan-500 transition-all inline-flex items-center justify-center gap-3"
+                  >
+                    {t('landing.viewDemo')}
+                  </Link>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </section>
+
+      {/* Scroll indicator */}
+      <div className="flex justify-center -mt-16 relative z-20">
+        <div className="w-6 h-10 border-2 border-zinc-700 rounded-full flex justify-center pt-2">
+          <div className="w-1.5 h-3 bg-zinc-500 rounded-full animate-bounce" />
+        </div>
+      </div>
 
       {/* Core Features */}
       <section className="min-h-screen py-32 px-6">
         <div className="max-w-6xl mx-auto">
           <RevealSection>
             <h2
-              className="text-[12vw] leading-none font-black mb-16"
+              className="text-[16vw] md:text-[12vw] leading-none font-black mb-16"
               style={{ color: '#00e5ff', textShadow: '0 0 50px rgba(0,229,255,0.4)' }}
             >
               CORE
@@ -817,7 +896,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto">
           <RevealSection>
             <h2
-              className="text-[10vw] leading-none font-black mb-20"
+              className="text-[14vw] md:text-[10vw] leading-none font-black mb-20"
               style={{ color: '#ff4081', textShadow: '0 0 50px rgba(255,64,129,0.4)' }}
             >
               POWER
@@ -857,26 +936,58 @@ export default function LandingPage() {
         <div className="text-center relative z-10">
           <RevealSection>
             <h2
-              className="text-[10vw] md:text-[8vw] leading-none font-black mb-8"
+              className="text-[12vw] md:text-[8vw] leading-none font-black mb-8"
               style={{ color: '#fafafa', textShadow: '0 0 40px rgba(250,250,250,0.15)' }}
             >
               <GlitchText disabled={glitchDisabled}>{t('landing.readyTitle')}</GlitchText>
             </h2>
           </RevealSection>
-          <RevealSection delay={200}>
-            <p className="text-lg md:text-xl text-zinc-500 mb-10 max-w-md mx-auto">
-              {t('landing.readySubtitle')}
-            </p>
-          </RevealSection>
-          <RevealSection delay={400}>
-            <Link
-              href="/auth/register"
-              className="inline-flex items-center gap-3 text-xl font-semibold px-10 py-5 transition-all hover:scale-105"
-              style={{ backgroundColor: '#ea80fc', color: '#0a0a0a', boxShadow: '0 0 40px rgba(234,128,252,0.5)' }}
-            >
-              {t('landing.createFree')} <ArrowRight className="h-6 w-6" />
-            </Link>
-          </RevealSection>
+          {/* Content wrapper with consistent width */}
+          <div className="w-full max-w-3xl mx-auto">
+            <RevealSection delay={200}>
+              <p className="text-xl md:text-2xl text-zinc-500 mb-8 text-left">
+                {t('landing.readySubtitle')}
+              </p>
+            </RevealSection>
+            <RevealSection delay={400}>
+              <AICreatorInput t={t} isLoggedIn={isLoggedIn} />
+              <div className="flex flex-col sm:flex-row gap-4 justify-center mt-6">
+                {isLoggedIn ? (
+                  <>
+                    <Link
+                      href="/projects"
+                      className="flex-1 text-base md:text-lg font-medium px-6 md:px-8 py-1.5 md:py-2 transition-all hover:scale-105 inline-flex items-center justify-center gap-2"
+                      style={{ backgroundColor: '#ea80fc', color: '#0a0a0a', boxShadow: '0 0 25px rgba(234,128,252,0.4)' }}
+                    >
+                      {t('landing.getStarted')} <ArrowRight className="h-4 w-4" />
+                    </Link>
+                    <Link
+                      href="/dashboard"
+                      className="flex-1 text-base md:text-lg font-medium px-6 md:px-8 py-1.5 md:py-2 border-2 border-zinc-700 hover:border-purple-500 transition-all inline-flex items-center justify-center gap-2"
+                    >
+                      {t('landing.openDashboard')}
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      href="/auth/login"
+                      className="flex-1 text-base md:text-lg font-medium px-6 md:px-8 py-1.5 md:py-2 transition-all hover:scale-105 inline-flex items-center justify-center gap-2"
+                      style={{ backgroundColor: '#ea80fc', color: '#0a0a0a', boxShadow: '0 0 25px rgba(234,128,252,0.4)' }}
+                    >
+                      {t('landing.getStarted')} <ArrowRight className="h-4 w-4" />
+                    </Link>
+                    <Link
+                      href="/workflows"
+                      className="flex-1 text-base md:text-lg font-medium px-6 md:px-8 py-1.5 md:py-2 border-2 border-zinc-700 hover:border-purple-500 transition-all inline-flex items-center justify-center gap-2"
+                    >
+                      {t('landing.viewDemo')}
+                    </Link>
+                  </>
+                )}
+              </div>
+            </RevealSection>
+          </div>
         </div>
       </section>
 
