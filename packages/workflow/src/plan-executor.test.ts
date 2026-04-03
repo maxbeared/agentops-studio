@@ -379,7 +379,7 @@ describe('packages/workflow/src/plan-executor', () => {
         description: 'Webhook call',
         action: 'webhook',
         input: {
-          url: 'https://httpbin.org/post',
+          url: 'http://localhost:99999/invalid',
           method: 'POST',
           body: { test: true },
         },
