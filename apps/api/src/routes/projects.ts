@@ -9,13 +9,14 @@ export const projectRoutes = new Hono();
 
 projectRoutes.get('/', async (c) => {
   const authUser = await getAuthUser(c);
-  const queryOrgId = c.req.query('organizationId');
-  
-  let orgId = queryOrgId;
-  if (!orgId && authUser) {
-    orgId = authUser.orgId || undefined;
+
+  if (!authUser) {
+    return c.json({ error: { formErrors: ['Unauthorized'] } }, 401);
   }
-  
+
+  const queryOrgId = c.req.query('organizationId');
+  const orgId = queryOrgId || authUser.orgId;
+
   if (!orgId) {
     return c.json({ data: [] });
   }
@@ -90,6 +91,12 @@ projectRoutes.post('/', async (c) => {
 });
 
 projectRoutes.get('/:id', async (c) => {
+  const authUser = await getAuthUser(c);
+
+  if (!authUser) {
+    return c.json({ error: { formErrors: ['Unauthorized'] } }, 401);
+  }
+
   const id = c.req.param('id');
 
   const project = await db.query.projects.findFirst({
@@ -166,6 +173,12 @@ projectRoutes.put('/:id', async (c) => {
 });
 
 projectRoutes.delete('/:id', async (c) => {
+  const authUser = await getAuthUser(c);
+
+  if (!authUser) {
+    return c.json({ error: { formErrors: ['Unauthorized'] } }, 401);
+  }
+
   const id = c.req.param('id');
 
   const project = await db.query.projects.findFirst({

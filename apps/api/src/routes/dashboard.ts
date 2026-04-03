@@ -2,10 +2,17 @@ import { Hono } from 'hono';
 import { db } from '@agentops/db';
 import { workflowRuns, workflows, workflowVersions, reviewTasks } from '@agentops/db/schema';
 import { eq, desc, sql, inArray } from 'drizzle-orm';
+import { getAuthUser } from '../lib/auth';
 
 export const dashboardRoutes = new Hono();
 
 dashboardRoutes.get('/stats', async (c) => {
+  const authUser = await getAuthUser(c);
+
+  if (!authUser) {
+    return c.json({ error: { formErrors: ['Unauthorized'] } }, 401);
+  }
+
   const projectId = c.req.query('projectId');
 
   let runsWhere = undefined;

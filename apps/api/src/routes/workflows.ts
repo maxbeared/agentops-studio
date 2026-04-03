@@ -8,6 +8,12 @@ import { getAuthUser } from '../lib/auth';
 export const workflowRoutes = new Hono();
 
 workflowRoutes.get('/', async (c) => {
+  const authUser = await getAuthUser(c);
+
+  if (!authUser) {
+    return c.json({ error: { formErrors: ['Unauthorized'] } }, 401);
+  }
+
   const projectId = c.req.query('projectId');
 
   let workflowList: any[];
@@ -76,6 +82,12 @@ workflowRoutes.post('/', async (c) => {
 });
 
 workflowRoutes.get('/:id', async (c) => {
+  const authUser = await getAuthUser(c);
+
+  if (!authUser) {
+    return c.json({ error: { formErrors: ['Unauthorized'] } }, 401);
+  }
+
   const id = c.req.param('id');
 
   const workflow = await db.query.workflows.findFirst({

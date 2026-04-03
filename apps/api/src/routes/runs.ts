@@ -15,6 +15,12 @@ const workflowQueue = new Queue('workflow-execution', { connection });
 export const runRoutes = new Hono();
 
 runRoutes.get('/', async (c) => {
+  const authUser = await getAuthUser(c);
+
+  if (!authUser) {
+    return c.json({ error: { formErrors: ['Unauthorized'] } }, 401);
+  }
+
   const projectId = c.req.query('projectId');
   const workflowVersionId = c.req.query('workflowVersionId');
 
@@ -111,6 +117,12 @@ runRoutes.post('/', async (c) => {
 });
 
 runRoutes.get('/:id', async (c) => {
+  const authUser = await getAuthUser(c);
+
+  if (!authUser) {
+    return c.json({ error: { formErrors: ['Unauthorized'] } }, 401);
+  }
+
   const id = c.req.param('id');
 
   const run = await db.query.workflowRuns.findFirst({
@@ -141,6 +153,12 @@ runRoutes.get('/:id', async (c) => {
 });
 
 runRoutes.get('/:id/nodes', async (c) => {
+  const authUser = await getAuthUser(c);
+
+  if (!authUser) {
+    return c.json({ error: { formErrors: ['Unauthorized'] } }, 401);
+  }
+
   const id = c.req.param('id');
 
   const nodeRuns = await db.query.workflowNodeRuns.findMany({
