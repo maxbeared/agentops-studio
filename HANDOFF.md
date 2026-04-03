@@ -547,6 +547,7 @@ Password: demo123456
 - [x] **修改密码** - PUT /auth/password，验证原密码
 - [x] **头像 S3 存储** - base64 转存到 MinIO，avatarUrl 改为 text 类型
 - [x] **AI 模型配置管理** - AI Models Tab，CRUD 配置 OpenAI/Anthropic/Custom 模型
+- [x] **Dashboard Recharts 懒加载** - 将图表库拆分为独立组件 dynamic import，减少首屏编译时间（1833→1797 模块）
 
 ### ⚠️ 已知限制
 - `knowledge_chunks.embedding` 存储为 JSON 序列化的 float array（text 类型），非 pgvector
