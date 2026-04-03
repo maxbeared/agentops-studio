@@ -17,6 +17,15 @@ config({ path: '../../.env' });
 
 const app = new Hono();
 
+// Body size limit middleware (1MB)
+app.use('*', async (c, next) => {
+  const contentLength = c.req.header('content-length');
+  if (contentLength && parseInt(contentLength) > 1024 * 1024) {
+    return c.json({ error: { formErrors: ['Request body too large'] } }, 413);
+  }
+  await next();
+});
+
 app.use('*', cors());
 app.use('*', logger());
 

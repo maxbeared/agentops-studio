@@ -500,7 +500,8 @@ Password: demo123456
 | 单元测试 | Vitest | packages 独立模块测试 |
 | 集成测试 | Vitest + Honosupertest | API 路由测试 |
 | E2E 测试 | Playwright | 完整用户流程 |
-| 可访问性 | Playwright | WCAG 合规检查 |
+| 安全测试 | Playwright | API 安全测试 |
+| 可访问性 | Playwright + axe-core | WCAG 合规检查 |
 | 性能测试 | k6 | API 负载测试 |
 | 视觉回归 | Playwright | UI 一致性 |
 
@@ -514,7 +515,7 @@ tests/
 │   └── landing.spec.ts
 ├── security/               # 安全测试
 │   └── api-security.spec.ts
-├── visual/                  # 视觉回归测试
+├── visual/                 # 视觉回归测试
 │   └── landing.spec.ts
 └── perf/                   # 性能测试
     └── api-load-test.js
@@ -546,9 +547,49 @@ pnpm test:coverage
 - `lighthouse-budget.json` - Lighthouse 性能预算
 - `.env.test` - 测试环境变量
 
+### 测试状态
+
+**当前状态：39 个测试全部通过，0 个跳过**
+
+| 测试类型 | 通过 | 跳过 | 失败 |
+|----------|------|------|------|
+| E2E Tests | 21 | 0 | 0 |
+| Security Tests | 11 | 0 | 0 |
+| Visual Tests | 7 | 0 | 0 |
+| **总计** | **39** | **0** | **0** |
+
 ### CI/CD
 
 GitHub Actions 自动运行测试套件 (`.github/workflows/test.yml`)
+
+### 安全中间件
+
+API 添加了请求体大小限制中间件（1MB），位于 `apps/api/src/index.ts`：
+
+```typescript
+// Body size limit middleware (1MB)
+app.use('*', async (c, next) => {
+  const contentLength = c.req.header('content-length');
+  if (contentLength && parseInt(contentLength) > 1024 * 1024) {
+    return c.json({ error: { formErrors: ['Request body too large'] } }, 413);
+  }
+  await next();
+});
+```
+
+### Dashboard 401 重定向
+
+Dashboard 页面现在会在 API 返回 401 时正确重定向到登录页：
+
+```typescript
+// apps/web/app/dashboard/page.tsx
+useEffect(() => {
+  const errorMessage = error?.message || (error as { message?: string })?.message;
+  if (isError && errorMessage === 'Unauthorized') {
+    window.location.href = '/auth/login';
+  }
+}, [isError, error]);
+```
 
 ---
 

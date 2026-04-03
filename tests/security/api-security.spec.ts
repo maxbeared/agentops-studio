@@ -9,17 +9,24 @@ test.describe('Security Tests - Authentication & Authorization', () => {
   test.beforeAll(async () => {
     apiContext = await request.newContext();
     // Register a test user
+    const email = `security-test-${Date.now()}@test.com`;
     const response = await apiContext.post(`${API_BASE_URL}/auth/register`, {
       data: {
-        email: `security-test-${Date.now()}@test.com`,
+        email,
         password: 'password123',
         name: 'Security Test User',
       },
     });
 
-    if (response.status() === 201) {
-      const body = await response.json();
-      authToken = body.data?.token;
+    // Log for debugging
+    console.log('Registration status:', response.status());
+    const body = await response.json();
+    console.log('Registration response:', JSON.stringify(body).substring(0, 200));
+
+    if (response.status() === 201 && body.data?.token) {
+      authToken = body.data.token;
+    } else {
+      throw new Error(`Failed to register test user: ${response.status()} ${JSON.stringify(body)}`);
     }
   });
 
@@ -38,12 +45,7 @@ test.describe('Security Tests - Authentication & Authorization', () => {
     expect([401, 403]).toContain(response.status());
   });
 
-  test.skip('should reject tampered JWT token', async () => {
-    if (!authToken) {
-      console.log('No auth token available, skipping test');
-      return;
-    }
-
+  test('should reject tampered JWT token', async () => {
     // Tamper with the token (change a character)
     const tamperedToken = authToken.slice(0, -5) + 'xxxxx';
 
@@ -56,13 +58,8 @@ test.describe('Security Tests - Authentication & Authorization', () => {
     expect(response.status()).toBe(401);
   });
 
-  test.skip('should not allow horizontal privilege escalation', async () => {
-    if (!authToken) {
-      console.log('No auth token available, skipping test');
-      return;
-    }
-
-    // Try to access another user's project (assuming we know an ID)
+  test('should not allow horizontal privilege escalation', async () => {
+    // Try to access another user's project (using a fake UUID)
     const response = await apiContext.get(`${API_BASE_URL}/projects/99999999-9999-9999-9999-999999999999`, {
       headers: {
         Authorization: `Bearer ${authToken}`,
@@ -87,12 +84,7 @@ test.describe('Security Tests - Authentication & Authorization', () => {
     }
   });
 
-  test.skip('password should be hashed and not returned in responses', async () => {
-    if (!authToken) {
-      console.log('No auth token available, skipping test');
-      return;
-    }
-
+  test('password should be hashed and not returned in responses', async () => {
     const response = await apiContext.get(`${API_BASE_URL}/auth/me`, {
       headers: {
         Authorization: `Bearer ${authToken}`,
@@ -185,10 +177,10 @@ test.describe('Security Tests - Input Validation', () => {
     expect(response.status()).toBe(400);
   });
 
-  test.skip('should limit request body size', async () => {
-    // Create a very large payload - skip as it may cause issues
+  test('should limit request body size', async () => {
+    // Create a very large payload (10MB)
     const largePayload = {
-      data: 'x'.repeat(1024 * 1024 * 10), // 10MB
+      data: 'x'.repeat(1024 * 1024 * 10),
     };
 
     const response = await apiContext.post(`${API_BASE_URL}/auth/register`, {
@@ -201,7 +193,7 @@ test.describe('Security Tests - Input Validation', () => {
 });
 
 test.describe('Security Tests - Rate Limiting', () => {
-  test.skip('should implement rate limiting on login endpoint', async () => {
+  test('should implement rate limiting on login endpoint', async () => {
     const context = await request.newContext();
     // Make many rapid login attempts
     const promises = [];
