@@ -320,7 +320,6 @@ function WorkflowCanvasInner() {
           type: 'deletable',
           style: { stroke: '#52525b', strokeWidth: 2 },
         }}
-        selectEdgesOnClick
         fitView
         proOptions={{ hideAttribution: true }}
       >
