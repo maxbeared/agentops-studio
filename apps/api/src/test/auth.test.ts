@@ -68,7 +68,7 @@ describe('auth routes', () => {
 
     // Get the mocked db module
     const dbModule = await import('@agentops/db');
-    mockQuery = dbModule._mockQuery;
+    mockQuery = (dbModule as unknown as { _mockQuery: typeof mockQuery })._mockQuery;
 
     // Reset mock return values
     mockQuery.users.findFirst.mockResolvedValue(null);

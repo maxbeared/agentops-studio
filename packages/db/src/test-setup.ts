@@ -1,5 +1,6 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool, PoolClient } from 'pg';
+import { vi } from 'vitest';
 import * as schema from './schema';
 
 let pool: Pool | null = null;
