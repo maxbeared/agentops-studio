@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { Activity, CheckCircle, Clock, DollarSign, FileText, GitBranch, Play, User, Zap, TrendingUp } from 'lucide-react';
@@ -129,10 +130,18 @@ function getStatusVariant(status: string): 'success' | 'error' | 'warning' | 'in
 export default function DashboardPage() {
   const { t } = useTranslation();
 
-  const { data: statsData, isLoading, error } = useQuery({
+  const { data: statsData, isLoading, isError, error } = useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: () => api.dashboard.stats(),
   });
+
+  // Redirect to login on 401 error
+  useEffect(() => {
+    const errorMessage = error?.message || (error as { message?: string })?.message;
+    if (isError && errorMessage === 'Unauthorized') {
+      window.location.href = '/auth/login';
+    }
+  }, [isError, error]);
 
   const defaultRunsOverTime = [
     { date: 'Mon', success: 12, failed: 2, total: 14 },
@@ -159,26 +168,30 @@ export default function DashboardPage() {
 
   if (isLoading) {
     return (
-      <main className="bg-zinc-950 px-6 py-6 text-white">
-        <div className="mx-auto max-w-7xl flex flex-col gap-6">
-          <div className="flex items-center justify-center py-20">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-cyan-400 border-t-transparent" />
-            <span className="ml-3 text-zinc-400">{t('common.loading')}</span>
+      <AuthCheck>
+        <main className="bg-zinc-950 px-6 py-6 text-white">
+          <div className="mx-auto max-w-7xl flex flex-col gap-6">
+            <div className="flex items-center justify-center py-20">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-cyan-400 border-t-transparent" />
+              <span className="ml-3 text-zinc-400">{t('common.loading')}</span>
+            </div>
           </div>
-        </div>
-      </main>
+        </main>
+      </AuthCheck>
     );
   }
 
   if (error) {
     return (
-      <main className="bg-zinc-950 px-6 py-6 text-white">
-        <div className="mx-auto max-w-7xl flex flex-col gap-6">
-          <Card className="p-4 border-red-500/30 bg-red-500/10">
-            <span className="text-base text-red-400">{(error as Error).message}</span>
-          </Card>
-        </div>
-      </main>
+      <AuthCheck>
+        <main className="bg-zinc-950 px-6 py-6 text-white">
+          <div className="mx-auto max-w-7xl flex flex-col gap-6">
+            <Card className="p-4 border-red-500/30 bg-red-500/10">
+              <span className="text-base text-red-400">{(error as Error).message}</span>
+            </Card>
+          </div>
+        </main>
+      </AuthCheck>
     );
   }
 

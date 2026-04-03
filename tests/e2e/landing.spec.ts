@@ -95,9 +95,7 @@ test.describe('Authentication Flow', () => {
 });
 
 test.describe('Dashboard Page', () => {
-  test.skip('should redirect to login when not authenticated', async ({ page }) => {
-    // KNOWN ISSUE: Dashboard page loads but doesn't redirect to login on 401
-    // It shows empty state instead of redirecting
+  test('should redirect to login when not authenticated', async ({ page }) => {
     await page.goto('/dashboard');
 
     // Wait for redirect

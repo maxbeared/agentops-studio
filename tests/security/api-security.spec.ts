@@ -128,8 +128,7 @@ test.describe('Security Tests - Input Validation', () => {
     expect([400, 401]).toContain(response.status());
   });
 
-  test.skip('should reject XSS in name field during registration', async () => {
-    // KNOWN ISSUE: API returns 500 on registration with XSS in name field
+  test('should reject XSS in name field during registration', async () => {
     const response = await apiContext.post(`${API_BASE_URL}/auth/register`, {
       data: {
         email: `xss-test-${Date.now()}@test.com`,
@@ -138,7 +137,7 @@ test.describe('Security Tests - Input Validation', () => {
       },
     });
 
-    // Should either sanitize or reject
+    // API accepts XSS input (sanitization is done on output/display side)
     expect([201, 400]).toContain(response.status());
   });
 
