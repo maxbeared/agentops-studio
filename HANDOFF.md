@@ -549,14 +549,42 @@ pnpm test:coverage
 
 ### 测试状态
 
-**当前状态：39 个测试全部通过，0 个跳过**
+**当前状态：Vitest 路由集成测试全部通过**
 
+| 测试文件 | 通过 | 状态 |
+|----------|------|------|
+| `auth.test.ts` | 36 | ✅ 稳定 |
+| `dashboard-projects.test.ts` | 14 | ✅ 稳定 |
+| `workflows-runs.test.ts` | 14 | ✅ 稳定 |
+| `reviews-knowledge.test.ts` | 15 | ✅ 稳定 |
+| **Vitest API 测试总计** | **79** | **✅ 全部通过** |
+
+**Playwright E2E/Security/Visual 测试**
 | 测试类型 | 通过 | 跳过 | 失败 |
 |----------|------|------|------|
 | E2E Tests | 21 | 0 | 0 |
 | Security Tests | 11 | 0 | 0 |
 | Visual Tests | 7 | 0 | 0 |
-| **总计** | **39** | **0** | **0** |
+| **Playwright 测试总计** | **39** | **0** | **0** |
+
+**auth.ts 覆盖率**
+| 指标 | 覆盖率 |
+|------|--------|
+| Statements | 92.92% |
+| Branches | 90.16% |
+| Functions | 100% |
+| Lines | 92.79% |
+| 未覆盖行 | 51-84, 203 |
+
+> **2026-04-03 auth.test.ts 稳定性修复记录**
+> - 问题：5 个 auth 路由测试在 coverage 模式下随机失败（错误密码/无效 token/上传失败等分支返回 200 而非预期状态码）
+> - 根因：mock 拦截层不稳定，跨测试共享状态导致覆盖范围差异
+> - 修复策略：
+>   1. 使用 `vi.hoisted()` 定义模块级函数 mock，替代可变共享对象
+>   2. mock 目标精确指向路由实际导入的本地包装模块（`../lib/password`、`../lib/jwt`、`../lib/minio`），而非间接 SDK
+>   3. `beforeEach` 中对每个函数 mock 执行 `mockReset()` + `mockResolvedValue()` 确定性重置
+>   4. 分支覆盖使用 `mockResolvedValueOnce()` 单次行为覆盖
+> - 验证：`pnpm vitest run apps/api/src/test/auth.test.ts` + coverage 模式均 36 passed
 
 ### CI/CD
 
