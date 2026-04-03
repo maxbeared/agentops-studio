@@ -45,6 +45,16 @@ Thumbs.db
 # Testing
 coverage
 .nyc_output
+test-results
+playwright-report
+playwright/screenshots
+playwright/test-results
+
+# k6
+*.js.map
+
+# Lighthouse
+.lighthouseci
 
 # Misc
 .cache

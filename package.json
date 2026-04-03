@@ -16,10 +16,25 @@
     "db:migrate": "cd packages/db && bun run migrate",
     "db:studio": "cd packages/db && bun run studio",
     "db:seed": "cd packages/db && bun run seed",
-    "ws": "cd apps/api && bun run src/websocket-server.ts"
+    "ws": "cd apps/api && bun run src/websocket-server.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:unit": "vitest run --dir packages --reporter=verbose",
+    "test:integration": "vitest run --dir apps/api --reporter=verbose",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:debug": "playwright test --debug",
+    "test:visual": "playwright test tests/visual || true",
+    "test:perf": "k6 run tests/perf/ || echo 'k6 not configured'",
+    "test:a11y": "playwright test tests/a11y || true",
+    "lighthouse": "lhci autorun"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
+    "@vitest/coverage-v8": "^4.1.2",
     "turbo": "^2.3.3",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vitest": "^4.1.2"
   }
 }

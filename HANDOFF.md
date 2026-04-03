@@ -54,6 +54,7 @@ agentops-studio/
 │   ├── db/           # Drizzle schema / db client
 │   ├── ai/           # AI provider (OpenAI, Anthropic, Mock)
 │   └── workflow/     # Workflow interpreter / plan executor
+├── tests/            # E2E/UI/安全/性能测试
 ├── docker-compose.yml
 └── package.json
 ```
@@ -490,7 +491,68 @@ Password: demo123456
 
 ---
 
-## 11. 已完成功能清单
+## 11. 测试体系
+
+### 测试框架
+
+| 维度 | 框架 | 用途 |
+|------|------|------|
+| 单元测试 | Vitest | packages 独立模块测试 |
+| 集成测试 | Vitest + Honosupertest | API 路由测试 |
+| E2E 测试 | Playwright | 完整用户流程 |
+| 可访问性 | Playwright | WCAG 合规检查 |
+| 性能测试 | k6 | API 负载测试 |
+| 视觉回归 | Playwright | UI 一致性 |
+
+### 测试文件结构
+
+```
+tests/
+├── e2e/                    # E2E 测试
+│   └── landing.spec.ts
+├── a11y/                   # 可访问性测试
+│   └── landing.spec.ts
+├── security/               # 安全测试
+│   └── api-security.spec.ts
+├── visual/                  # 视觉回归测试
+│   └── landing.spec.ts
+└── perf/                   # 性能测试
+    └── api-load-test.js
+```
+
+### 测试命令
+
+```bash
+# 运行所有测试
+pnpm test
+
+# 单元测试 (packages)
+pnpm test:unit
+
+# 集成测试 (API 路由)
+pnpm test:integration
+
+# E2E 测试 (需启动应用)
+pnpm test:e2e
+
+# 覆盖率报告
+pnpm test:coverage
+```
+
+### 测试配置
+
+- `vitest.config.ts` - Vitest 配置
+- `playwright.config.ts` - Playwright 配置
+- `lighthouse-budget.json` - Lighthouse 性能预算
+- `.env.test` - 测试环境变量
+
+### CI/CD
+
+GitHub Actions 自动运行测试套件 (`.github/workflows/test.yml`)
+
+---
+
+## 12. 已完成功能清单
 
 ### ✅ 核心功能
 - [x] 数据库 schema（19 张表）+ 迁移 + 种子
@@ -548,6 +610,7 @@ Password: demo123456
 - [x] **头像 S3 存储** - base64 转存到 MinIO，avatarUrl 改为 text 类型
 - [x] **AI 模型配置管理** - AI Models Tab，CRUD 配置 OpenAI/Anthropic/Custom 模型
 - [x] **Dashboard Recharts 懒加载** - 将图表库拆分为独立组件 dynamic import，减少首屏编译时间（1833→1797 模块）
+- [x] **自动化测试体系** - Vitest 单元/集成测试 + Playwright E2E/UI 测试 + k6 性能测试 + GitHub Actions CI/CD
 
 ### ⚠️ 已知限制
 - `knowledge_chunks.embedding` 存储为 JSON 序列化的 float array（text 类型），非 pgvector
@@ -556,7 +619,7 @@ Password: demo123456
 
 ---
 
-## 12. 代码关键点
+## 13. 代码关键点
 
 ### JWT 认证流程
 ```typescript
@@ -641,6 +704,6 @@ const handleKeyDown = (e: React.KeyboardEvent) => {
 
 ---
 
-## 13. 项目一句话总结
+## 14. 项目一句话总结
 
 AgentOps Studio 是一个功能完整的 AI 自动化运营中台，具备 AI 工作流智能创建/解读、Workflow Builder 可视化编排、真实 AI Provider 集成、MinIO 文件存储、JWT 认证、节点执行追踪、审核流程和 WebSocket 实时推送等能力，用于展示全栈开发与 AI 应用集成的综合实力。
