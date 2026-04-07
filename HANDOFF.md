@@ -590,6 +590,56 @@ pnpm test:coverage
 
 GitHub Actions 自动运行测试套件 (`.github/workflows/test.yml`)
 
+---
+
+## 12. 生产部署
+
+### 部署文件
+
+| 文件 | 说明 |
+|------|------|
+| `Dockerfile.api` | API 服务 Docker 镜像 |
+| `Dockerfile.web` | Next.js Web 前端 Docker 镜像 |
+| `Dockerfile.worker` | Worker 服务 Docker 镜像 |
+| `docker-compose.prod.yml` | 生产环境完整编排（PostgreSQL + Redis + MinIO + API + Web + Worker + Nginx） |
+| `nginx/nginx.conf` | Nginx 反向代理配置（WebSocket 支持） |
+| `ecosystem.config.js` | PM2 进程管理（非 Docker 部署用） |
+| `.env.production.example` | 生产环境变量模板 |
+| `deploy.sh` | 一键部署脚本 |
+| `Makefile` | 简化部署命令 |
+| `SERVER_SETUP.md` | 详细服务器部署指南 |
+
+### 部署方式
+
+**方式一：Make 命令**
+
+```bash
+make build     # 构建镜像
+make migrate   # 数据库迁移
+make start     # 启动服务
+```
+
+**方式二：部署脚本**
+
+```bash
+./deploy.sh
+```
+
+### 部署到服务器步骤
+
+1. 上传代码到服务器
+2. 配置环境变量：
+   ```bash
+   cp .env.production.example .env.production
+   nano .env.production  # 修改必填项
+   ```
+3. 运行部署：
+   ```bash
+   ./deploy.sh
+   ```
+
+详细说明参考 [SERVER_SETUP.md](SERVER_SETUP.md)
+
 ### 安全中间件
 
 API 添加了请求体大小限制中间件（1MB），位于 `apps/api/src/index.ts`：
@@ -680,6 +730,7 @@ useEffect(() => {
 - [x] **AI 模型配置管理** - AI Models Tab，CRUD 配置 OpenAI/Anthropic/Custom 模型
 - [x] **Dashboard Recharts 懒加载** - 将图表库拆分为独立组件 dynamic import，减少首屏编译时间（1833→1797 模块）
 - [x] **自动化测试体系** - Vitest 单元/集成测试 + Playwright E2E/UI 测试 + k6 性能测试 + GitHub Actions CI/CD
+- [x] **Docker 生产部署配置** - Dockerfile、docker-compose.prod.yml、Nginx、部署脚本
 
 ### ⚠️ 已知限制
 - `knowledge_chunks.embedding` 存储为 JSON 序列化的 float array（text 类型），非 pgvector
