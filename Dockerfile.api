@@ -2,24 +2,24 @@ FROM oven/bun:1-alpine AS base
 
 WORKDIR /app
 
-# Install dependencies only when needed
+# Dependencies stage
 FROM base AS deps
-COPY package.json ./
-COPY bun.lockb ./
+COPY package.json bun.lockb ./
 RUN bun install --frozen-lockfile
 
-# Build the application
+# Build stage
 FROM deps AS build
 COPY . .
 RUN bun run build
 
-# Production image
+# Production stage - slim alpine with just runtime
 FROM base AS production
 ENV NODE_ENV=production
 
-# Install dependencies for production
-COPY package.json ./
-RUN bun install --frozen-lockfile --production
+# Copy lock file and install production deps only
+COPY package.json bun.lockb ./
+RUN bun install --frozen-lockfile --production && \
+    rm -rf /tmp/*
 
 # Copy built artifacts
 COPY --from=build /app/dist ./dist

@@ -1,35 +1,30 @@
-FROM node:20-alpine AS base
-
+# Dependencies stage - install all deps
+FROM node:20-alpine AS deps
 WORKDIR /app
-
-# Install dependencies only when needed
-FROM base AS deps
-COPY package.json ./
-COPY pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml ./
 RUN npm install -g pnpm@9 && pnpm install --frozen-lockfile
 
-# Build the application
+# Build stage
 FROM deps AS build
+WORKDIR /app
 COPY . .
 RUN pnpm run build
 
-# Production image
-FROM base AS production
+# Production stage - minimal runtime
+FROM node:20-alpine AS production
 ENV NODE_ENV=production PORT=3000
 
-# Install production dependencies only
+WORKDIR /app
+
+# Install production deps only
 RUN npm install -g pnpm@9 && \
-    pnpm install --frozen-lockfile --prod
+    pnpm install --frozen-lockfile --prod && \
+    rm -rf /tmp/*
 
 # Copy built artifacts
-COPY --from=build /app/.next ./.next
-COPY --from=build /app/public ./public
-COPY --from=build /app/package.json ./
-COPY --from=build /app/next.config.mjs ./
-
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
+COPY --from=build --chown=nodejs:nodejs /app/.next ./.next
+COPY --from=build --chown=nodejs:nodejs /app/public ./public
+COPY --from=build /app/package.json /app/next.config.mjs ./
 
 USER nodejs
 
