@@ -103,9 +103,8 @@ services:
   websocket:
     build:
       context: .
-      dockerfile: Dockerfile.api
+      dockerfile: Dockerfile.websocket
     container_name: agentops-websocket
-    command: bun run src/websocket-server.ts
     environment:
       NODE_ENV: production
       WS_PORT: 3002

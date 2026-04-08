@@ -1,36 +1,31 @@
-# Dependencies stage - install all deps
-FROM node:20-alpine AS deps
-WORKDIR /app
-COPY package.json pnpm-lock.yaml ./
-RUN npm install -g pnpm@9 && pnpm install --frozen-lockfile
+# Multi-stage build for Web with Bun
+FROM oven/bun:1-alpine AS builder
 
-# Build stage
-FROM deps AS build
 WORKDIR /app
-COPY . .
-RUN pnpm run build
+
+# Copy root level configs needed by web
+COPY tsconfig.base.json ./
+COPY apps/web/ apps/web/
+
+# Install deps and build with bun
+WORKDIR /app/apps/web
+RUN bun install && bun run build
 
 # Production stage - minimal runtime
-FROM node:20-alpine AS production
+FROM oven/bun:1-alpine AS production
 ENV NODE_ENV=production PORT=3000
 
 WORKDIR /app
 
-# Install production deps only
-RUN npm install -g pnpm@9 && \
-    pnpm install --frozen-lockfile --prod && \
-    rm -rf /tmp/*
+# Copy only built artifacts and minimal runtime deps
+COPY --from=builder /app/apps/web/.next ./.next
+COPY --from=builder /app/apps/web/public ./public
+COPY --from=builder /app/apps/web/package.json ./
 
-# Copy built artifacts
-COPY --from=build --chown=nodejs:nodejs /app/.next ./.next
-COPY --from=build --chown=nodejs:nodejs /app/public ./public
-COPY --from=build /app/package.json /app/next.config.mjs ./
-
-USER nodejs
+# Install only production dependencies
+RUN bun install --production && \
+    rm -rf /tmp/* /root/.cache/bun
 
 EXPOSE 3000
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:3000 || exit 1
-
-CMD ["pnpm", "start"]
+CMD ["bun", "x", "next", "start"]

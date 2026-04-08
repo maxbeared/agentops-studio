@@ -1,38 +1,18 @@
-FROM oven/bun:1-alpine AS base
+# Single stage build for API - bun handles workspaces natively
+FROM oven/bun:1-alpine
 
 WORKDIR /app
 
-# Dependencies stage
-FROM base AS deps
-COPY package.json bun.lockb ./
-RUN bun install --frozen-lockfile
+# Copy monorepo
+COPY package.json bun.lock ./
+COPY apps/ ./apps/
+COPY packages/ ./packages/
 
-# Build stage
-FROM deps AS build
-COPY . .
-RUN bun run build
+# Install and build
+RUN bun install
+RUN bun run --filter=@agentops/api build
 
-# Production stage - slim alpine with just runtime
-FROM base AS production
-ENV NODE_ENV=production
-
-# Copy lock file and install production deps only
-COPY package.json bun.lockb ./
-RUN bun install --frozen-lockfile --production && \
-    rm -rf /tmp/*
-
-# Copy built artifacts
-COPY --from=build /app/dist ./dist
-
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
-
-USER nodejs
-
+# Run
 EXPOSE 3001 3002
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:3001/health || exit 1
-
-ENTRYPOINT ["bun", "run", "dist/index.js"]
+ENTRYPOINT ["bun", "run", "apps/api/dist/index.js"]

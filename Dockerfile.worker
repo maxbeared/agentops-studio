@@ -1,33 +1,13 @@
-FROM oven/bun:1-alpine AS base
+# Single stage build for Worker
+FROM oven/bun:1-alpine
 
 WORKDIR /app
 
-# Dependencies stage
-FROM base AS deps
-COPY package.json bun.lockb ./
-RUN bun install --frozen-lockfile
+COPY package.json bun.lock ./
+COPY apps/ ./apps/
+COPY packages/ ./packages/
 
-# Build stage
-FROM deps AS build
-COPY . .
-RUN bun run build
+RUN bun install
+RUN bun run --filter=@agentops/worker build
 
-# Production stage
-FROM base AS production
-ENV NODE_ENV=production
-
-COPY package.json bun.lockb ./
-RUN bun install --frozen-lockfile --production && \
-    rm -rf /tmp/*
-
-COPY --from=build /app/dist ./dist
-
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
-
-USER nodejs
-
-HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-    CMD pgrep -x bun || exit 1
-
-ENTRYPOINT ["bun", "run", "dist/index.js"]
+ENTRYPOINT ["bun", "run", "apps/worker/dist/index.js"]
