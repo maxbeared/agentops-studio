@@ -463,24 +463,27 @@ ANTHROPIC_API_KEY=sk-ant-...
 # 1. 启动 Docker 基础设施
 docker-compose up -d
 
-# 2. 数据库迁移
-pnpm db:generate
-pnpm db:migrate
+# 2. 安装依赖
+bun install
 
-# 3. 数据库种子
-pnpm db:seed
+# 3. 数据库迁移
+bun run db:generate
+bun run db:migrate
 
-# 4. 启动 API (localhost:3001)
+# 4. 数据库种子
+bun run db:seed
+
+# 5. 启动 API (localhost:3001)
 cd apps/api && bun run src/index.ts
 
-# 5. 启动 WebSocket (localhost:3002)
+# 6. 启动 WebSocket (localhost:3002)
 cd apps/api && bun run src/websocket-server.ts
 
-# 6. 启动 Worker
+# 7. 启动 Worker
 cd apps/worker && bun run src/index.ts
 
-# 7. 启动 Web (localhost:3000)
-cd apps/web && pnpm dev
+# 8. 启动 Web (localhost:3000)
+cd apps/web && bun dev
 ```
 
 ### Demo 账号
@@ -525,19 +528,19 @@ tests/
 
 ```bash
 # 运行所有测试
-pnpm test
+bun test
 
 # 单元测试 (packages)
-pnpm test:unit
+bun test:unit
 
 # 集成测试 (API 路由)
-pnpm test:integration
+bun test:integration
 
 # E2E 测试 (需启动应用)
-pnpm test:e2e
+bun test:e2e
 
 # 覆盖率报告
-pnpm test:coverage
+bun test:coverage
 ```
 
 ### 测试配置
@@ -584,7 +587,7 @@ pnpm test:coverage
 >   2. mock 目标精确指向路由实际导入的本地包装模块（`../lib/password`、`../lib/jwt`、`../lib/minio`），而非间接 SDK
 >   3. `beforeEach` 中对每个函数 mock 执行 `mockReset()` + `mockResolvedValue()` 确定性重置
 >   4. 分支覆盖使用 `mockResolvedValueOnce()` 单次行为覆盖
-> - 验证：`pnpm vitest run apps/api/src/test/auth.test.ts` + coverage 模式均 36 passed
+> - 验证：`bun vitest run apps/api/src/test/auth.test.ts` + coverage 模式均 36 passed
 
 ### CI/CD
 

@@ -29,7 +29,7 @@ export default defineConfig({
   // Only start web server if explicitly enabled
   webServer: process.env.PLAYWRIGHT_START_SERVER
     ? {
-        command: 'cd apps/web && pnpm dev',
+        command: 'cd apps/web && bun dev',
         url: 'http://localhost:3000',
         reuseExistingServer: true,
         timeout: 120 * 1000,
