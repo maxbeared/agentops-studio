@@ -601,13 +601,24 @@ GitHub Actions 自动运行测试套件 (`.github/workflows/test.yml`)
 | `Dockerfile.api` | API 服务 Docker 镜像 |
 | `Dockerfile.web` | Next.js Web 前端 Docker 镜像 |
 | `Dockerfile.worker` | Worker 服务 Docker 镜像 |
-| `docker-compose.prod.yml` | 生产环境完整编排（PostgreSQL + Redis + MinIO + API + Web + Worker + Nginx） |
+| `Dockerfile.websocket` | WebSocket 服务 Docker 镜像 |
+| `docker-compose.prod.yml` | 生产环境完整编排（PostgreSQL + Redis + MinIO + API + Web + Worker + WebSocket + Nginx） |
 | `nginx/nginx.conf` | Nginx 反向代理配置（WebSocket 支持） |
 | `ecosystem.config.js` | PM2 进程管理（非 Docker 部署用） |
 | `.env.production.example` | 生产环境变量模板 |
+| `.dockerignore` | Docker 构建排除配置 |
+| `bun.lock` | Bun 依赖锁文件 |
 | `deploy.sh` | 一键部署脚本 |
 | `Makefile` | 简化部署命令 |
 | `SERVER_SETUP.md` | 详细服务器部署指南 |
+
+### 包管理器
+
+项目使用 **Bun** 作为统一的包管理器：
+- 根目录：`bun.lock`
+- API/Worker：使用 `bun install` / `bun run`
+- Web：使用 `bun install` / `bun run`
+- 不再使用 pnpm
 
 ### 部署方式
 
@@ -671,7 +682,7 @@ useEffect(() => {
 
 ---
 
-## 12. 已完成功能清单
+## 13. 已完成功能清单
 
 ### ✅ 核心功能
 - [x] 数据库 schema（19 张表）+ 迁移 + 种子
@@ -730,7 +741,8 @@ useEffect(() => {
 - [x] **AI 模型配置管理** - AI Models Tab，CRUD 配置 OpenAI/Anthropic/Custom 模型
 - [x] **Dashboard Recharts 懒加载** - 将图表库拆分为独立组件 dynamic import，减少首屏编译时间（1833→1797 模块）
 - [x] **自动化测试体系** - Vitest 单元/集成测试 + Playwright E2E/UI 测试 + k6 性能测试 + GitHub Actions CI/CD
-- [x] **Docker 生产部署配置** - Dockerfile、docker-compose.prod.yml、Nginx、部署脚本
+- [x] **Docker 生产部署配置** - Dockerfile（api/web/worker/websocket）、docker-compose.prod.yml、Nginx、部署脚本
+- [x] **Bun 统一包管理** - 移除 pnpm-lock.yaml 和 pnpm-workspace.yaml，统一使用 bun.lock
 
 ### ⚠️ 已知限制
 - `knowledge_chunks.embedding` 存储为 JSON 序列化的 float array（text 类型），非 pgvector
@@ -739,7 +751,7 @@ useEffect(() => {
 
 ---
 
-## 13. 代码关键点
+## 14. 代码关键点
 
 ### JWT 认证流程
 ```typescript
